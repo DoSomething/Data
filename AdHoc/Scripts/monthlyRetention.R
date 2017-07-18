@@ -3,15 +3,18 @@ library(data.table)
 library(dtplyr)
 library(lubridate)
 
-df <- tbl_dt(read_csv('Data/the_all_inclusive member_event_log 2017-07-07T1316.csv'))
+# df <- tbl_dt(read_csv('Data/the_all_inclusive member_event_log 2017-07-07T1316.csv'))
+# 
+# names(df) <- c('Uid','event_date','event_id','action_type','action_id','event_ts')
 
+df <- tbl_dt(read_csv('~/Downloads/the_all_inclusive member_event_log 2017-07-17T1748.csv'))
 names(df) <- c('Uid','event_date','event_id','action_type','action_id','event_ts')
 
 df <-
   df %>%
   mutate(
     event_month = month(event_date),
-    userMonth = paste0(Uid, '-', month(Day))
+    userMonth = paste0(Uid, '-', month(event_date))
   )
 
 Users <- 

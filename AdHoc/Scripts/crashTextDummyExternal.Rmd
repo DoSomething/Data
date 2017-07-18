@@ -7,29 +7,21 @@ output: html_notebook
 #####Key Takeaways:
 1. There is clear evidence of the effectiveness of the campaign in reducing the frequency of texting and driving
 2. The effectiveness dampens over time, but does persist even on a 4-8 week horizon
-3. Effectiveness is most prominent amongst licensed drivers, and may actually be detrimental in non-licensed drivers
-4. Effectiveness varies based on several identified factors, elaborated upon below
-5. Ability to tie this data to our broader information base is critical to deriving additional insights
-6. Future experiments should maintain a control population throughout the life of the experiment, rather than just at its bookends
-
-###Initialize Environment
-```{r}
+    a) We see this by constructing a difference in difference table where we see the change in likelihood to text and drive before and after the campaign for folks who were surveyed 72 hours and 4-8 weeks after the campaign. This is compared to the change in the control group to calculate the change for participants and removing exogenous drift in likelihood
+    b) We see that the effect of the campaign in the first 72 hours is an 11.5% reduction in texting and driving
+    c) We also see that the effect of the campaign in the 4-8 week period after falls to a reduction of about 1.6%
+```{r message=FALSE, warning=FALSE, echo=FALSE}
 #Load required packages and custom functions
 library(rpart)
 library(rpart.plot)
 library(caret)
 library(ROCR)
+library(scales)
 library(knitr)
 source('~/Data/AdHoc/Scripts/init.R')
 source('~/Data/AdHoc/Scripts/DSUtils.R')
-```
+options(knitr.kable.NA = '')
 
-###Prep Data
-- After pulling the data into the environment, some fields were manipulated based on their distributions
-- For instance, people who said they did not drive were flagged and removed from subsequent analysis
-- If a field had values concentrated in one or two buckets, or many buckets with few values, the many buckets were reclassified into a more generic umbrella category
-- The outcome I focused on was whether or not someone texted and drove since other levels were either very rare or irrelevant
-```{r, message=FALSE, warning=FALSE}
 #Write and execute functions to prepare individual files
 prepControl <- function(path) {
   ctdControl <- 
@@ -124,29 +116,16 @@ ctd %<>%
     timePeriod = ifelse(date < '2017-03-21', 'Before', 'After')
   ) %>%
   left_join(ages, copy=T)
-kable(textDriveTable)
-kable(genderTable)
-```
 
-###Distribution of Surveys by Date
-- Curiously, surveys taken 72 hours post campaign began and were distributed more flatly throughout
-- 4-8 Week surveys were frontloaded with a long tail
-- Control group surveys were largely taken near the beginning and end of the survey cycle
-```{r, message=FALSE, warning=FALSE}
-ggplot(ctd, aes(x=group,y=date)) + 
+surveyDist <- 
+  ggplot(ctd, aes(x=group,y=date)) + 
   geom_violin(position='dodge',aes(fill=group)) + 
   coord_flip() + theme(legend.position="none") + 
   ggtitle('Survey Date by Group') + 
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-###Difference in Difference
-- The fact that control group surveys were taken before and after the time period of interest allows us to construct a difference in difference analysis. 
-- This techniques lets us take the changes in the control group as an estimate of all effects outside of the experiment
-- By substracting away this "noise" from the changes observed in the experiment group, we arrive at an estimate of the impact of the campaign itself
-- We see that the effect of the campaign in the first 72 hours is an 11.5% reduction in texting and driving
-- We also see that the effect of the campaign in the 4-8 week period after falls to a reduction of about 1.6%
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 DnD <- function(data, pivot) {
   
   DnD <-
@@ -168,14 +147,26 @@ DnD <- function(data, pivot) {
       data.frame(group='Effect - 4-8 Weeks',Before=NA,After=NA,Diff=DnD[group=='4-8 Weeks',Diff]-DnD[group=='Control',Diff])
     )
   
+  DnD[,
+      ':='(
+        Before = percent(Before), After = percent(After), Diff = percent(Diff))
+      ][grepl('Effect', group),
+        ':='(
+          Before = NA,
+          After = NA
+        )
+      ]
+  
 }
 
 textDrive.DnD <- DnD(ctd, 'textDrive.yn') %>% kable(digits = 4, align = 'l') %>% print()
 ```
 
-###Slice and Dice
-- Now that we have some sense of the overall effect, we can start digging into how the effects differ by available pivotable characteristics
-```{r, message=FALSE, warning=FALSE}
+
+3. Effectiveness is most prominent amongst licensed drivers, and may actually be detrimental in non-licensed drivers
+    a) This is determined by observing the distirebution in outcomes ac ross the 3 groups. We can see that licensed drivers responded the most and in the expected direction. Permitted drivers are less responsive and go in the opposite direction as what is expected, but have a very high base rate of almost never texting and driving. The same seems to be the case for inidividuals who were neither permitted nor licensed
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 proportionPivot <- function(data, pivot=NULL) {
   if(is.null(pivot)) { 
     outcomeFreq <-
@@ -223,57 +214,36 @@ proportionPlot <- function(data, wrap, title) {
   return(plot)
 }
 
-ggplot(proportionPivot(ctd), aes(x=group,y=proportion,group=textDrive)) +
+overallPlot <- 
+  ggplot(proportionPivot(ctd), aes(x=group,y=proportion,group=textDrive)) +
   geom_bar(stat='identity',position='stack',aes(fill=textDrive)) +
   scale_y_continuous(breaks = pretty_breaks(n=10)) +
   theme(plot.title = element_text(hjust = 0.5)) + ggtitle('Overall')
-```
-#####License Type
-- We see that the campaign is most effective for licensed drivers and doesn't seem effective for drivers with permits or who have neither
-- The caveat is obviously that non-licensed drivers have peciliarly low rates of texting and driving
-```{r, message=FALSE, warning=FALSE}
+
 proportionsLicenseType <- 
   proportionPivot(ctd, 'licenseType') %>%
   proportionPlot('licenseType', 'License Type') %>%
   print()
-```
-#####Gender
-- Men and women show similar behavior patterns
-```{r, message=FALSE, warning=FALSE}
+
 proportionsGender <- 
   proportionPivot(ctd, 'gender') %>%
-  proportionPlot('gender', 'Gender') %>%
-  print()
+  proportionPlot('gender', 'Gender') 
 ```
-#####Driving Frequency
-- Daily drivers appear to be the most responsive
-- Weekly and monthly drivers seem less responsive, but their response is more consistent over time
-```{r, message=FALSE, warning=FALSE}
+
+4. Daily drivers appear to be the most responsive
+    a) Individuals who drive daily or monthly show the same pattern as the aggregate. 
+    b) Weekly drivers do not respond as expected
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 proportionsDriveFrequncy <- 
   proportionPivot(ctd, 'driveFrequency') %>%
   proportionPlot('driveFrequency', 'Drive Frequency') %>%
   print()
-```
-#####Geography
-- Geography does not appear to split behavior well
-```{r, message=FALSE, warning=FALSE}
+
 proportionsGeography <- 
   proportionPivot(ctd, 'geography') %>%
-  proportionPlot('geography', 'Geography') %>%
-  print()
-```
+  proportionPlot('geography', 'Geography') 
 
-###Trees
-- Decision trees can be valuable to work through behavioral differences in an outcome by many categorical valuues
-- In each box, we have the level of the outcome we are interested in, average value of that outcome, and the proportion of the population in that node
-- Below the box is the most important splitter at that node, where most important is determined by the seperation that creates the largest wedge in the average value of the output
-- For instance, for the Control tree, we see that the average value is 41% of people texting and driving. The most powerful split is whether the person has a license
-- If they have a licence, we proceed down the "NO" branch. If they do not, we see that there are no more important splits, and the average value is 4% texting and driving, encompassing 32% of the population
-- The "NO" branch proceeds down splitting on driving frequency and then terminates
-- The tree suggests the most important splits for us to look into, by group, while also providing a useful summary of outcomes
-- The fact that the experiment tree has more nodes suggests that the experiment's impact do tend to vary by the factors available, while behavior does not vary a lot without the campaign
-- It also suggest that geography may yet be an interesting splitter
-```{r, message=FALSE, warning=FALSE}
 control <- rpart(
   as.factor(textDrive.yn) ~ 
     gender + geography + driveFrequency + licenseType, 
@@ -286,18 +256,13 @@ exp <- rpart(
   data = ctd[group!='Control']
   , cp=0.01) 
 
-rpart.plot(control, main="Control")
-rpart.plot(exp, main='Experiment')
+#controlPlot <- rpart.plot(control, main="Control")
+#expPlot <- rpart.plot(exp, main='Experiment')
 ```
-- To get a more robust answer for the most predictive factors, we utilize a Random Forest algorithm
-- Random Forest:
-    - Random forest is a common ML technique wherein many decision trees are grown with random bundles of candidate features
-    - The supplied dataset is also repeatedly sub-sampled to provide different views to trees
-    - Each tree then provides a "vote" towards the final model, where the vote is weighted by the tree's ability to succesfully predict outcomes on the out of sample set
-    - It has several advantages, including its ability to utilize non-linear relationships between predictors and outcomes
-    - It also makes no distributional assumptions on the outcome
-    - It also provides comprehensible variable importance metrics as seen below
-```{r, message=FALSE, warning=FALSE}
+
+5. Other charcateristics captured in the survey do not seem to be important drivers of likelihood to text and drive
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 ctrl = trainControl(method="repeatedcv", number=10, repeats=2, selectionFunction = "oneSE", 
                     classProb=T, summaryFunction = twoClassSummary, savePredictions = TRUE)
 
@@ -314,17 +279,12 @@ rf = train(
   trControl=ctrl
 )
 
-varImp(rf, scale=FALSE) %>% plot(main = 'Variable Importance')
+varImp(rf, scale=FALSE) %>% plot(main = 'Variable Importance via Random Forest')
 ```
 
-###Estimate Effects
-- We feed in the identified candidate features into a logistic regression model to understand the effect size of each factor as well as the experiment itself
-- Geographic features fail to make the final cut
-- We determine that the impact of the experiment varies most by license types, frequency of driving, and having participated in the campaign
-- We confirm that the effectiveness of the campaign is concentrated among licensed drivers and the its effectiveness dampens over time, but remains robust
-- This suggests that, in the future, the campaign should focus on licensed drivers as we may be having unintended effects on the permitted population, who already appears to be sufficiently deterred from texting and driving
-- The raw table of estimates likelihoods is also provided
-```{r, , message=FALSE, warning=FALSE}
+6. With the key drivers identified, we can estimate their relative impact on likelihood to text and drive. The size of the changes in behavior are visually represented below as changes in likelihood to text and drive across the 3 survey groups. This suggests that our greatest impact is on the licensed population that drives either Daily or Weekly. 
+
+```{r, , message=FALSE, warning=FALSE, echo=FALSE}
 
 remainingCandidates <- c('geography', 'driveFrequency', 'licenseType', 'group')
 formula = as.formula(paste('textDrive.yn ~ ',paste(remainingCandidates, sep = ' + ', collapse = '+')))
@@ -358,10 +318,10 @@ Probs <-
   tbl_dt()
 Probs %<>% mutate(pTextDrive = predict(linMod, Probs, type='response'))
 
-ggplot(Probs, aes(x=driveFrequency, y=pTextDrive, group=group)) + 
+ggplot(Probs[licenseType != 'Neither'], aes(x=driveFrequency, y=pTextDrive, group=group)) + 
   geom_bar(stat='identity', position='dodge', aes(fill=group)) + 
   facet_wrap(~licenseType) + scale_y_continuous(breaks = pretty_breaks(n=20)) +
-  labs(x='Driving Frequency', y='Likelihood to Text & Drive', title='Campaign Effectiveness') + 
+  labs(x='Driving Frequency', y='Likelihood to Text & Drive', title='Campaign Effectiveness - Effect Size in Likelihood to Text & Drive') + 
   theme(plot.title = element_text(hjust = 0.5))
 
 probTable <- 
@@ -369,8 +329,13 @@ probTable <-
   spread(
     group, pTextDrive
   ) %>%
-  kable(align = 'l', digits = 4) %>%
-  print()
+  kable(align = 'l', digits = 4) 
 
 ```
 
+#####Future Iterations
+
+We see several potential improvements for future versions of the survey.
+
+1. It would be very useful to either more robustly capture e-mail addresses, or capture phone numbers from survey takers. This would allow us to link individuals with the rest of our data, drastically broadening the scope of feature exploration. 
+2. We should try to maintain a consistent stream of surveys throughout the campaign. This would provide a better estimate of exogenous activity driving changes in texting and driving behavior
