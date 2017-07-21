@@ -13,14 +13,20 @@ output: html_notebook
 6. Future experiments should maintain a control population throughout the life of the experiment, rather than just at its bookends
 
 ###Initialize Environment
-```{r}
+```{r, message=FALSE, warning=FALSE}
 #Load required packages and custom functions
+library(scales)
+#Decision tree library
 library(rpart)
 library(rpart.plot)
+#Machine Learning Meta library
 library(caret)
 library(ROCR)
+#Formatting tables for presentability library
 library(knitr)
+#Load consistently used libraries
 source('~/Data/AdHoc/Scripts/init.R')
+#Load custom utility functions
 source('~/Data/AdHoc/Scripts/DSUtils.R')
 ```
 
@@ -31,6 +37,7 @@ source('~/Data/AdHoc/Scripts/DSUtils.R')
 - The outcome I focused on was whether or not someone texted and drove since other levels were either very rare or irrelevant
 ```{r, message=FALSE, warning=FALSE}
 #Write and execute functions to prepare individual files
+#This function takes a provided path to a file, reads in a .csv file from the path and loads it into your environment, then it alters the names of the columns, and adds another column
 prepControl <- function(path) {
   ctdControl <- 
     read_csv(path) %>%
@@ -77,6 +84,7 @@ prep72 <- function(path) {
 }
 
 #Combine Files into one file with flags
+#We call the above three functions to get the three files, rbind stacks them on top of each other and then adds another date column by taking a substring of the timestamp column
 prepData <- function(pathControl, pathExp1, pathExp2) {
   control <- prepControl(pathControl)
   ctd4_8 <- prep4_8(pathExp1)
@@ -102,11 +110,13 @@ ctd <-
 
 ages <- read_csv('~/Data/AdHoc/Data/email_age_ctd.csv')
 
-#Re-label variables for ease of use and removing rare levels
-#Create Additional useful fields
+#This is taking the created ctd dataset and grabbing a count by the textDriveFreq field. This is using data.table syntax, where we start with the table, and inside the brackets we specify "for i, do j, by k, sepearated by commas. So we are doing the operation for the whole table, the operation is calculating N, and we do it by textDriveFreq"
 textDriveTable<- ctd[,.N,by=textDriveFreq]
 genderTable <- ctd[,.N,by=gender]
 
+
+#Here, we are taking our frame, manipulating and adding a bunch of additional variables using mutate, mostly using "ifelse", which is a function that let's you specifcy what to do if a condition is met and if it is not met. As you can see, you can keep nesting these to add more and more layers of logic
+#Exclamation marks are used to signify "not" something. grepl is used to search for patterns within a string and returns a T/F if the pattern is found
 ctd %<>%
   mutate(
     textDrive.yn = ifelse(textDriveFreq=="I don't drive", NA, 
@@ -117,13 +127,26 @@ ctd %<>%
     gender = ifelse(gender=='Man', 'Male', 
                     ifelse(gender=='Woman', 'Female', 'Other/DNR')),
     intervenedFriend = ifelse(!(intervenedFriend %in% c('No','Yes')), 'NotApplicable', intervenedFriend),
-    intervenedFamily = ifelse(!(intervenedFriend %in% c('No','Yes')), 'NotApplicable', intervenedFamily),
+    intervenedFamily = ifelse(!(intervenedFamily %in% c('No','Yes')), 'NotApplicable', intervenedFamily),
+    intervenedEither = ifelse(intervenedFamily == 'Yes' | intervenedFamily == 'Yes', 1, 
+                              ifelse(intervenedFamily == 'No' & intervenedFamily == 'No', 0, NA)),
+    intervenedFriend = ifelse(intervenedFriend == 'Yes', 1, 
+                              ifelse(intervenedFriend == 'No', 0, NA)),
+    intervenedFamily = ifelse(intervenedFamily == 'Yes', 1, 
+                              ifelse(intervenedFamily == 'No', 0, NA)),
+    takeAction = factor(
+      ifelse(grepl('Yes', takeAction), 'Yes', 
+             ifelse(grepl('No, but', takeAction), 'Maybe',
+                    ifelse(grepl('No, and', takeAction), 'No', 'Other'))),
+      levels=c('Other','No','Maybe','Yes')),
     #Factors in R are numbers with labels. We can use this to display characters variables in the order we want. 
     #Below, I turn "group" into a factor so it always displays in the order specified
     group = factor(group, levels=c('Control','72 Hours','4-8 Weeks')),
     timePeriod = ifelse(date < '2017-03-21', 'Before', 'After')
   ) %>%
   left_join(ages, copy=T)
+
+#kable is just a function that formats tables into a more presentable form
 kable(textDriveTable)
 kable(genderTable)
 ```
@@ -133,6 +156,8 @@ kable(genderTable)
 - 4-8 Week surveys were frontloaded with a long tail
 - Control group surveys were largely taken near the beginning and end of the survey cycle
 ```{r, message=FALSE, warning=FALSE}
+#This is a violin plot that shows that shows variable density across some measure. Below, we can see the concentration of datapoints across dates, split up by group. Its a great way to compare frequencies across groups
+#ggplot is a visualization library in R that basically aims to let you build plots layer by layer. It starts with the ggplot call where you describe tell it what data to work off and the basic things it is plotting on which axis. Next, you need a series of "geoms", which are basically just differrnt kinds of pictures. There are a huge number of geoms, letting you quickly shift gears from drawing bar charts, to line charts, and so on. Each geom has its own parameters, here position='dodge' tells it to put the 3 plots side by side rather than stacking them on top of each other. coord_flip flips the coordinates (duh), ggtitle adds a title, and theme let's you manipulate sort of miscellaenous aspects of the visualization, like the legend formatting and labels. Here, I'm using it to get rid of the legend and moving the title to the middle of the plot (it is left-aligned by default)
 ggplot(ctd, aes(x=group,y=date)) + 
   geom_violin(position='dodge',aes(fill=group)) + 
   coord_flip() + theme(legend.position="none") + 
@@ -147,6 +172,9 @@ ggplot(ctd, aes(x=group,y=date)) +
 - We see that the effect of the campaign in the first 72 hours is an 11.5% reduction in texting and driving
 - We also see that the effect of the campaign in the 4-8 week period after falls to a reduction of about 1.6%
 ```{r, message=FALSE, warning=FALSE}
+#I wrote this difference in difference function because I wanted to be able to construct this table for any given outcome. This allows me to do the same analysis for the 4 different outcomes in 4 lines of code rather than having to copy paste. You can see it takes as arguments the dataset to work on and the outcome of interest. When I call it, it goes through the steps in function while substituting in the outcome I provide while I call the function below in place of "get(outcome)". 
+#The operations that I am performing are to filter out where the outcome is null, then get the grouped means of the outcome. This returns a dataset that has columns for group, time period, and value. I use the spread function to move the timePeriod column into two columns for the values in the column (Before and After). Since there is no mean, for the Before experimental groups, by default it would have NA in those cells. To avoid that, I use the "fill" parameter, which let's you tell it what to put there in place of the NA. What I want there is value for Before/Control group, so I use data.table syntax to recalulate the value I need, and fill it in. Next, select the variables I need and create the "Difference" column. To create the last two rows, I create one row datasets and manually fill in the value sI need with the calculations I provide using data.table syntax to plug in the deltas I need. The I use rbind to strap them to the bottom of my dataset
+#Then I format the valkues into percentages and NULL out values that shouldn't show up like percents 
 DnD <- function(data, pivot) {
   
   DnD <-
@@ -168,14 +196,28 @@ DnD <- function(data, pivot) {
       data.frame(group='Effect - 4-8 Weeks',Before=NA,After=NA,Diff=DnD[group=='4-8 Weeks',Diff]-DnD[group=='Control',Diff])
     )
   
+  DnD[,
+      ':='(
+        Before = percent(Before), After = percent(After), Diff = percent(Diff))
+      ][grepl('Effect', group),
+        ':='(
+          Before = NA,
+          After = NA
+        )
+      ]
+  
 }
 
 textDrive.DnD <- DnD(ctd, 'textDrive.yn') %>% kable(digits = 4, align = 'l') %>% print()
+intervene.DnD <- DnD(ctd, 'intervenedEither') %>% kable(digits = 4, align = 'l') %>% print()
+interveneFriend.DnD <- DnD(ctd[!is.na(intervenedFriend)], 'intervenedFriend') %>% kable(digits = 4, align = 'l') %>% print()
+interveneFamily.DnD <- DnD(ctd[!is.na(intervenedFamily)], 'intervenedFamily') %>% kable(digits = 4, align = 'l') %>% print()
 ```
 
 ###Slice and Dice
 - Now that we have some sense of the overall effect, we can start digging into how the effects differ by available pivotable characteristics
 ```{r, message=FALSE, warning=FALSE}
+#Similar idea to the DnD function above, here, I know there is an analysis I'll want to do for a bunch of different values, so I write a function. This function is basically just filtering, grouping, and getting a count. Then it joins the same table but with one fewer level of grouping to get proportions by group. The if/else allow me to execute similar versions of the functions based on whether I want a pivot or not. 
 proportionPivot <- function(data, pivot=NULL) {
   if(is.null(pivot)) { 
     outcomeFreq <-
@@ -215,23 +257,38 @@ proportionPivot <- function(data, pivot=NULL) {
   
 }
 
-proportionPlot <- function(data, wrap, title) {
-  plot <- ggplot(data, aes(x=group, y=proportion, group=textDrive)) +
-    geom_bar(stat='identity',position='stack',aes(fill=textDrive)) + facet_wrap(~get(wrap)) +
+#This function is to give me a consistent syntax for generating all the proportion bar charts I want. All it needs is the data, title, and a 'wrap' argument, which is optionally used to split the bars chart into different panes by a pivot. 
+#I use ggplot with the proportion on the y axis, the experiment group on the x, and group them based on the textDrive value. Then I call geom_bar to tell it I want a bar chart. The stat='identity' argument tells it to just plot the values it receives directly rather than doing any tallying. This is because it is operating off a summary table rather than raw data, which would require a different stat for it to calculate. The 'position' argument determines whether to plot the bars side by side or stack them. I want to see how the proportions add up to 1, so I stack them and tell it to assign colors based on the textDrive field I told it to group on. 
+#The rest is just formatting. Theme is used to move the title, ggtitle is used to write the title itself, which is an  argument the function is expecting. The 'scale_y_continuous' allows me to alter the number of ticks on the axes. I use the pretty_breaks function from the scales package to tell it to have 10 ticks, equidistant from each other, rather than specifying every tick manually
+#This gets me the plot I want if there is no other pivot. 
+#The 'facet_wrap' layer in ggplot lets you make several plots side by side in a single plot, split by some value. By placing it in an 'if' statement, I can use one function for facetted and un-facetted plots, and it just adds the facet as a layer to the plot if I want.
+proportionPlot <- function(data, wrap=NULL, title=NULL) {
+  plot <- 
+    ggplot(data, aes(x=group, y=proportion, group=textDrive)) +
+    geom_bar(stat='identity', position='stack', aes(fill=textDrive)) +
     scale_y_continuous(breaks = pretty_breaks(n=10)) +
     theme(plot.title = element_text(hjust = 0.5)) + ggtitle(paste(title))
+  
+  if (!is.null(wrap)) {
+    plot <- plot + facet_wrap(~get(wrap))
+  }
+  
   return(plot)
+  
 }
 
-ggplot(proportionPivot(ctd), aes(x=group,y=proportion,group=textDrive)) +
-  geom_bar(stat='identity',position='stack',aes(fill=textDrive)) +
-  scale_y_continuous(breaks = pretty_breaks(n=10)) +
-  theme(plot.title = element_text(hjust = 0.5)) + ggtitle('Overall')
+#Now building the plots I want is easy. I use the first function to get the summary table I want, then pipe that into the proportionPlot function to get the picture I want
+proportionsOverall <- 
+  proportionPivot(ctd) %>%
+  proportionPlot(title='Overall') %>%
+  print()
+
 ```
 #####License Type
 - We see that the campaign is most effective for licensed drivers and doesn't seem effective for drivers with permits or who have neither
 - The caveat is obviously that non-licensed drivers have peciliarly low rates of texting and driving
 ```{r, message=FALSE, warning=FALSE}
+#Here, I want to facet the picture based on the licenseType, so I call both functions while including 'licenseType' as an additional pivot and plot
 proportionsLicenseType <- 
   proportionPivot(ctd, 'licenseType') %>%
   proportionPlot('licenseType', 'License Type') %>%
@@ -274,6 +331,7 @@ proportionsGeography <-
 - The fact that the experiment tree has more nodes suggests that the experiment's impact do tend to vary by the factors available, while behavior does not vary a lot without the campaign
 - It also suggest that geography may yet be an interesting splitter
 ```{r, message=FALSE, warning=FALSE}
+#The decision tree is constructed using the rpart package which lets you submit a formula for a model, the data, and the complexity parameter. The outome is whether or not someone texted and drove, and I want to use gender, geography, driving freuqncy, and license type to product. In the data argument, I've subsetted down to the control group and removed rows where the outcome is null
 control <- rpart(
   as.factor(textDrive.yn) ~ 
     gender + geography + driveFrequency + licenseType, 
@@ -286,6 +344,7 @@ exp <- rpart(
   data = ctd[group!='Control']
   , cp=0.01) 
 
+#rpart.plot is used a simple utility function that makes the tree visualization a little nicer looking. 
 rpart.plot(control, main="Control")
 rpart.plot(exp, main='Experiment')
 ```
@@ -297,22 +356,43 @@ rpart.plot(exp, main='Experiment')
     - It has several advantages, including its ability to utilize non-linear relationships between predictors and outcomes
     - It also makes no distributional assumptions on the outcome
     - It also provides comprehensible variable importance metrics as seen below
+    - The calculated importance is robust to multi-collinearity 
 ```{r, message=FALSE, warning=FALSE}
-ctrl = trainControl(method="repeatedcv", number=10, repeats=2, selectionFunction = "oneSE", 
-                    classProb=T, summaryFunction = twoClassSummary, savePredictions = TRUE)
-
+#This is just a nuisance step I have to take because the randomForest package expects the outcome to be a factor and be alphanumeric rather than a logical or numeric
 ctd %<>% mutate(textDrive.rf = as.factor(ifelse(textDrive.yn == 1, 'yes', 'no')))
 
+#These lines are just to help me keep track of what features I'm including and to quickly build the formula for the model I want to test. 
 candidates = c('gender', 'geography', 'driveFrequency', 'licenseType', 'group')
 formula = as.formula(paste('textDrive.rf ~ ',paste(candidates, sep = ' + ', collapse = '+')))
 
+#The caret package provides a consistent syntax to implementing heaps of machine learning algos. 
+#The 'trainControl' function is used to set the parameters of the algo you will deploy. In 'trainControl' I set all the parameters for the random forest. 
+#Method tells it how select the final model, repeatedcv stands for repeated cross-valiation, which keeps training the model on a subset of data and testing on the holdout population. The "number" argument tells it the "folds" of the cross valiation, where 10 means 10-fold, which means it will train on 90% of randomly selected rows from the data, and test on the remaining 10%, and it will do this 10 times, randomly selecting (with replacement) each time. Repeats tells it how many times to repeat this process, so the way I have set it up, it will actually build 20 random forests
+#Selection function tells it which model to return of those 20. We can have it return the best one, but the one I have it return is the simplest model (fewest final features) that is no more than one standard error in performance from the very best performing model. 
+#The rest of the arguments are just telling it that we are making a classification forest (binary outcome rather than continuous) and to hold on to the predictions
+ctrl = 
+  trainControl(
+    method="repeatedcv", 
+    number=10, 
+    repeats=2, 
+    selectionFunction = "oneSE", 
+    classProb=T, 
+    summaryFunction = twoClassSummary, 
+    savePredictions = TRUE
+  )
+
+#Now we're ready to actually build the forest. We provide the formula, the data, tell it to make a random forest, and use the values in trainControl to set the hyperparameters of the random forest.
+#Metric is how to evaluate the model. ROC is fairly standard for classification problems, which is just a measure of performance. It tells you the proportion of 0s that will be rank ordered lower than 1s if you ranked them according to their predicted value from the model
+#The parameters of the random forest itself are not provided, and so are set to their default. The most important parameters it needs are the number of trees to grow and the number of variables to randomly try at each split in each tree. By default, these values are 500 and the square root of the number of candidate features. 
+#You can see that there is a ton of robustness baked into this implementation. In each tree, we are sampling observations and sampling variables. We are growing 500 trees and letting them vote on the best one to get a weighted average. On top of that, we are performing 10-fold cross validation two times to test the result. This is probably overkill for a problem this straightforward, but it can serve as a great guide for future analyses with many many more candidate features, and it is all done in about 10 lines of code
 rf = train(
   formula, 
   data=ctd[!is.na(textDrive.yn)], 
   method="rf", 
-  metric="ROC",
-  trControl=ctrl
+  trControl=ctrl,
+  metric="ROC"
 )
+
 
 varImp(rf, scale=FALSE) %>% plot(main = 'Variable Importance')
 ```
@@ -325,30 +405,33 @@ varImp(rf, scale=FALSE) %>% plot(main = 'Variable Importance')
 - This suggests that, in the future, the campaign should focus on licensed drivers as we may be having unintended effects on the permitted population, who already appears to be sufficiently deterred from texting and driving
 - The raw table of estimates likelihoods is also provided
 ```{r, , message=FALSE, warning=FALSE}
-
+#Used the output from the random forest above to thin down to the features I really want. 
 remainingCandidates <- c('geography', 'driveFrequency', 'licenseType', 'group')
 formula = as.formula(paste('textDrive.yn ~ ',paste(remainingCandidates, sep = ' + ', collapse = '+')))
 
-linMod <- glm(formula, 'binomial', data = ctd[!is.na(textDrive.yn)])
+#glm function builds linear regression models. Family = 'binomial' tells it to build a logistic regression for a binary outcome
+linMod <- glm(formula, family = 'binomial', data = ctd[!is.na(textDrive.yn)])
+linModSummary <- summary(linMod)
 
+#Reviewing the summary of the glm suggests we can drop the geography feature and an interaction between group and license type is also useful
 finalCandidates <- c('driveFrequency', 'licenseType', 'group')
 formula = as.formula(paste('textDrive.yn ~ ',paste(finalCandidates, sep = ' + ', collapse = '+'), '+ group*licenseType'))
 
+#Train the final model
 linMod <- glm(formula, 'binomial', data = ctd[!is.na(textDrive.yn)])
 
+#Here, I'm creating a data table that contains all the key attributes of the model, including the coefficients, the standard errors and the p-values
 effects <- 
   data.table(
-  Name = names(coef(summary(linMod))[,1]), 
-  Coef = coef(summary(linMod))[,1], 
-  SE = coef(summary(linMod))[,2],
-  pVal = round(coef(summary(linMod))[,4], 4)
+    Name = names(coef(summary(linMod))[,1]), 
+    Coef = coef(summary(linMod))[,1], 
+    SE = coef(summary(linMod))[,2],
+    pVal = round(coef(summary(linMod))[,4], 4)
   ) %>%
   tbl_dt() %>%
-  filter(Name != '(Intercept)') %>%
-  mutate(
-    effectSize = logit2prob(Coef)
-  )
+  filter(Name != '(Intercept)') 
 
+#To get a feel for the effect sizes calculated by the regression, I create another data table. expand.grid creates a table with every combination of the lists provided. I provide a list of every unique driving frequency, group, and license type, giving me every possible combination of the levels of these three variables
 Probs <- 
   expand.grid(
     driveFrequency = unique(ctd[!is.na(textDrive.yn), driveFrequency]),
@@ -356,14 +439,18 @@ Probs <-
     group = unique(ctd[!is.na(textDrive.yn), group])
   ) %>%
   tbl_dt()
+
+#I then use the predict function to use the model I built to generate predictions for likelihood of texting and driving for all those combinations
 Probs %<>% mutate(pTextDrive = predict(linMod, Probs, type='response'))
 
+#This is just a visual representation of the table above
 ggplot(Probs, aes(x=driveFrequency, y=pTextDrive, group=group)) + 
   geom_bar(stat='identity', position='dodge', aes(fill=group)) + 
   facet_wrap(~licenseType) + scale_y_continuous(breaks = pretty_breaks(n=20)) +
   labs(x='Driving Frequency', y='Likelihood to Text & Drive', title='Campaign Effectiveness') + 
   theme(plot.title = element_text(hjust = 0.5))
 
+#I also product the probability table itself in a slightly more visually appealing form. The spread function spreads the group variable into 3 columns, making for a nicer table.
 probTable <- 
   Probs %>%
   spread(

@@ -109,7 +109,18 @@ ctd %<>%
     gender = ifelse(gender=='Man', 'Male', 
                     ifelse(gender=='Woman', 'Female', 'Other/DNR')),
     intervenedFriend = ifelse(!(intervenedFriend %in% c('No','Yes')), 'NotApplicable', intervenedFriend),
-    intervenedFamily = ifelse(!(intervenedFriend %in% c('No','Yes')), 'NotApplicable', intervenedFamily),
+    intervenedFamily = ifelse(!(intervenedFamily %in% c('No','Yes')), 'NotApplicable', intervenedFamily),
+    intervenedEither = ifelse(intervenedFamily == 'Yes' | intervenedFamily == 'Yes', 1, 
+                              ifelse(intervenedFamily == 'No' & intervenedFamily == 'No', 0, NA)),
+    intervenedFriend = ifelse(intervenedFriend == 'Yes', 1, 
+                              ifelse(intervenedFriend == 'No', 0, NA)),
+    intervenedFamily = ifelse(intervenedFamily == 'Yes', 1, 
+                              ifelse(intervenedFamily == 'No', 0, NA)),
+    takeAction = factor(
+      ifelse(grepl('Yes', takeAction), 'Yes', 
+             ifelse(grepl('No, but', takeAction), 'Maybe',
+                    ifelse(grepl('No, and', takeAction), 'No', 'Other'))),
+      levels=c('Other','No','Maybe','Yes')),
     #Factors in R are numbers with labels. We can use this to display characters variables in the order we want. 
     #Below, I turn "group" into a factor so it always displays in the order specified
     group = factor(group, levels=c('Control','72 Hours','4-8 Weeks')),
@@ -160,6 +171,9 @@ DnD <- function(data, pivot) {
 }
 
 textDrive.DnD <- DnD(ctd, 'textDrive.yn') %>% kable(digits = 4, align = 'l') %>% print()
+intervene.DnD <- DnD(ctd, 'intervenedEither') %>% kable(digits = 4, align = 'l') %>% print()
+interveneFriend.DnD <- DnD(ctd[!is.na(intervenedFriend)], 'intervenedFriend') %>% kable(digits = 4, align = 'l') %>% print()
+interveneFamily.DnD <- DnD(ctd[!is.na(intervenedFamily)], 'intervenedFamily') %>% kable(digits = 4, align = 'l') %>% print()
 ```
 
 
@@ -228,6 +242,21 @@ proportionsLicenseType <-
 proportionsGender <- 
   proportionPivot(ctd, 'gender') %>%
   proportionPlot('gender', 'Gender') 
+
+proportionTakeAction <-
+  ctd %>%
+  filter(group != 'Control') %>%
+  group_by(group, takeAction) %>%
+  summarise(
+    Count = n()
+  ) %>%
+  mutate(
+    Proportion = Count / sum(Count)
+  )
+
+ggplot(proportionTakeAction, aes(x=group, y=Proportion, group=takeAction)) + 
+  geom_bar(stat='identity', position='stack', aes(fill=takeAction)) + 
+  labs(x='Group', y='Proportion', title='Did the Campaign Compel You to Take Action?')
 ```
 
 4. Daily drivers appear to be the most responsive

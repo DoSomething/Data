@@ -1,6 +1,6 @@
 
 all_campaigns <- 
-  read_csv('~/Downloads/all_signups_after_6_06_2017.csv') %>%
+  read_csv('Data/all_signups_after_6_06_2017.csv') %>%
   setNames(c('id', 'campaign_name','sign_up_run_nid','sign_up_sid','sign_up_ts')) %>%
   select(id, campaign_name, sign_up_ts) %>%
   filter(!is.na(id))
@@ -13,7 +13,7 @@ allCount <-
   )
 
 su <- 
-  read_csv('~/Downloads/SincerelyUsMembers.csv') %>%
+  read_csv('Data/SincerelyUsMembers.csv') %>%
   select(id) %>%
   left_join(allCount) %>%
   mutate(

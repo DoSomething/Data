@@ -91,9 +91,9 @@ library(stringr)
 library(stringi)
 
 try(invisible(GET("http://www.pewglobal.org/wp-content/lib/js/world-geo.json",
-                  write_disk("world-geo.json"))), silent=TRUE)
+                  write_disk("Data/world-geo.json"))), silent=TRUE)
 
-world <- readOGR("world-geo.json", "OGRGeoJSON")
+world <- readOGR("Data/world-geo.json", "OGRGeoJSON")
 world_wt <- spTransform(world, CRS("+proj=robin"))
 world_map <- fortify(world_wt)
 
