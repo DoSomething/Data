@@ -4,6 +4,9 @@ output: html_notebook
 ---
 
 ###Summary
+
+DoSomething.org ran a camapaign with general motors to share creative and effective ways to keep our loved ones from texting and driving. Over 55,000 volunteers signed up and shared their methods. To understand the effectiveness of the campaign, a survey of user behavior was given to individuals before, during, and after the campaign, including people who did not participate in the campaign. Some people were given the survey 72 hours after completing the campaign, and others 4-8 weeks after the campaign. This was to assess both the short term and long term impact of the camapign, along with a control group for comparison. The results are analyzed and summarised below. 
+
 #####Key Takeaways:
 1. There is clear evidence of the effectiveness of the campaign in reducing the frequency of texting and driving
 2. The effectiveness dampens over time, but does persist even on a 4-8 week horizon
@@ -235,6 +238,9 @@ proportionPivot <- function(data, pivot=NULL) {
         proportion = count / countGroup
       ) %>%
       tbl_dt()
+    
+    outcomeFreq[, pos := cumsum(proportion) - (0.5 * proportion), by = .(group)]
+    
   } else {
     outcomeFreq <-
       ctd %>%
@@ -251,6 +257,9 @@ proportionPivot <- function(data, pivot=NULL) {
         proportion = count / countGroup
       ) %>%
       tbl_dt()
+    
+    outcomeFreq[, pos := cumsum(proportion) - (0.5 * proportion), by = c('group',pivot)]
+    
   }
   
   return(outcomeFreq)
@@ -266,6 +275,7 @@ proportionPlot <- function(data, wrap=NULL, title=NULL) {
   plot <- 
     ggplot(data, aes(x=group, y=proportion, group=textDrive)) +
     geom_bar(stat='identity', position='stack', aes(fill=textDrive)) +
+    geom_text(aes(label = percent(proportion), y = 1-pos), size = 1.8) + 
     scale_y_continuous(breaks = pretty_breaks(n=10)) +
     theme(plot.title = element_text(hjust = 0.5)) + ggtitle(paste(title))
   
@@ -460,4 +470,30 @@ probTable <-
   print()
 
 ```
+
+```{r}
+proportionTakeAction <-
+  ctd %>%
+  filter(group != 'Control') %>%
+  group_by(group, takeAction) %>%
+  summarise(
+    Count = n()
+  ) %>%
+  mutate(
+    Proportion = Count / sum(Count)
+  )
+
+proportionTakeAction[, pos := cumsum(Proportion) - (0.5 * Proportion), by = .(group)]
+
+ggplot(proportionTakeAction[group=='72 Hours'], aes(x=takeAction, y=Proportion)) + 
+  geom_bar(stat='identity', position='dodge', aes(fill=takeAction)) + 
+  geom_text(aes(label = percent(Proportion), y = Proportion), size = 3) + theme(legend.position="none") + 
+  labs(x='Group', y='Proportion', title='Did the Campaign Compel You to Take Action?') + ylim(0,.55)
+
+ggplot(proportionTakeAction[group=='4-8 Weeks'], aes(x=takeAction, y=Proportion)) + 
+  geom_bar(stat='identity', position='dodge', aes(fill=takeAction)) + 
+  geom_text(aes(label = percent(Proportion), y = Proportion), size = 3) + theme(legend.position="none") + 
+  labs(x='Group', y='Proportion', title='Did the Campaign Compel You to Take Action?') + ylim(0,.55)
+```
+
 

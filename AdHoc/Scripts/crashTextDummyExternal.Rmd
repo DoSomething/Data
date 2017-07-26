@@ -359,7 +359,7 @@ probTable <-
     group, pTextDrive
   ) %>%
   kable(align = 'l', digits = 4) 
-
+summary(linMod)
 ```
 
 #####Future Iterations
