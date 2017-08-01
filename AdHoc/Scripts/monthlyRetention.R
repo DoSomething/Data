@@ -7,8 +7,8 @@ library(lubridate)
 # 
 # names(df) <- c('Uid','event_date','event_id','action_type','action_id','event_ts')
 
-df <- tbl_dt(read_csv('~/Downloads/all_inclusive_member_event_log 2017-07-25T1710.csv'))
-names(df) <- c('Uid','event_date','event_id','action_type','action_id','event_ts')
+df <- tbl_dt(read_csv('~/Downloads/monthlyRetention_731.csv'))
+names(df) <- c('Uid','event_date','event_id','action_type','action_id')
 
 df <-
   df %>%
@@ -49,5 +49,5 @@ potential_activity <-
     active_MoverM := ifelse(activity == 1 & previous_month_activity == 1, 1, 0)
   ]
 
-rates <- potential_activity[, sum(active_MoverM) / sum(previous_month_activity) , by = event_month]
+rates <- potential_activity[, .(activeMoverM = sum(active_MoverM) / sum(previous_month_activity)) , by = event_month]
 
