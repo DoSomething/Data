@@ -1,11 +1,12 @@
-source('Scripts/init.R')
-source('Scripts/DSUtils.R')
-
-
-# Competition Metrics -----------------------------------------------------
+library(tidyverse)
+library(data.table)
+library(dtplyr)
+library(lubridate)
 
 qres <-
-  read.csv('~/Desktop/query result.csv') %>% tbl_dt()
+  read.csv('~/Desktop/query_result.csv') %>% tbl_dt()
+
+# Competition Metrics -----------------------------------------------------
 
 sosRB <-
   rbind(
@@ -83,24 +84,17 @@ RB <-
 
 gladMetr <- 
   rbind(
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/StepsForSoldiers_RunID7827_NoRB_7.28_Export/contest_45-competition_316-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/StepsForSoldiers_RunID7827_NoRB_7.28_Export/contest_45-competition_319-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/StepsForSoldiers_RunID7827_NoRB_7.28_Export/contest_45-competition_325-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/StepsForSoldiers_RunID7827_NoRB_7.28_Export/contest_45-competition_327-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/StepsForSoldiers_RunID7827_NoRB_7.28_Export/contest_45-competition_334-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/StepsForSoldiers_RunID7827_NoRB_7.28_Export/contest_45-competition_337-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/StepsForSoldiers_RunID7827_NoRB_7.28_Export/contest_45-competition_340-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_7.28_Export/contest_44-competition_317-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_7.28_Export/contest_44-competition_320-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_7.28_Export/contest_44-competition_324-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_7.28_Export/contest_44-competition_328-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_7.28_Export/contest_44-competition_333-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_7.28_Export/contest_44-competition_338-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_7.28_Export/contest_44-competition_342-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/TreatYoFriends_RunID7877_NoRB_7.28_Export/contest_48-competition_335-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/TreatYoFriends_RunID7877_NoRB_7.28_Export/contest_48-competition_336-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/TreatYoFriends_RunID7877_NoRB_7.28_Export/contest_48-competition_339-users.csv'),
-    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/TreatYoFriends_RunID7877_NoRB_7.28_Export/contest_48-competition_341-users.csv')
+    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/StepsForSoldiers_RunID7827_NoRB_8.2_Export/contest_45-competition_327-users.csv'),
+    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/StepsForSoldiers_RunID7827_NoRB_8.2_Export/contest_45-competition_334-users.csv'),
+    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/StepsForSoldiers_RunID7827_NoRB_8.2_Export/contest_45-competition_337-users.csv'),
+    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/StepsForSoldiers_RunID7827_NoRB_8.2_Export/contest_45-competition_340-users.csv'),
+    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/StepsForSoldiers_RunID7827_NoRB_8.2_Export/contest_45-competition_344-users.csv'),
+    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_8.2_Export/contest_44-competition_324-users.csv'),
+    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_8.2_Export/contest_44-competition_328-users.csv'),
+    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_8.2_Export/contest_44-competition_333-users.csv'),
+    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_8.2_Export/contest_44-competition_338-users.csv'),
+    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_8.2_Export/contest_44-competition_342-users.csv'),
+    read_csv('~/Downloads/GladiatorMetrics/HasntReportBack/ThumbWars_RunID7811_NoRB_8.2_Export/contest_44-competition_345-users.csv')
   ) %>%
   tbl_dt() %>%
   dplyr::rename(Northstar.ID = `Northstar ID`, campaign_run_id = `Run ID`)
@@ -111,13 +105,8 @@ compOut <-
   filter(number_of_posts == 0) %>%
   select(Northstar.ID, Email, campaign_run_id, `First Name`, `Last Name`, number_of_posts)
 
-saveCSV(compOut, desktop = T)
+write.csv(compOut, file = '~/Desktop/hasntReportedBack.csv')
 
-####
-
-
-a=read_csv("~/Downloads/GladiatorMetrics/Metrics/StepsForSoldiers_RunID7827_CompetitionStats_7.25_Export/contest_45-competition_314-users.csv")
-b=read_csv("~/Downloads/GladiatorMetrics/Metrics/StepsForSoldiers_RunID7827_CompetitionStats_7.31_Export/contest_45-competition_314-users.csv")
 
 
 
