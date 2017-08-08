@@ -119,3 +119,16 @@ LEFT JOIN
 	ON min_times.user_id = CONCAT(COALESCE(joint.phoenix_drupal_uid,''), COALESCE(joint.northstar_id,''))
 ; 
 
+
+SELECT
+	north.northstar_id,
+	plog.name as first_name,
+	plog.mail as email,
+	FROM_UNIXTIME(plog.created) AS created_at_timestamp,
+	FROM_UNIXTIME(plog.access) AS last_accessed,
+	FROM_UNIXTIME(plog.login) AS last_logged_in,
+	plog.language
+FROM quasar.phoenix_user_log_poc plog
+LEFT JOIN quasar.users u ON u.northstar_id = u.drupal_uid
+WHERE FROM_UNIXTIME(plog.access) <= '2017-07-30'
+

@@ -26,18 +26,11 @@ fullList <-
 tmi.x <- read.xlsx('~/Downloads/DOWNLOAD_Week_Nine.xlsx', 1) %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
-  filter(!is.na(Mobile.Number))
+  filter(!is.na(Mobile.Number)) 
 
 tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
   left_join(myLetters) %>%
   filter(!is.na(Mobile.Number)) %>%
-  mutate(
-    Child1Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, NA),
-    Child2Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, NA),
-    Child3Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, NA),
-    Child4Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, NA),
-    Child1FirstName = ifelse(!(NumOfChildren %in% seq(1,4,1)), 'your child', NA)
-  ) %>%
   mutate(
     firstOfMonth = as.Date(paste0(substr(Sys.Date(), 1, 7), '-01')),
     Child1Age = round( as.numeric((firstOfMonth - Child1DOB)) / 365),
@@ -46,33 +39,46 @@ tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
     Child4Age = round( as.numeric((firstOfMonth - Child4DOB)) / 365)
   ) %>%
   mutate(
+    Child1Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child1Age),
+    Child2Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child2Age),
+    Child3Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child3Age),
+    Child4Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child4Age),
+    Child1FirstName = ifelse(!(NumOfChildren %in% seq(1,4,1)), 'your child', as.character(Child1FirstName)),
+    Child2FirstName = as.character(Child2FirstName),
+    Child3FirstName = as.character(Child3FirstName),
+    Child4FirstName = as.character(Child4FirstName)
+  ) %>%
+  mutate(
     Child1FirstNameSeg01 = ifelse(Child1Age < 1, Child1FirstName, NA),
-    Child1FirstNameSeg12 = ifelse(Child1Age > 1 & Child1Age < 2 , Child1FirstName, NA),
-    Child1FirstNameSeg23 = ifelse(Child1Age > 2 & Child1Age < 3, Child1FirstName, NA),
-    Child1FirstNameSeg34 = ifelse(Child1Age > 3 & Child1Age < 4, Child1FirstName, NA),
-    Child1FirstNameSeg45 = ifelse(Child1Age > 4, Child1FirstName, NA),
+    Child1FirstNameSeg12 = ifelse(Child1Age >= 1 & Child1Age < 2 , Child1FirstName, NA),
+    Child1FirstNameSeg23 = ifelse(Child1Age >= 2 & Child1Age < 3, Child1FirstName, NA),
+    Child1FirstNameSeg34 = ifelse(Child1Age >= 3 & Child1Age < 4, Child1FirstName, NA),
+    Child1FirstNameSeg45 = ifelse(Child1Age >= 4, Child1FirstName, NA),
     
     Child2FirstNameSeg01 = ifelse(Child2Age < 1, Child2FirstName, NA),
-    Child2FirstNameSeg12 = ifelse(Child2Age > 1 & Child2Age < 2 , Child2FirstName, NA),
-    Child2FirstNameSeg23 = ifelse(Child2Age > 2 & Child2Age < 3, Child2irstName, NA),
-    Child2FirstNameSeg34 = ifelse(Child2Age > 3 & Child2Age < 4, Child2FirstName, NA),
-    Child2FirstNameSeg45 = ifelse(Child2Age > 4, Child2FirstName, NA),
+    Child2FirstNameSeg12 = ifelse(Child2Age >= 1 & Child2Age < 2 , Child2FirstName, NA),
+    Child2FirstNameSeg23 = ifelse(Child2Age >= 2 & Child2Age < 3, Child2FirstName, NA),
+    Child2FirstNameSeg34 = ifelse(Child2Age >= 3 & Child2Age < 4, Child2FirstName, NA),
+    Child2FirstNameSeg45 = ifelse(Child2Age >= 4, Child2FirstName, NA),
     
     Child3FirstNameSeg01 = ifelse(Child3Age < 1, Child3FirstName, NA),
-    Child3FirstNameSeg12 = ifelse(Child3Age > 1 & Child3Age < 2 , Child3FirstName, NA),
-    Child3FirstNameSeg23 = ifelse(Child3Age > 2 & Child3Age < 3, Child3irstName, NA),
-    Child3FirstNameSeg34 = ifelse(Child3Age > 3 & Child3Age < 4, Child3FirstName, NA),
-    Child3FirstNameSeg45 = ifelse(Child3Age > 4, Child3FirstName, NA),
+    Child3FirstNameSeg12 = ifelse(Child3Age >= 1 & Child3Age < 2 , Child3FirstName, NA),
+    Child3FirstNameSeg23 = ifelse(Child3Age >= 2 & Child3Age < 3, Child3FirstName, NA),
+    Child3FirstNameSeg34 = ifelse(Child3Age >= 3 & Child3Age < 4, Child3FirstName, NA),
+    Child3FirstNameSeg45 = ifelse(Child3Age >= 4, Child3FirstName, NA),
     
     Child4FirstNameSeg01 = ifelse(Child4Age < 1, Child4FirstName, NA),
-    Child4FirstNameSeg12 = ifelse(Child4Age > 1 & Child4Age < 2 , Child4FirstName, NA),
-    Child4FirstNameSeg23 = ifelse(Child4Age > 2 & Child4Age < 3, Child4irstName, NA),
-    Child4FirstNameSeg34 = ifelse(Child4Age > 3 & Child4Age < 4, Child4FirstName, NA),
-    Child4FirstNameSeg45 = ifelse(Child4Age > 4, Child4FirstName, NA)
+    Child4FirstNameSeg12 = ifelse(Child4Age >= 1 & Child4Age < 2 , Child4FirstName, NA),
+    Child4FirstNameSeg23 = ifelse(Child4Age >= 2 & Child4Age < 3, Child4FirstName, NA),
+    Child4FirstNameSeg34 = ifelse(Child4Age >= 3 & Child4Age < 4, Child4FirstName, NA),
+    Child4FirstNameSeg45 = ifelse(Child4Age >= 4, Child4FirstName, NA)
   ) %>%
   mutate(
     ContentTrack = as.character(ContentTrack),
     ContentTrack = ifelse(Language == 'ESP' & is.na(ContentTrack), 'Direct', ContentTrack)
+  ) %>%
+  select(
+    -childAgeInterestRef
   )
 
 EngDirect <-
