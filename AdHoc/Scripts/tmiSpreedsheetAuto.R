@@ -23,9 +23,10 @@ fullList <-
     ChildAgeInterest = NA, ContentTrack = NA, Language = NA, NumOfChildren = NA
   )
 
-tmi.x <- read.xlsx('~/Downloads/DOWNLOAD_Week_Nine.xlsx', 1) %>%
+tmi.x <- read.csv('~/Downloads/bezos2017-08-10.csv') %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
+  rename(Mobile.Number = device_address) %>%
   filter(!is.na(Mobile.Number)) 
 
 tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
@@ -33,16 +34,16 @@ tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
   filter(!is.na(Mobile.Number)) %>%
   mutate(
     firstOfMonth = as.Date(paste0(substr(Sys.Date(), 1, 7), '-01')),
-    Child1Age = round( as.numeric((firstOfMonth - Child1DOB)) / 365),
-    Child2Age = round( as.numeric((firstOfMonth - Child2DOB)) / 365),
-    Child3Age = round( as.numeric((firstOfMonth - Child3DOB)) / 365),
-    Child4Age = round( as.numeric((firstOfMonth - Child4DOB)) / 365)
+    Child1Age = floor( as.numeric((firstOfMonth - as.Date(Child1DOB, '%m/%d/%Y'))) / 365),
+    Child2Age = floor( as.numeric((firstOfMonth - as.Date(Child2DOB, '%m/%d/%Y'))) / 365),
+    Child3Age = floor( as.numeric((firstOfMonth - as.Date(Child3DOB, '%m/%d/%Y'))) / 365),
+    Child4Age = floor( as.numeric((firstOfMonth - as.Date(Child4DOB, '%m/%d/%Y'))) / 365)
   ) %>%
   mutate(
     Child1Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child1Age),
-    Child2Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child2Age),
-    Child3Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child3Age),
-    Child4Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child4Age),
+    # Child2Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child2Age),
+    # Child3Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child3Age),
+    # Child4Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child4Age),
     Child1FirstName = ifelse(!(NumOfChildren %in% seq(1,4,1)), 'your child', as.character(Child1FirstName)),
     Child2FirstName = as.character(Child2FirstName),
     Child3FirstName = as.character(Child3FirstName),
@@ -78,7 +79,7 @@ tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
     ContentTrack = ifelse(Language == 'ESP' & is.na(ContentTrack), 'Direct', ContentTrack)
   ) %>%
   select(
-    -childAgeInterestRef
+    -childAgeInterestRef, -starts_with('X')
   )
 
 EngDirect <-
@@ -104,3 +105,8 @@ write.xlsx(EngMotiv, file = 'out.xlsx', sheetName = 'ENG Motive', row.names=F, a
 write.xlsx(ESPDirect, file = 'out.xlsx', sheetName = 'ESP Direct', row.names=F, append=T, showNA=F)
 write.xlsx(tmi.x, file = 'out.xlsx', sheetName = 'All', row.names=F, append=T, showNA=F)
 
+
+if (tmi.x$Child1Age == 0 & tmi.x$TipTime == 'AM' & tmi.x$ContentTrack == 'Direct') {
+  frame <- tmi.x$Mobile.Number
+  write.xlsx()
+}
