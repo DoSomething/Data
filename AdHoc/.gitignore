@@ -12,3 +12,5 @@
 **.rds
 **.json
 **.sav
+**DS_Store
+*.xlsx
