@@ -55,6 +55,9 @@ users <-
     waitingRoom_id = glad$data$waitingRoom$data$id,
     subscribed = c(T,F,T),
     unsubscribed = c(F,T,F)
+  ) %>%
+  mutate(
+    testField = c(T, T, F)
   )
 
 write.xlsx(contest, file = 'Data/gladiatorModel.xlsx', sheetName = 'contest', row.names = F)
