@@ -1,11 +1,15 @@
 library(RMySQL)
 
-system('ssh -f shasan@jump.d12g.com')
+pw_file <- '~/Documents/quasar_pw.txt'
+pw <- readChar(pw_file, file.info(pw_file)$size)
 
-dbConnect(
+con <-
+  dbConnect(
   MySQL(),
   user='shasan',
   host='quasar-slave-new.c9ajz690mens.us-east-1.rds.amazonaws.com',
-  password='K8Ba9fkk00HnWOBtmVwNCG3r3JgKN7',
+  password=pw,
   dbname='quasar'
   )
+
+rm(pw_file, pw)
