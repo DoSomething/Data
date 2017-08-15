@@ -1,5 +1,4 @@
 source('Scripts/init.R')
-source('Scripts/DSUtils.R')
 library(xlsx)
 
 myLetters <- data.table(ChildAgeInterest = LETTERS[1:5])
@@ -23,7 +22,7 @@ fullList <-
     ChildAgeInterest = NA, ContentTrack = NA, Language = NA, NumOfChildren = NA
   )
 
-tmi.x <- read.csv('~/Downloads/bezos2017-08-10.csv') %>%
+tmi.x <- read.csv('Data/bezos2017-08-10.csv') %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
   rename(Mobile.Number = device_address) %>%
@@ -33,11 +32,45 @@ tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
   left_join(myLetters) %>%
   filter(!is.na(Mobile.Number)) %>%
   mutate(
+    TipTime = ifelse(TipTime == 'Morning', 'AM', toupper(TipTime)),
+    Child1DOB = as.character(Child1DOB),
+    Child1DOB = 
+      as.Date(
+        ifelse(nchar(Child1DOB) == 7, as.Date(paste0('01/', Child1DOB), '%d/%m/%Y'), 
+               ifelse(nchar(Child1DOB) == 8, as.Date(Child1DOB, '%d/%m/%y'),
+                      ifelse(nchar(Child1DOB) == 10, as.Date(Child1DOB, '%m/%d/%Y'), NA))),
+        origin='1970-01-01'),
+    
+    Child2DOB = as.character(Child2DOB),
+    Child2DOB = 
+      as.Date(
+        ifelse(nchar(Child2DOB) == 7, as.Date(paste0('01/', Child2DOB), '%d/%m/%Y'), 
+               ifelse(nchar(Child2DOB) == 8, as.Date(Child2DOB, '%d/%m/%y'),
+                      ifelse(nchar(Child2DOB) == 10, as.Date(Child2DOB, '%m/%d/%Y'), NA))),
+        origin='1970-01-01'),
+    
+    Child3DOB = as.character(Child3DOB),
+    Child3DOB = 
+      as.Date(
+        ifelse(nchar(Child3DOB) == 7, as.Date(paste0('01/', Child3DOB), '%d/%m/%Y'), 
+               ifelse(nchar(Child3DOB) == 8, as.Date(Child3DOB, '%d/%m/%y'),
+                      ifelse(nchar(Child3DOB) == 10, as.Date(Child3DOB, '%m/%d/%Y'), NA))),
+        origin='1970-01-01'),
+    
+    Child4DOB = as.character(Child4DOB),
+    Child4DOB = 
+      as.Date(
+        ifelse(nchar(Child4DOB) == 7, as.Date(paste0('01/', Child4DOB), '%d/%m/%Y'), 
+               ifelse(nchar(Child4DOB) == 8, as.Date(Child4DOB, '%d/%m/%y'),
+                      ifelse(nchar(Child4DOB) == 10, as.Date(Child4DOB, '%m/%d/%Y'), NA))),
+        origin='1970-01-01')
+  ) %>%
+  mutate(
     firstOfMonth = as.Date(paste0(substr(Sys.Date(), 1, 7), '-01')),
-    Child1Age = floor( as.numeric((firstOfMonth - as.Date(Child1DOB, '%m/%d/%Y'))) / 365),
-    Child2Age = floor( as.numeric((firstOfMonth - as.Date(Child2DOB, '%m/%d/%Y'))) / 365),
-    Child3Age = floor( as.numeric((firstOfMonth - as.Date(Child3DOB, '%m/%d/%Y'))) / 365),
-    Child4Age = floor( as.numeric((firstOfMonth - as.Date(Child4DOB, '%m/%d/%Y'))) / 365)
+    Child1Age = pmin(pmax(floor( as.numeric((firstOfMonth - Child1DOB)) / 365), 0), 4),
+    Child2Age = pmin(pmax(floor( as.numeric((firstOfMonth - Child2DOB)) / 365), 0), 4),
+    Child3Age = pmin(pmax(floor( as.numeric((firstOfMonth - Child3DOB)) / 365), 0), 4),
+    Child4Age = pmin(pmax(floor( as.numeric((firstOfMonth - Child4DOB)) / 365), 0), 4)
   ) %>%
   mutate(
     Child1Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child1Age),
@@ -76,7 +109,8 @@ tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
   ) %>%
   mutate(
     ContentTrack = as.character(ContentTrack),
-    ContentTrack = ifelse(Language == 'ESP' & is.na(ContentTrack), 'Direct', ContentTrack)
+    ContentTrack = ifelse(Language == 'ESP' & is.na(ContentTrack), 'Direct', ContentTrack),
+    Language = as.character(Language)
   ) %>%
   select(
     -childAgeInterestRef, -starts_with('X')
@@ -100,13 +134,36 @@ ESPDirect <-
     Language == 'ESP' & ContentTrack == 'Direct' 
   )
 
+ContentTracks <- c('Direct','Motivational')
+TipTimes <- c('AM','PM')
+Languages <- c('ENG','ESP')
+Ages <- c(0,1,2,3,4)
+
+allOptions <- data.table(expand.grid(ContentTrack = ContentTracks, TipTime = TipTimes, Language = Languages, Age = Ages))
+
 write.xlsx(EngDirect, file = 'out.xlsx', sheetName = 'ENG Direct', row.names=F, showNA=F)
 write.xlsx(EngMotiv, file = 'out.xlsx', sheetName = 'ENG Motive', row.names=F, append=T, showNA=F)
 write.xlsx(ESPDirect, file = 'out.xlsx', sheetName = 'ESP Direct', row.names=F, append=T, showNA=F)
 write.xlsx(tmi.x, file = 'out.xlsx', sheetName = 'All', row.names=F, append=T, showNA=F)
 
-
-if (tmi.x$Child1Age == 0 & tmi.x$TipTime == 'AM' & tmi.x$ContentTrack == 'Direct') {
-  frame <- tmi.x$Mobile.Number
-  write.xlsx()
+for (i in 1:nrow(allOptions)) {
+  
+  out <-
+    tmi.x %>%
+    filter(
+      ContentTrack == allOptions[i,ContentTrack] & TipTime == allOptions[i,TipTime] & Language == allOptions[i,Language] &
+      (Child1Age == allOptions[i,Age] | Child2Age == allOptions[i,Age] | Child3Age  == allOptions[i,Age] | Child4Age  == allOptions[i,Age])
+    )
+  
+  if (nrow(out) > 0) {
+    
+    write.xlsx(
+      out, 
+      file = 'out.xlsx', 
+      sheetName = paste(allOptions[i,ContentTrack],allOptions[i,TipTime],allOptions[i,Language], allOptions[i,Age], sep='_'), 
+      row.names=F, append=T, showNA=F
+    )
+    
+  }
+  
 }
