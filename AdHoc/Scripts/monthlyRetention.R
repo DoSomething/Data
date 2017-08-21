@@ -7,7 +7,7 @@ library(lubridate)
 # 
 # names(df) <- c('Uid','event_date','event_id','action_type','action_id','event_ts')
 
-df <- tbl_dt(read_csv('Data/freddie_monthlyRetentionLook 2017-08-11T1013.csv'))
+df <- tbl_dt(read_csv('Data/freddie_monthlyRetentionLook_2017-08-21.csv'))
 names(df) <- c('Uid','event_date','event_id','action_type','action_id')
 
 df <-
