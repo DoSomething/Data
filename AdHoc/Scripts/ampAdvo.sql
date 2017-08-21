@@ -1,4 +1,4 @@
-SELECT 
+SELECT
 	camp.northstar_id,
 	max(CASE WHEN camp.`campaign_run_id` IN (7663, 7772) THEN 1 ELSE 0 END) AS participated_in_amplify,
 	max(CASE WHEN camp.`campaign_run_id` IN (7664, 7803) THEN 1 ELSE 0 END) AS participated_in_advocate,
@@ -9,4 +9,5 @@ LEFT JOIN campaign_activity non_advoamp_camps
 	AND (non_advoamp_camps.signup_created_at >= '2017-03-01' AND non_advoamp_camps.`campaign_run_id` NOT IN (7663, 7772, 7664, 7803))
 WHERE camp.`campaign_run_id` IN (7663, 7772, 7664, 7803)
 GROUP BY camp.northstar_id
-LIMIT 400;
+LIMIT 400
+;

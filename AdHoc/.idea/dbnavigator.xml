@@ -40,6 +40,7 @@
   </component>
   <component name="DBNavigator.Project.FileConnectionMappingManager">
     <mapping file-url="file://$PROJECT_DIR$/Scripts/usersRBsManyCampaigns.sql" connection-id="734b2237-09a6-4426-9f54-99925a0b644b" current-schema="SHASAN" />
+    <mapping file-url="file://$PROJECT_DIR$/Scripts/ampAdvo.sql" connection-id="734b2237-09a6-4426-9f54-99925a0b644b" current-schema="quasar" />
     <mapping file-url="file://$PROJECT_DIR$/Scripts/five_days_five_actions_RBS.sql" connection-id="734b2237-09a6-4426-9f54-99925a0b644b" current-schema="quasar" />
   </component>
   <component name="DBNavigator.Project.MethodExecutionManager">
