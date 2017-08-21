@@ -11,4 +11,3 @@ WHERE c.campaign_run_id = 7890
 AND u.email NOT LIKE '%dosomething.org%'
 limit 50
 ;
-

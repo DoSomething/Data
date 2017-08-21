@@ -14,3 +14,10 @@
 **.sav
 **DS_Store
 *.xlsx
+**.xml
+.idea/snapshots/
+Data/
+Visuals/
+.idea/dictionaries/
+.idea/libraries/
+.idea/markdown-navigator/

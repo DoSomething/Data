@@ -25,7 +25,8 @@
     <show-object-properties value="true" />
     <loaded-nodes>
       <connection connection-id="734b2237-09a6-4426-9f54-99925a0b644b">
-        <schema name="quasar" object-types="column, table" />
+        <schema name="dosomething" object-types="table, view" />
+        <schema name="quasar" object-types="column, table, view" />
       </connection>
     </loaded-nodes>
   </component>
