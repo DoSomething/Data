@@ -28,13 +28,13 @@ Total <-
   mutate(
     Pct.Breakdown = percent(Count / sum(Count))
   ) %>%
-  arrange(Reportbacks.All)
+  arrange(Reportbacks.All) %>% print()
 
 Type <- 
   d5.n %>%
   summarise(
     proportionSMS = percent(sum(reportbacks.SMS) / sum(reportbacks.accepted)),
     proportionWeb = percent(sum(reportbacks.Web) / sum(reportbacks.accepted))
-  )
+  ) %>% print()
   
 
