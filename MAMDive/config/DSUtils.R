@@ -36,6 +36,11 @@ runQuery <- function(path) {
   tbl_dt(dbGetQuery(con, query))
 }
 
+runQuery.s <- function(query) {
+  out <- tbl_dt(dbGetQuery(con, query))
+  return(out)
+}
+
 #####Save multiple data frame to tabs in spreadsheet#####
 save.xlsx <- function (file, ...)
 {
