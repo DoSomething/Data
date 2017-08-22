@@ -3,7 +3,9 @@ source('config/mySQLConfig.R')
 library(tidyverse)
 library(scales)
 
-d5 <- runQuery('Scripts/five_days_five_actions_RBS.sql')
+path <- 'Scripts/five_days_five_actions_RBS.sql'
+
+d5 <- runQuery(path)
 
 d5.n <-
   d5 %>%

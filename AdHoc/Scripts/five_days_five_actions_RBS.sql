@@ -1,4 +1,3 @@
-
 SELECT
 	c.northstar_id,
 	c.post_id,
