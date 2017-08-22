@@ -3,10 +3,6 @@ library(data.table)
 library(dtplyr)
 library(lubridate)
 
-# df <- tbl_dt(read_csv('Data/the_all_inclusive member_event_log 2017-07-07T1316.csv'))
-# 
-# names(df) <- c('Uid','event_date','event_id','action_type','action_id','event_ts')
-
 df <- tbl_dt(read_csv('Data/freddie_monthlyRetentionLook_2017-08-21.csv'))
 names(df) <- c('Uid','event_date','event_id','action_type','action_id')
 
