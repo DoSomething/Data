@@ -8,16 +8,10 @@
 **.jpg
 **.jpeg
 .DS_Store
-*.DS_Store
 **.rds
 **.json
 **.sav
 **DS_Store
-*.xlsx
-**.xml
 .idea/
 Data/
 Visuals/
-.idea/dictionaries/
-.idea/libraries/
-.idea/markdown-navigator/
