@@ -1,10 +1,9 @@
 library(RMySQL)
-library(stringr)
 
-quasarConnect <- function(path) {
-  pw_file <- path
+quasarConnect <- function(credentials) {
+  require(stringr)
 
-  login <- readChar(pw_file, file.info(pw_file)$size)
+  login <- readChar(credentials, file.info(credentials)$size)
   user <- str_split(login, ':')[[1]][1]
   pw <- str_split(login, ':')[[1]][2]
 
