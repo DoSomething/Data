@@ -2,7 +2,7 @@
 <project version="4">
   <component name="DBNavigator.Project.DataEditorManager">
     <record-view-column-sorting-type value="BY_INDEX" />
-    <value-preview-text-wrapping value="true" />
+    <value-preview-text-wrapping value="false" />
     <value-preview-pinned value="false" />
   </component>
   <component name="DBNavigator.Project.DataExportManager">
@@ -25,8 +25,7 @@
     <show-object-properties value="true" />
     <loaded-nodes>
       <connection connection-id="734b2237-09a6-4426-9f54-99925a0b644b">
-        <schema name="dosomething" object-types="table, view" />
-        <schema name="quasar" object-types="column, table, view" />
+        <schema name="quasar" object-types="column, constraint, function, index, procedure, table, dataset trigger, view" />
       </connection>
     </loaded-nodes>
   </component>
@@ -39,9 +38,10 @@
     <last-used-providers />
   </component>
   <component name="DBNavigator.Project.FileConnectionMappingManager">
+    <mapping file-url="file://$PROJECT_DIR$/Scripts/five_days_five_actions_RBS.sql" connection-id="734b2237-09a6-4426-9f54-99925a0b644b" current-schema="quasar" />
+    <mapping file-url="file://$PROJECT_DIR$/Scripts/emailRB.sql" connection-id="734b2237-09a6-4426-9f54-99925a0b644b" current-schema="quasar" />
     <mapping file-url="file://$PROJECT_DIR$/Scripts/usersRBsManyCampaigns.sql" connection-id="734b2237-09a6-4426-9f54-99925a0b644b" current-schema="SHASAN" />
     <mapping file-url="file://$PROJECT_DIR$/Scripts/ampAdvo.sql" connection-id="734b2237-09a6-4426-9f54-99925a0b644b" current-schema="quasar" />
-    <mapping file-url="file://$PROJECT_DIR$/Scripts/five_days_five_actions_RBS.sql" connection-id="734b2237-09a6-4426-9f54-99925a0b644b" current-schema="quasar" />
   </component>
   <component name="DBNavigator.Project.MethodExecutionManager">
     <method-browser />
@@ -83,7 +83,7 @@
           <password value="T0NRM3dnZzlaNEc0Sk1YZWVxdDdWTHNkUHVCWmln" />
         </database>
         <properties>
-          <auto-commit value="false" />
+          <auto-commit value="true" />
         </properties>
         <ssh-settings>
           <active value="false" />
