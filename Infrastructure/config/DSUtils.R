@@ -31,9 +31,23 @@ getQuery <- function(path, wd = T) {
   }
 }
 
-runQuery <- function(path) {
-  query <- getQuery(path)
-  tbl_dt(dbGetQuery(con, query))
+runQuery <- function(query) {
+    require(RMySQL)
+
+    if(grepl('.sql', query)) {
+
+        q <- getQuery(query)
+
+
+    } else {
+
+        q <- query
+
+    }
+
+    out <- tbl_dt(dbGetQuery(con, q))
+    return(out)
+
 }
 
 #####Save multiple data frame to tabs in spreadsheet#####
