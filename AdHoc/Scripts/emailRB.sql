@@ -15,3 +15,15 @@ and ca.submission_created_at <= TIMESTAMP('2017-08-23 15:00:00')
 group by ca.northstar_id
 limit 50
 ;
+
+SELECT
+    u.northstar_id,
+    extract(year FROM (from_days(dateDiff(current_timestamp,u.birthdate)))) AS age,
+    u.email,
+    u.mobile
+FROM quasar.users u
+WHERE
+(u.email is not null OR u.mobile is not null)
+AND extract(year FROM (from_days(dateDiff(current_timestamp,u.birthdate)))) > 18
+limit 50
+;
