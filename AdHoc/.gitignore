@@ -8,9 +8,11 @@
 **.jpg
 **.jpeg
 .DS_Store
-*.DS_Store
 **.rds
 **.json
 **.sav
 **DS_Store
-*.xlsx
+**.idea/
+**.xml
+Data/
+Visuals/

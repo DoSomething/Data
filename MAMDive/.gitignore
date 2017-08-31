@@ -12,7 +12,10 @@
 **.rds
 **.json
 **.sav
-**.DS_Store
+**DS_Store
 *.xlsx
+.idea/snapshots/
 **.xml
-.idea/
+Data/
+Visuals/
+MAMDive.Rproj

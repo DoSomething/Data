@@ -1,4 +1,5 @@
 source('Scripts/init.R')
+source('Scripts/mySQLConfig.R')
 library(xlsx)
 
 myLetters <- data.table(ChildAgeInterest = LETTERS[1:5])
@@ -22,7 +23,10 @@ fullList <-
     ChildAgeInterest = NA, ContentTrack = NA, Language = NA, NumOfChildren = NA
   )
 
-tmi.x <- read.csv('Data/bezos2017-08-10.csv') %>%
+month.nums <- as.numeric(factor(substr(month.name,1,3), levels = substr(month.name,1,3)))
+month.subs <- substr(month.name, 1, 3)
+
+tmi.x <- read.csv('Data/TMIBezosSheets/bezos2017-08-17.csv') %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
   rename(Mobile.Number = device_address) %>%
@@ -36,34 +40,30 @@ tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
     Child1DOB = as.character(Child1DOB),
     Child1DOB = 
       as.Date(
-        ifelse(nchar(Child1DOB) == 7, as.Date(paste0('01/', Child1DOB), '%d/%m/%Y'), 
-               ifelse(nchar(Child1DOB) == 8, as.Date(Child1DOB, '%d/%m/%y'),
-                      ifelse(nchar(Child1DOB) == 10, as.Date(Child1DOB, '%m/%d/%Y'), NA))),
-        origin='1970-01-01'),
+      ifelse(substr(Child1DOB,1,3) %in% month.subs, as.Date(paste0('01-', substr(Child1DOB, 1, 3), substr(Child1DOB, 4, 6)), format='%d-%b-%y'), 
+             ifelse(grepl('/', Child1DOB), as.Date(Child1DOB, format='%m/%d/%y'), NA)),
+      origin='1970-01-01'),
     
     Child2DOB = as.character(Child2DOB),
     Child2DOB = 
       as.Date(
-        ifelse(nchar(Child2DOB) == 7, as.Date(paste0('01/', Child2DOB), '%d/%m/%Y'), 
-               ifelse(nchar(Child2DOB) == 8, as.Date(Child2DOB, '%d/%m/%y'),
-                      ifelse(nchar(Child2DOB) == 10, as.Date(Child2DOB, '%m/%d/%Y'), NA))),
-        origin='1970-01-01'),
-    
+      ifelse(substr(Child2DOB,1,3) %in% month.subs, as.Date(paste0('01-', substr(Child2DOB, 1, 3), substr(Child2DOB, 4, 6)), format='%d-%b-%y'), 
+             ifelse(grepl('/', Child2DOB), as.Date(Child2DOB, format='%m/%d/%y'), NA)),
+    origin='1970-01-01'),
+
     Child3DOB = as.character(Child3DOB),
     Child3DOB = 
       as.Date(
-        ifelse(nchar(Child3DOB) == 7, as.Date(paste0('01/', Child3DOB), '%d/%m/%Y'), 
-               ifelse(nchar(Child3DOB) == 8, as.Date(Child3DOB, '%d/%m/%y'),
-                      ifelse(nchar(Child3DOB) == 10, as.Date(Child3DOB, '%m/%d/%Y'), NA))),
-        origin='1970-01-01'),
+      ifelse(substr(Child3DOB,1,3) %in% month.subs, as.Date(paste0('01-', substr(Child3DOB, 1, 3), substr(Child3DOB, 4, 6)), format='%d-%b-%y'), 
+             ifelse(grepl('/', Child3DOB), as.Date(Child3DOB, format='%m/%d/%y'), NA)),
+      origin='1970-01-01'),
     
     Child4DOB = as.character(Child4DOB),
     Child4DOB = 
       as.Date(
-        ifelse(nchar(Child4DOB) == 7, as.Date(paste0('01/', Child4DOB), '%d/%m/%Y'), 
-               ifelse(nchar(Child4DOB) == 8, as.Date(Child4DOB, '%d/%m/%y'),
-                      ifelse(nchar(Child4DOB) == 10, as.Date(Child4DOB, '%m/%d/%Y'), NA))),
-        origin='1970-01-01')
+      ifelse(substr(Child4DOB,1,3) %in% month.subs, as.Date(paste0('01-', substr(Child4DOB, 1, 3), substr(Child4DOB, 4, 6)), format='%d-%b-%y'), 
+             ifelse(grepl('/', Child4DOB), as.Date(Child4DOB, format='%m/%d/%y'), NA)),
+      origin='1970-01-01')
   ) %>%
   mutate(
     firstOfMonth = as.Date(paste0(substr(Sys.Date(), 1, 7), '-01')),
@@ -141,10 +141,10 @@ Ages <- c(0,1,2,3,4)
 
 allOptions <- data.table(expand.grid(ContentTrack = ContentTracks, TipTime = TipTimes, Language = Languages, Age = Ages))
 
-write.xlsx(EngDirect, file = 'out.xlsx', sheetName = 'ENG Direct', row.names=F, showNA=F)
-write.xlsx(EngMotiv, file = 'out.xlsx', sheetName = 'ENG Motive', row.names=F, append=T, showNA=F)
-write.xlsx(ESPDirect, file = 'out.xlsx', sheetName = 'ESP Direct', row.names=F, append=T, showNA=F)
-write.xlsx(tmi.x, file = 'out.xlsx', sheetName = 'All', row.names=F, append=T, showNA=F)
+write.xlsx(EngDirect, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'.xlsx'), sheetName = 'ENG Direct', row.names=F, showNA=F)
+write.xlsx(EngMotiv, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'.xlsx'), sheetName = 'ENG Motive', row.names=F, append=T, showNA=F)
+write.xlsx(ESPDirect, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'.xlsx'), sheetName = 'ESP Direct', row.names=F, append=T, showNA=F)
+write.xlsx(tmi.x, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'.xlsx'), sheetName = 'All', row.names=F, append=T, showNA=F)
 
 for (i in 1:nrow(allOptions)) {
   
@@ -159,7 +159,7 @@ for (i in 1:nrow(allOptions)) {
     
     write.xlsx(
       out, 
-      file = 'out.xlsx', 
+      file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'.xlsx'), 
       sheetName = paste(allOptions[i,ContentTrack],allOptions[i,TipTime],allOptions[i,Language], allOptions[i,Age], sep='_'), 
       row.names=F, append=T, showNA=F
     )

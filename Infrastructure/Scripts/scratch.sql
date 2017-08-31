@@ -1,0 +1,1 @@
+SELECT COLUMN_NAME FROM information_schema.columns c WHERE c.TABLE_SCHEMA='quasar' AND table_name='users'
