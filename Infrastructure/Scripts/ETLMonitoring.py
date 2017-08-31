@@ -20,6 +20,14 @@ class QuasarException(Exception):
         logging.error("ERROR: {0}".format(message))
         pass
 
+def construct_query_dict(description, query, query_set=None):
+    if query_set==None:
+        query_set = {}
+
+    query_set[description] = query
+
+    return query_set
+
 def get_status(query):
     try:
         value = run_query(query, credentials)

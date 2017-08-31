@@ -12,6 +12,7 @@
 **.json
 **.sav
 **DS_Store
-.idea/
+**.idea/
+**.xml
 Data/
 Visuals/
