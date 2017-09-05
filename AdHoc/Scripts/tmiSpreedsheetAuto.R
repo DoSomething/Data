@@ -1,5 +1,5 @@
-source('Scripts/init.R')
-source('Scripts/mySQLConfig.R')
+source('config/init.R')
+source('config/mySQLConfig.R')
 library(xlsx)
 
 myLetters <- data.table(ChildAgeInterest = LETTERS[1:5])
@@ -26,7 +26,7 @@ fullList <-
 month.nums <- as.numeric(factor(substr(month.name,1,3), levels = substr(month.name,1,3)))
 month.subs <- substr(month.name, 1, 3)
 
-tmi.x <- read.csv('Data/TMIBezosSheets/bezos2017-08-17.csv') %>%
+tmi.x <- read.csv('Data/TMIBezosSheets/bezos2017-08-31.csv') %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
   rename(Mobile.Number = device_address) %>%
