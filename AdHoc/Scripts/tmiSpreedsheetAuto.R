@@ -130,10 +130,10 @@ Ages <- c(0,1,2,3,4)
 
 allOptions <- data.table(expand.grid(ContentTrack = ContentTracks, TipTime = TipTimes, Language = Languages, Age = Ages))
 
-write.xlsx(EngDirect, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'.xlsx'), sheetName = 'ENG Direct', row.names=F, showNA=F)
-write.xlsx(EngMotiv, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'.xlsx'), sheetName = 'ENG Motive', row.names=F, append=T, showNA=F)
-write.xlsx(ESPDirect, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'.xlsx'), sheetName = 'ESP Direct', row.names=F, append=T, showNA=F)
-write.xlsx(tmi.x, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'.xlsx'), sheetName = 'All', row.names=F, append=T, showNA=F)
+write.xlsx(EngDirect, file = paste0('Data/TMIBezosSheets/output_a_',Sys.Date(),'.xlsx'), sheetName = 'ENG Direct', row.names=F, showNA=F)
+write.xlsx(EngMotiv, file = paste0('Data/TMIBezosSheets/output_a_',Sys.Date(),'.xlsx'), sheetName = 'ENG Motive', row.names=F, append=T, showNA=F)
+write.xlsx(ESPDirect, file = paste0('Data/TMIBezosSheets/output_a_',Sys.Date(),'.xlsx'), sheetName = 'ESP Direct', row.names=F, append=T, showNA=F)
+write.xlsx(tmi.x, file = paste0('Data/TMIBezosSheets/output_a_',Sys.Date(),'.xlsx'), sheetName = 'All', row.names=F, append=T, showNA=F)
 
 for (i in 1:nrow(allOptions[1:19])) {
   
