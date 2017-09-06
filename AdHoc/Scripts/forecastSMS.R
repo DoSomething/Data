@@ -5,10 +5,10 @@ library(xlsx)
 library(forecast)
 library(scales)
 
-leads <- 
-  read_csv('Data/DoSomething.org_-_July_2017_Leads.csv') %>%
-  select(email) %>%
-  filter(!duplicated(email))
+# leads <- 
+#   read_csv('Data/DoSomething.org_-_July_2017_Leads.csv') %>%
+#   select(email) %>%
+#   filter(!duplicated(email))
 
 # ems <- prepQueryObjects(leads$email)
 
@@ -39,11 +39,11 @@ match <-
                                          ifelse(northstar_id_source_name %in% other, 'other', 'exclude')))))
   )
 
-kikalist <-
-  match %>%
-  filter(
-    email %in% leads$email
-  )
+# kikalist <-
+#   match %>%
+#   filter(
+#     email %in% leads$email
+#   )
 
 source <- 
   match %>%
@@ -61,17 +61,25 @@ source <-
     !(source %in% c('exclude','other','app'))
   ) %>%
   mutate(
-    daysSinceBeginning = as.numeric(created_date - min(created_date)),
-    daysSinceBeginning_2 = as.numeric(created_date - min(created_date))^2,
-    daysSinceBeginning_3 = as.numeric(created_date - min(created_date))^3,
-    daysSinceBeginning_4 = as.numeric(created_date - min(created_date))^4
-  )
+    daysSinceBeginning = as.numeric(created_date - min(created_date))
+  ) %>% 
+  group_by(created_date) %>%
+  mutate(
+    proportion_signups = running_total / sum(running_total)
+  ) %>% 
+  ungroup(created_date)
+
+ggplot(source, aes(created_date, proportion_signups, source)) + 
+  geom_smooth(aes(color=source)) + 
+  ggtitle('Proportion Signups Over Time')
 
 smsgrowth <- lm(
   running_total ~ daysSinceBeginning + source,
   source[!is.na(running_total)],
   weights = daysSinceBeginning
   )
+
+# glm(proportion_signups ~ created_date, family='binomial', data=source, weights=)
 
 forecastDates <- 
   expand.grid(
@@ -87,10 +95,7 @@ forecastDates <-
 source %<>%
   bind_rows(forecastDates) %>% 
   mutate(
-    daysSinceBeginning = as.numeric(created_date - min(created_date)),
-    daysSinceBeginning_2 = as.numeric(created_date - min(created_date))^2,
-    daysSinceBeginning_3 = as.numeric(created_date - min(created_date))^3,
-    daysSinceBeginning_4 = as.numeric(created_date - min(created_date))^4
+    daysSinceBeginning = as.numeric(created_date - min(created_date))
   )
 
 source$predictTotal <- predict(smsgrowth, newdata=source, type = 'response')
