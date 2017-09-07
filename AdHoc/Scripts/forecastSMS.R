@@ -5,6 +5,7 @@ library(xlsx)
 library(forecast)
 library(scales)
 
+#https://trello.com/c/aZZsQXiX/1127-sms-subscriber-growth-breakdown
 # leads <- 
 #   read_csv('Data/DoSomething.org_-_July_2017_Leads.csv') %>%
 #   select(email) %>%
@@ -19,7 +20,7 @@ q <- paste0(
   u.northstar_created_at_timestamp as created_date,
   u.northstar_id_source_name
   FROM quasar.users u 
-  WHERE u.northstar_created_at_timestamp > '2013-07-01'")
+  WHERE u.northstar_created_at_timestamp > '2008-01-01'")
 
 web <- c('drupal', 'phoenix', 'phoenix-next','phoenix-oauth','cgg','voting_app')
 sms <- c('message_broker','sms')
@@ -65,13 +66,15 @@ source <-
   ) %>% 
   group_by(created_date) %>%
   mutate(
-    proportion_signups = running_total / sum(running_total)
+    proportion_signups = sign_ups / sum(sign_ups)
   ) %>% 
   ungroup(created_date)
 
 ggplot(source, aes(created_date, proportion_signups, source)) + 
   geom_smooth(aes(color=source)) + 
-  ggtitle('Proportion Signups Over Time')
+  ggtitle('Proportion Signups Over Time') + 
+  scale_y_continuous(breaks=pretty_breaks(10)) +
+  scale_x_date(breaks=pretty_breaks(10))
 
 smsgrowth <- lm(
   running_total ~ daysSinceBeginning + source,
