@@ -4,12 +4,16 @@ library(xlsx)
 
 formatDOB <- function(x) {
   x = as.character(x)
+  x = gsub("-", "/", x)
+  x = gsub("[^0-9\\/\\-]", "", x) 
   x = 
     as.Date(
       ifelse(substr(x,1,3) %in% month.subs, as.Date(paste0('01-', substr(x, 1, 3), substr(x, 4, 6)), format='%d-%b-%y'), 
-             ifelse(nchar(x)==7, as.Date(paste0('01/', x), format='%m/%d/%Y'),
-                    ifelse(nchar(x)==8, as.Date(x, format='%m/%d/%y'),
-                           ifelse(grepl('/', x), as.Date(x, format='%m/%d/%Y'), NA)))),
+             ifelse(nchar(gsub("[^\\/]", "", x))==2 & nchar(x)==7, as.Date(x, format='%m/%d/%y'),
+                    ifelse(nchar(gsub("[^\\/]", "", x))==1 & nchar(x)==7, as.Date(paste0('01/', x), format='%m/%d/%Y'),
+                           ifelse(nchar(x)==8, as.Date(x, format='%m/%d/%y'),
+                                  ifelse(grepl('/', x), as.Date(x, format='%m/%d/%Y'), 
+                                         ifelse(grepl('-', x), as.Date(x, format='%m-%d-%Y'), NA)))))),
       origin='1970-01-01')
   return(x)
 }
@@ -38,7 +42,7 @@ fullList <-
 month.nums <- as.numeric(factor(substr(month.name,1,3), levels = substr(month.name,1,3)))
 month.subs <- substr(month.name, 1, 3)
 
-tmi.x <- read.csv('Data/TMIBezosSheets/bezos2017-08-31.csv') %>%
+tmi.x <- read.csv('Data/TMIBezosSheets/bezos2017-09-07.csv') %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
   rename(Mobile.Number = device_address) %>%
@@ -130,10 +134,10 @@ Ages <- c(0,1,2,3,4)
 
 allOptions <- data.table(expand.grid(ContentTrack = ContentTracks, TipTime = TipTimes, Language = Languages, Age = Ages))
 
-write.xlsx(EngDirect, file = paste0('Data/TMIBezosSheets/output_a_',Sys.Date(),'.xlsx'), sheetName = 'ENG Direct', row.names=F, showNA=F)
-write.xlsx(EngMotiv, file = paste0('Data/TMIBezosSheets/output_a_',Sys.Date(),'.xlsx'), sheetName = 'ENG Motive', row.names=F, append=T, showNA=F)
-write.xlsx(ESPDirect, file = paste0('Data/TMIBezosSheets/output_a_',Sys.Date(),'.xlsx'), sheetName = 'ESP Direct', row.names=F, append=T, showNA=F)
-write.xlsx(tmi.x, file = paste0('Data/TMIBezosSheets/output_a_',Sys.Date(),'.xlsx'), sheetName = 'All', row.names=F, append=T, showNA=F)
+write.xlsx(EngDirect, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'ENG Direct', row.names=F, showNA=F)
+write.xlsx(EngMotiv, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'ENG Motive', row.names=F, append=T, showNA=F)
+write.xlsx(ESPDirect, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'ESP Direct', row.names=F, append=T, showNA=F)
+write.xlsx(tmi.x, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'All', row.names=F, append=T, showNA=F)
 
 for (i in 1:nrow(allOptions[1:19])) {
   
@@ -148,7 +152,7 @@ for (i in 1:nrow(allOptions[1:19])) {
     
     write.xlsx(
       out, 
-      file = paste0('Data/TMIBezosSheets/output_a_',Sys.Date(),'.xlsx'), 
+      file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), 
       sheetName = paste(allOptions[i,ContentTrack],allOptions[i,TipTime],allOptions[i,Language], allOptions[i,Age], sep='_'), 
       row.names=F, append=T, showNA=F
     )
@@ -170,7 +174,7 @@ for (i in 20:nrow(allOptions)) {
     
     write.xlsx(
       out, 
-      file = paste0('Data/TMIBezosSheets/output_b_',Sys.Date(),'.xlsx'), 
+      file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'b','.xlsx'), 
       sheetName = paste(allOptions[i,ContentTrack],allOptions[i,TipTime],allOptions[i,Language], allOptions[i,Age], sep='_'), 
       row.names=F, append=T, showNA=F
     )
