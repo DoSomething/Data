@@ -1,8 +1,15 @@
 source('config/init.R')
 source('config/mySQLConfig.R')
 
-gotv <- read_csv('Data/RTV_DoSomethingOrg_APPENDED_20170724.csv')
+rtv <- read_csv('Data/RTV_DoSomethingOrg_APPENDED_20170724.csv')
 
-q <- "SELECT DISTINCT u.northstar_id, u.mobile FROM quasar.users u WHERE u.mobile IS NOT NULL"
+uid <- prepQueryObjects(rtv$PHONE)
 
-norths <- runQuery(q)
+q <- paste0(
+  "SELECT 
+    c.*
+  FROM quasar.users u 
+  LEFT JOIN quasar.campaign_activity c ON c.northstar_id = u.northstar_id
+  WHERE u.mobile IN ", uid)
+
+cam <- runQuery(q)

@@ -3,8 +3,8 @@ library(data.table)
 library(dtplyr)
 library(lubridate)
 
-df <- tbl_dt(read_csv('Data/freddie_monthlyRetentionLook 2017-08-28.csv'))
-names(df) <- c('Uid','event_date','event_id','action_type','action_id')
+df <- tbl_dt(read_csv('Data/freddie_monthlyRetentionLook 2017-09-05.csv'))
+names(df) <- c('X1','Uid','event_date','event_id','action_type','action_id')
 
 df <-
   df %>%
@@ -62,10 +62,11 @@ getRates <- function(df, pivot) {
       , 
       .(
         activePoverP = sum(activePoverP) / sum(previous_month_activity)), 
-      by = event_time_window
+      by = c(pivot)
       ]
   
   return(rates)
 }
 
+getRates(df, 'event_time_window')
 getRates(df, 'event_month')

@@ -5,10 +5,11 @@ library(xlsx)
 library(forecast)
 library(scales)
 
-leads <- 
-  read_csv('Data/DoSomething.org_-_July_2017_Leads.csv') %>%
-  select(email) %>%
-  filter(!duplicated(email))
+#https://trello.com/c/aZZsQXiX/1127-sms-subscriber-growth-breakdown
+# leads <- 
+#   read_csv('Data/DoSomething.org_-_July_2017_Leads.csv') %>%
+#   select(email) %>%
+#   filter(!duplicated(email))
 
 # ems <- prepQueryObjects(leads$email)
 
@@ -19,7 +20,7 @@ q <- paste0(
   u.northstar_created_at_timestamp as created_date,
   u.northstar_id_source_name
   FROM quasar.users u 
-  WHERE u.northstar_created_at_timestamp > '2013-07-01'")
+  WHERE u.northstar_created_at_timestamp > '2008-01-01'")
 
 web <- c('drupal', 'phoenix', 'phoenix-next','phoenix-oauth','cgg','voting_app')
 sms <- c('message_broker','sms')
@@ -39,11 +40,11 @@ match <-
                                          ifelse(northstar_id_source_name %in% other, 'other', 'exclude')))))
   )
 
-kikalist <-
-  match %>%
-  filter(
-    email %in% leads$email
-  )
+# kikalist <-
+#   match %>%
+#   filter(
+#     email %in% leads$email
+#   )
 
 source <- 
   match %>%
@@ -61,17 +62,27 @@ source <-
     !(source %in% c('exclude','other','app'))
   ) %>%
   mutate(
-    daysSinceBeginning = as.numeric(created_date - min(created_date)),
-    daysSinceBeginning_2 = as.numeric(created_date - min(created_date))^2,
-    daysSinceBeginning_3 = as.numeric(created_date - min(created_date))^3,
-    daysSinceBeginning_4 = as.numeric(created_date - min(created_date))^4
-  )
+    daysSinceBeginning = as.numeric(created_date - min(created_date))
+  ) %>% 
+  group_by(created_date) %>%
+  mutate(
+    proportion_signups = sign_ups / sum(sign_ups)
+  ) %>% 
+  ungroup(created_date)
+
+ggplot(source, aes(created_date, proportion_signups, source)) + 
+  geom_smooth(aes(color=source)) + 
+  ggtitle('Proportion Signups Over Time') + 
+  scale_y_continuous(breaks=pretty_breaks(10)) +
+  scale_x_date(breaks=pretty_breaks(10))
 
 smsgrowth <- lm(
   running_total ~ daysSinceBeginning + source,
   source[!is.na(running_total)],
   weights = daysSinceBeginning
   )
+
+# glm(proportion_signups ~ created_date, family='binomial', data=source, weights=)
 
 forecastDates <- 
   expand.grid(
@@ -87,10 +98,7 @@ forecastDates <-
 source %<>%
   bind_rows(forecastDates) %>% 
   mutate(
-    daysSinceBeginning = as.numeric(created_date - min(created_date)),
-    daysSinceBeginning_2 = as.numeric(created_date - min(created_date))^2,
-    daysSinceBeginning_3 = as.numeric(created_date - min(created_date))^3,
-    daysSinceBeginning_4 = as.numeric(created_date - min(created_date))^4
+    daysSinceBeginning = as.numeric(created_date - min(created_date))
   )
 
 source$predictTotal <- predict(smsgrowth, newdata=source, type = 'response')
