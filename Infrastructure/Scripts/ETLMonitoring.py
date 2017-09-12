@@ -3,6 +3,7 @@ from config.mySQLConfig import *
 import logging
 import sys
 import datetime
+from pandas import DataFrame as df
 
 credentials = "/Users/shasan/Documents/quasar_login.txt"
 
@@ -66,6 +67,9 @@ def compile_statuses(queries):
     return out
 
 
+def write_to_monitoring_table(table):
+    df.to_sql(table, )
+
 def extract_latest_value(table, desc):
     max_query = \
         "SELECT  \
@@ -105,6 +109,23 @@ def extract_second_latest_value(table, desc):
     value = get_value(max_2_query)
     return value
 
+def compare_latest_values(table, desc):
+    # latest_value = extract_latest_value(table, desc)
+    # second_latest_value = extract_second_latest_value(table, desc)
+    latest_value=12
+    second_latest_value=10
+    if latest_value > second_latest_value:
+        message = 'Pass'
+    else:
+        message = 'Fail'
+    report = table + ' ' + desc + ' ' + message
+    return report
+
 extract_second_latest_value('quasar.users', 'user_count')
 
 test = compile_statuses(user_queries)
+
+if a<b == True:
+    print('somethings wrong')
+else:
+    print('its fine')
