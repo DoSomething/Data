@@ -18,9 +18,10 @@ q <- paste0(
     u.northstar_id,
   u.email,
   u.northstar_created_at_timestamp as created_date,
-  u.northstar_id_source_name
+  u.northstar_id_source_name,
   FROM quasar.users u 
-  WHERE u.northstar_created_at_timestamp > '2008-01-01'")
+  WHERE u.northstar_created_at_timestamp > '2008-01-01'
+  WHERE u.moco_current_status = 'active'")
 
 web <- c('drupal', 'phoenix', 'phoenix-next','phoenix-oauth','cgg','voting_app')
 sms <- c('message_broker','sms')
@@ -28,6 +29,7 @@ app <- c('android','letsdothis-ios','mobileapp_android','mobileapp_ios')
 niche <- 'niche'
 other <- c('northstar','aurora','quasar-etl-node','test-source')
 exclude <- c('runscope','runscope-client','')
+moco_current_status <- 'active'
 
 match <- 
   runQuery(q) %>%
