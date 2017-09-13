@@ -1,88 +1,133 @@
 #load up the ggmap library
+source('config/init.R')
+source('config/mySQLConfig.R')
 library(ggmap)
+library(ggthemes)
+library(zipcode)
+library(maps)
+library(maptools)
+library(noncensus)
+library(choroplethr)
+library(choroplethrZip)
 
 q <- "
 SELECT 
-  u.northstar_id, 
-  u.addr_street1,
-  u.addr_street2,
-  u.addr_city,
-  u.addr_state,
-  u.addr_zip,
-  u.country
+  u.northstar_id,
+  u.addr_zip
 FROM quasar.users u
 WHERE u.addr_zip IS NOT NULL
 AND u.addr_zip <> ''
+AND u.country = 'US'
 "
 
 data <- runQuery(q)
 
-# get the address list, and append "Ireland" to the end to increase accuracy 
-# (change or remove this if your address already include a country etc.)
-addresses = data$Address
-addresses = paste0(addresses, ", Ireland")
+# data(zipcode)
+# zipcode %<>% tbl_dt()
+# map<-get_map(location='united states', zoom=4, maptype = 'roadmap',
+#              source='google',color='color')
+# ggmap(map)
+# 
+# zips <-
+#   data %>%
+#   mutate(
+#     zip = clean.zipcodes(addr_zip)
+#   ) %>%
+#   inner_join(zipcode) %>%
+#   group_by(latitude, longitude) %>%
+#   summarise(
+#     Count = n()
+#   )
+# 
+# ggmap(map) + 
+#   stat_density2d(data=zips, aes(x=longitude, y=latitude, fill=..level.., alpha=..level..), bins=32, geom='polygon') +
+#   scale_fill_gradient(low='green', high='red', guide=FALSE) + 
+#   scale_alpha(range = c(0,1), guide=FALSE) + 
+#   labs(x='Longitude', y='Latitude', title='Heatmap of DoSomething.org Members')
+# 
+# ggplot() + 
+#   geom_polygon(data=zips, aes(x=longitude, y=latitude, fill=Count)) + 
+#   coord_map() + 
+#   scale_fill_distiller(name="Percent", palette = "YlGn", breaks = pretty_breaks(n = 5))+
+#   theme_nothing(legend = TRUE)
+# zip_fips <-
+#   read_csv('../../Downloads/zcta_county_rel_10.csv') %>%
+#   select(ZCTA5, COUNTY) %>%
+#   transmute(
+#     zip = ZCTA5,
+#     county_fips = COUNTY
+#   ) %>%
+#   filter(!duplicated(zip))
+# 
+# county_latlong <-
+#   map_data('county') %>%
+#   mutate(
+#     county_name = toupper(subregion)
+#   ) %>%
+#   select(long, lat, county_name, group) %>%
+#   tbl_dt()
+# 
+# data(counties)
+# county_fips <-
+#   counties %>%
+#   select(county_name, county_fips) %>%
+#   mutate(
+#     county_name = toupper(gsub(' County', '', county_name))
+#   ) %>%
+#   tbl_dt() %>%
+#   filter(!duplicated(county_name))
 
-#define a function that will process googles server responses for us.
-getGeoDetails <- function(address){   
-  #use the gecode function to query google servers
-  geo_reply = geocode(address, output='all', messaging=TRUE, override_limit=TRUE)
-  #now extract the bits that we need from the returned list
-  answer <- data.frame(lat=NA, long=NA, accuracy=NA, formatted_address=NA, address_type=NA, status=NA)
-  answer$status <- geo_reply$status
-  
-  #if we are over the query limit - want to pause for an hour
-  while(geo_reply$status == "OVER_QUERY_LIMIT"){
-    print("OVER QUERY LIMIT - Pausing for 1 hour at:") 
-    time <- Sys.time()
-    print(as.character(time))
-    Sys.sleep(60*60)
-    geo_reply = geocode(address, output='all', messaging=TRUE, override_limit=TRUE)
-    answer$status <- geo_reply$status
-  }
-  
-  #return Na's if we didn't get a match:
-  if (geo_reply$status != "OK"){
-    return(answer)
-  }   
-  #else, extract what we need from the Google server reply into a dataframe:
-  answer$lat <- geo_reply$results[[1]]$geometry$location$lat
-  answer$long <- geo_reply$results[[1]]$geometry$location$lng   
-  if (length(geo_reply$results[[1]]$types) > 0){
-    answer$accuracy <- geo_reply$results[[1]]$types[[1]]
-  }
-  answer$address_type <- paste(geo_reply$results[[1]]$types, collapse=',')
-  answer$formatted_address <- geo_reply$results[[1]]$formatted_address
-  
-  return(answer)
-}
+data(zip.regions)
+pop <- 
+  read_csv('Data/2010+Census+Population+By+Zipcode+(ZCTA).csv') %>% 
+  setNames(c('region', 'population')) %>% tbl_dt() %>% 
+  group_by(region) %>% 
+  summarise(population = max(population))
 
-#initialise a dataframe to hold the results
-geocoded <- data.frame()
-# find out where to start in the address list (if the script was interrupted before):
-startindex <- 1
-#if a temp file exists - load it up and count the rows!
-tempfilename <- paste0(infile, '_temp_geocoded.rds')
-if (file.exists(tempfilename)){
-  print("Found temp file - resuming from index:")
-  geocoded <- readRDS(tempfilename)
-  startindex <- nrow(geocoded)
-  print(startindex)
-}
+zips <-
+  data %>%
+  mutate(
+    zip = clean.zipcodes(addr_zip)
+  ) %>% 
+  group_by(zip) %>% 
+  summarise(
+    Count = n()
+  ) %>% 
+  transmute(
+    region = zip,
+    Count = Count
+  )
 
-# Start the geocoding process - address by address. geocode() function takes care of query speed limit.
-for (ii in seq(startindex, length(addresses))){
-  print(paste("Working on index", ii, "of", length(addresses)))
-  #query the google geocoder - this will pause here if we are over the limit.
-  result = getGeoDetails(addresses[ii]) 
-  print(result$status)     
-  result$index <- ii
-  #append the answer to the results file.
-  geocoded <- rbind(geocoded, result)
-  #save temporary results as we are going along
-  saveRDS(geocoded, tempfilename)
-}
+mapthis <- 
+  zip.regions %>% 
+  filter(!duplicated(region)) %>% 
+  select(region) %>% 
+  left_join(zips) %>% 
+  inner_join(pop) %>% 
+  mutate(
+    estMembers = Count*15,
+    estMembers = ifelse(is.na(estMembers), 0, estMembers),
+    value = estMembers / population,
+    value = ifelse(value == Inf, 0, value),
+    value = ifelse(value > 1, Count / population, value),
+    value = ifelse(value > 1, 1 / population, value),
+    value = ifelse(is.na(value), 0, round(value, 5))
+  ) %>% tbl_dt()
 
-#now we add the latitude and longitude to the main data
-data$lat <- geocoded$lat
-data$long <- geocoded$long
-data$accuracy <- geocoded$accuracy
+zip_choropleth(
+  mapthis, 
+  title = 'Proportion of Do Something Members per Zip Code', 
+  legend = 'Proportion')
+
+# ready <-
+#   zips %>% 
+#   inner_join(zip_fips, copy=T) %>% 
+#   inner_join(county_fips) %>% 
+#   tbl_dt() %>% 
+#   select(county_name, Count) %>% 
+#   transmute(
+#     region = county_fips,
+#     value = Count
+#   )
+# 
+# ggplot(map.county, aes(x=long, y=lat, group=group)) + geom_polygon() + coord_map()
