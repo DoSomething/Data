@@ -1,4 +1,4 @@
-/*Members' phone numbers for GWD*/
+/*/*Members' phone numbers for GWD. Run this again but with run id = 7872 to identity those who signed up for comp and delete these manually from csv.*/*/
 Select distinct u.northstar_id, u.mobile
 from quasar.users u 
 left join quasar.campaign_activity c on c.northstar_id = u.northstar_id
