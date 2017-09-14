@@ -2,23 +2,6 @@ source('config/init.R')
 source('config/mySQLConfig.R')
 library(xlsx)
 
-formatDOB <- function(x) {
-  
-  x = as.character(x)
-  x = gsub("-", "/", x)
-  x = gsub("[^0-9\\/\\-]", "", x) 
-  x = 
-    as.Date(
-      ifelse(substr(x,1,3) %in% month.subs, as.Date(paste0('01-', substr(x, 1, 3), substr(x, 4, 6)), format='%d-%b-%y'), 
-             ifelse(nchar(gsub("[^\\/]", "", x))==2 & nchar(x)==7, as.Date(x, format='%m/%d/%y'),
-                    ifelse(nchar(gsub("[^\\/]", "", x))==1 & nchar(x)==7, as.Date(paste0('01/', x), format='%d/%m/%Y'),
-                           ifelse(nchar(x)==8, as.Date(x, format='%m/%d/%y'),
-                                  ifelse(grepl('/', x), as.Date(x, format='%m/%d/%Y'), 
-                                         ifelse(grepl('-', x), as.Date(x, format='%m-%d-%Y'), NA)))))),
-      origin='1970-01-01')
-  return(x)
-}
-
 myLetters <- data.table(ChildAgeInterest = LETTERS[1:5])
 myLetters[,childAgeInterestRef := as.numeric(row.names(myLetters)) - 1]
 
@@ -43,7 +26,7 @@ fullList <-
 month.nums <- as.numeric(factor(substr(month.name,1,3), levels = substr(month.name,1,3)))
 month.subs <- substr(month.name, 1, 3)
 
-tmi.x <- read.csv('Data/TMIBezosSheets/bezos2017-09-07.csv') %>%
+tmi.x <- read.csv('Data/TMIBezosSheets/bezos2017-09-14.csv') %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
   rename(Mobile.Number = device_address) %>%
@@ -54,10 +37,10 @@ tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
   filter(!is.na(Mobile.Number)) %>%
   mutate(
     TipTime = ifelse(TipTime == 'Morning', 'AM', toupper(TipTime)),
-    Child1DOB = formatDOB(Child1DOB),
-    Child2DOB = formatDOB(Child2DOB),
-    Child3DOB = formatDOB(Child3DOB),
-    Child4DOB = formatDOB(Child4DOB)
+    Child1DOB = cleanDOB(Child1DOB),
+    Child2DOB = cleanDOB(Child2DOB),
+    Child3DOB = cleanDOB(Child3DOB),
+    Child4DOB = cleanDOB(Child4DOB)
   ) %>%
   mutate(
     firstOfMonth = as.Date(paste0(substr(Sys.Date(), 1, 7), '-01')),
