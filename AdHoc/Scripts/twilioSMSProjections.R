@@ -42,15 +42,21 @@ ggplot(source, aes(monthOrder, running_total)) +
   scale_y_continuous(breaks=pretty_breaks(10)) +
   scale_x_continuous(breaks=pretty_breaks(10))
 
-smsgrowth <- lm(
+smsgrowth.M <- lm(
   running_total ~ monthOrder,
   source[createdMonth > '2014-01-01'],
   weights = monthOrder
 )
 
+smsgrowth.L <- lm(
+  running_total ~ monthOrder,
+  source[createdMonth > '2017-01-01'],
+  weights = monthOrder
+)
+
 forecastDates <- 
   data.table(
-    createdMonth = seq.Date(max(source$createdMonth), as.Date('2018-10-01'), 'months')
+    createdMonth = seq.Date(max(source$createdMonth), as.Date('2020-10-01'), 'months')
   ) %>%
   tbl_dt() %>% 
   filter(createdMonth != min(createdMonth)) %>% 
@@ -62,7 +68,8 @@ forecastDates <-
 source %<>%
   bind_rows(forecastDates) 
 
-source$predictTotal <- predict(smsgrowth, newdata=source, type = 'response')
+source$predictTotal.Medium <- predict(smsgrowth.M, newdata=source, type = 'response')
+source$predictTotal.Low <- predict(smsgrowth.L, newdata=source, type = 'response')
 
 source %<>%
   rename('Month'='createdMonth') %>%
@@ -73,7 +80,8 @@ saveCSV(source, desktop=T)
 
 ggplot(source, aes(Month, running_total)) + 
   geom_line() +
-  geom_line(aes(y=predictTotal), linetype = 'dotdash') + 
+  geom_line(aes(y=predictTotal.Medium), linetype = 'dotdash') + 
+  geom_line(aes(y=predictTotal.Low), linetype = 'dotted') + 
   labs(x='Date', y='Running Total of Registrations', title='Registration Extrapolations') +
   scale_y_continuous(breaks = pretty_breaks(n=10)) + scale_x_date(breaks = pretty_breaks(n=10))
 
