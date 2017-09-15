@@ -24,6 +24,8 @@ match <-
     createdMonth = firstDayOfMonth(created_date)
   )
 
+
+
 source <- 
   match %>%
   group_by(createdMonth) %>%
@@ -34,13 +36,7 @@ source <-
   mutate(
     running_total = cumsum(sign_ups),
     monthOrder = as.numeric(as.factor(createdMonth))
-  )  
-
-ggplot(source, aes(monthOrder, running_total)) + 
-  geom_smooth() + 
-  ggtitle('Proportion Signups Over Time') + 
-  scale_y_continuous(breaks=pretty_breaks(10)) +
-  scale_x_continuous(breaks=pretty_breaks(10))
+  ) 
 
 smsgrowth.M <- lm(
   running_total ~ monthOrder,
@@ -51,6 +47,12 @@ smsgrowth.M <- lm(
 smsgrowth.L <- lm(
   running_total ~ monthOrder,
   source[createdMonth > '2017-01-01'],
+  weights = monthOrder
+)
+
+smsgrowth.H <- lm(
+  running_total ~ monthOrder,
+  source[createdMonth >= '2015-11-01' & createdMonth <= '2016-03-01'],
   weights = monthOrder
 )
 
@@ -68,20 +70,35 @@ forecastDates <-
 source %<>%
   bind_rows(forecastDates) 
 
-source$predictTotal.Medium <- predict(smsgrowth.M, newdata=source, type = 'response')
 source$predictTotal.Low <- predict(smsgrowth.L, newdata=source, type = 'response')
+source$predictTotal.Medium <- predict(smsgrowth.M, newdata=source, type = 'response')
+source$predictTotal.High.T <- predict(smsgrowth.H, newdata=source, type = 'response')
+
+maxRT <- max(source$running_total, na.rm=T)
+maxHigh <- max(source[createdMonth=='2017-09-01',predictTotal.High.T])
+HighFactor <- maxHigh-maxRT
 
 source %<>%
   rename('Month'='createdMonth') %>%
-  select(-monthOrder) %>% 
-  filter(Month > '2014-01-01')
+  filter(Month > '2014-01-01') %>% 
+  mutate(
+    predictTotal.High = predictTotal.High.T - HighFactor,
+    predictTotal.Fixed = ifelse(Month > '2018-10-01', predictTotal.High + 500000, predictTotal.High),
+    predictTotal.Kink = ifelse(Month > '2018-10-01', 
+                               15000*monthOrder+predictTotal.High - 1881645, 
+                               predictTotal.High)
+    ) %>% 
+  select(-predictTotal.High.T)
 
-saveCSV(source, desktop=T)
 
 ggplot(source, aes(Month, running_total)) + 
   geom_line() +
   geom_line(aes(y=predictTotal.Medium), linetype = 'dotdash') + 
-  geom_line(aes(y=predictTotal.Low), linetype = 'dotted') + 
-  labs(x='Date', y='Running Total of Registrations', title='Registration Extrapolations') +
+  geom_line(data=source[Month > '2017-08-01'],aes(y=predictTotal.Low), linetype = 'dotted', color='red') + 
+  geom_line(data=source[Month > '2017-08-01'],aes(y=predictTotal.High), linetype = 'dotted', color='blue') + 
+  geom_line(data=source[Month > '2017-08-01'],aes(y=predictTotal.Fixed), linetype = '12345678') + 
+  geom_line(data=source[Month > '2017-10-01'],aes(y=predictTotal.Kink), linetype = 'longdash') + 
+  labs(x='Date', y='Running Total of Registrations', title='Active SMS Projections') +
   scale_y_continuous(breaks = pretty_breaks(n=10)) + scale_x_date(breaks = pretty_breaks(n=10))
 
+saveCSV(source, desktop=T)
