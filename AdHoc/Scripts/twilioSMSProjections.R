@@ -58,7 +58,7 @@ smsgrowth.H <- lm(
 
 forecastDates <- 
   data.table(
-    createdMonth = seq.Date(max(source$createdMonth), as.Date('2020-10-01'), 'months')
+    createdMonth = seq.Date(max(source$createdMonth), as.Date('2020-12-01'), 'months')
   ) %>%
   tbl_dt() %>% 
   filter(createdMonth != min(createdMonth)) %>% 
