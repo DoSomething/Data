@@ -352,5 +352,5 @@ cleanPhone <- function(Phone) {
     Phone
   )
   Phone = ifelse(nchar(Phone) > 10, substr(Phone, nchar(Phone) - 9 , nchar(Phone)), Phone)
-  return(as.numeric(Phone))
+  return(as.character(Phone))
 }
