@@ -1,7 +1,6 @@
 source('config/init.R')
 source('config/mySQLConfig.R')
 
-
 # Create Analytical Set ---------------------------------------------------
 
 badEmails <- c('blah', '@dosomething', 'test', '@example', 'bot', 'thing.org')
@@ -10,7 +9,8 @@ rtv <-
   read_csv('Data/RTV_DoSomethingOrg_APPENDED_20170724.csv') %>% 
   mutate(
     RTV_BIRTHDATE = as.Date(gsub(' 0:00', '', RTV_BIRTHDATE), format='%m/%d/%y'),
-    voted = as.factor(ifelse(is.na(E2016GVM), 'yes', 'no'))
+    voted = as.factor(ifelse(is.na(E2016GVM), 'no', 'yes')),
+    PHONE = as.character(PHONE)
   ) %>% 
   select(DWID, FIRSTNAME, LASTNAME, AGE, GENDER, 
          RACE, MAILADDRSTATE, PHONE, RTV_BIRTHDATE, voted)
@@ -120,10 +120,11 @@ q <- paste0(
   LEFT JOIN quasar.campaign_info i ON i.campaign_run_id = c.campaign_run_id
   WHERE u.northstar_id IN ", uid)
 
-camp.query <- runQuery(q)
+camp.query <- runQuery(q) %>% mutate(phone = as.character(phone))
 
 cam <- 
   camp.query %>% 
+  tbl_df() %>% 
   mutate(
     post_id = ifelse(is.na(post_id), -1, post_id),
     last_name = toupper(gsub("[^[:alnum:] ]", "", last_name)),
@@ -146,8 +147,9 @@ cam <-
     n_campaigns = length(which(!is.na(signup_id))),
     n_campaigns_pre_election = length(which(!is.na(signup_id) & pre_election == 1)),
     n_reportbacks = length(which(post_id != -1)),
-    did_campaign = max(campaign_type == 'campaign'),
-    did_sms_game = max(campaign_type == 'sms_game')
+    did_campaign = max(campaign_type == 'campaign', na.rm=T),
+    did_sms_game = max(campaign_type == 'sms_game', na.rm=T),
+    did_vcard_campaign = max(campaign == 'Lose Your V-Card', na.rm=T)
   ) %>% 
   left_join(
     camp.query %>% 
@@ -170,6 +172,11 @@ cam <-
          -campaign_cause_type,-signup_id, -post_id, -quantity) %>% 
   group_by(first_name, last_name, birthdate) %>% 
   filter(n_campaigns==max(n_campaigns)) %>% 
+  mutate(
+    did_campaign = ifelse(did_campaign == -Inf, 0, did_campaign),
+    did_sms_game = ifelse(did_sms_game == -Inf, 0, did_sms_game),
+    did_vcard_campaign = ifelse(did_vcard_campaign == -Inf, 0, did_vcard_campaign)
+  ) %>% 
   ungroup()
 
 set <- 
@@ -210,6 +217,10 @@ set <-
     by='northstar_id')
 
 # Analysis ----------------------------------------------------------------
+library(rpart)
+library(rpart.plot)
+library(caret)
+
 candidates <- c()
 
 for (i in 1:length(colnames(set))) {
@@ -227,4 +238,68 @@ candidates <-
     'Poverty','Relationships','Sex','Violence')
 
 set %<>%
-  filter(!is.na(northstar_id))
+  filter(!is.na(northstar_id) & (AGE >= 18 | is.na(AGE))) %>% 
+  mutate(
+    AGE = ifelse(is.na(AGE), mean(AGE, na.rm=T), AGE),
+    MAILADDRSTATE = as.factor(MAILADDRSTATE)
+  )
+  
+stateCat <- recat(set, outcome = 'voted', feature = 'MAILADDRSTATE', compar=0.0027)
+
+set %<>% left_join(stateCat, copy=T) %>% rename('state' = 'MAILADDRSTATE_category')
+
+dtree <-
+  rpart(
+    voted ~ AGE+GENDER+RACE+
+      n_campaigns+
+      n_reportbacks+MAILADDRSTATE, 
+    data=set,
+    cp=0.0027
+    )
+rpart.plot(dtree, main='Likelihood of Voting')
+
+
+set %<>% tbl_dt()
+cor(set$n_campaigns_pre_election, set$voted)
+
+set %>%
+  mutate(
+    didDSCampaign = ifelse(n_campaigns > 0, 1, 0)
+  ) %>% 
+  group_by(didDSCampaign) %>% 
+  summarise(
+    meanVote = mean(voted)
+  ) -> voteByCampaign
+ggplot(voteByCampaign, aes(y=meanVote, x=didDSCampaign)) + 
+  geom_bar(stat='identity') + 
+  ggtitle('By Campaign') +
+  ylim(0,1)
+
+set %>%
+  group_by(did_vcard_campaign) %>% 
+  summarise(
+    meanVote = mean(voted)
+  ) -> voteByVCard
+ggplot(voteByVCard, aes(y=meanVote, x=did_vcard_campaign)) + 
+  geom_bar(stat='identity') + 
+  ylim(0,1)
+
+set %>%
+  mutate(
+    didDSCampaign = ifelse(n_campaigns_pre_election > 0, 1, 0)
+  ) %>% 
+  filter(did_vcard_campaign==0) %>% 
+  group_by(didDSCampaign) %>% 
+  summarise(
+    meanVote = mean(voted)
+  ) -> voteByCampaignNoVCard
+ggplot(voteByCampaignNoVCard, aes(y=meanVote, x=didDSCampaign)) + geom_bar(stat='identity') + ylim(0,1)
+
+set %>%
+  mutate(perCampaign = ifelse(n_campaigns > 8, 8, n_campaigns)) %>% 
+  group_by(perCampaign) %>% 
+  summarise(
+    meanVote = mean(voted)
+  ) %>% arrange(perCampaign) -> perCampaign
+
+ggplot(perCampaign, aes(x=perCampaign, y=meanVote)) + geom_line() + geom_smooth(method='lm')
