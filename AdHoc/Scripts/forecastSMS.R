@@ -34,12 +34,6 @@ match <-
                                          ifelse(northstar_id_source_name %in% other, 'other', 'exclude')))))
   )
 
-# kikalist <-
-#   match %>%
-#   filter(
-#     email %in% leads$email
-#   )
-
 source <- 
   match %>%
   group_by(created_date, source) %>%
