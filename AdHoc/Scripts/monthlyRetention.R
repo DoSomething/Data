@@ -3,8 +3,8 @@ library(data.table)
 library(dtplyr)
 library(lubridate)
 
-df <- tbl_dt(read_csv('Data/freddie_monthlyRetentionLook 2017-09-05.csv'))
-names(df) <- c('X1','Uid','event_date','event_id','action_type','action_id')
+df <- tbl_dt(read_csv('Data/freddie_monthlyRetentionLook 2017-09-21.csv'))
+names(df) <- c('Uid','event_date','event_id','action_type','action_id')
 
 df <-
   df %>%
