@@ -5,14 +5,6 @@ library(xlsx)
 library(forecast)
 library(scales)
 
-#https://trello.com/c/aZZsQXiX/1127-sms-subscriber-growth-breakdown
-# leads <- 
-#   read_csv('Data/DoSomething.org_-_July_2017_Leads.csv') %>%
-#   select(email) %>%
-#   filter(!duplicated(email))
-
-# ems <- prepQueryObjects(leads$email)
-
 q <- paste0(
   "SELECT 
     u.northstar_id,
