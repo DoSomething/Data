@@ -149,7 +149,10 @@ cam <-
     n_reportbacks = length(which(post_id != -1)),
     did_campaign = max(campaign_type == 'campaign', na.rm=T),
     did_sms_game = max(campaign_type == 'sms_game', na.rm=T),
-    did_vcard_campaign = max(campaign == 'Lose Your V-Card', na.rm=T)
+    did_vcard_campaign = max(campaign == 'Lose Your V-Card', na.rm=T),
+    did_campaign = ifelse(did_campaign == -Inf, 0, did_campaign),
+    did_sms_game = ifelse(did_sms_game == -Inf, 0, did_sms_game),
+    did_vcard_campaign = ifelse(did_vcard_campaign == -Inf, 0, did_vcard_campaign)
   ) %>% 
   left_join(
     camp.query %>% 
@@ -172,11 +175,6 @@ cam <-
          -campaign_cause_type,-signup_id, -post_id, -quantity) %>% 
   group_by(first_name, last_name, birthdate) %>% 
   filter(n_campaigns==max(n_campaigns)) %>% 
-  mutate(
-    did_campaign = ifelse(did_campaign == -Inf, 0, did_campaign),
-    did_sms_game = ifelse(did_sms_game == -Inf, 0, did_sms_game),
-    did_vcard_campaign = ifelse(did_vcard_campaign == -Inf, 0, did_vcard_campaign)
-  ) %>% 
   ungroup()
 
 set <- 
@@ -214,12 +212,17 @@ set <-
   left_join(
     cam %>% 
       select(-first_name,-last_name,-birthdate,-email,-phone,-pre_election), 
-    by='northstar_id')
+    by='northstar_id') %>%  
+  filter(!is.na(northstar_id) & (AGE >= 18 | is.na(AGE))) %>% 
+  mutate(
+    AGE = ifelse(is.na(AGE), mean(AGE, na.rm=T), AGE),
+    MAILADDRSTATE = as.factor(MAILADDRSTATE),
+    didDSCampaign = ifelse(n_campaigns_pre_election > 0, 1, 0)
+  ) %>% tbl_dt()
 
 # Analysis ----------------------------------------------------------------
 library(rpart)
 library(rpart.plot)
-library(caret)
 
 candidates <- c()
 
@@ -236,13 +239,6 @@ candidates <-
     'Take.a.Stand','Animals','Bullying','Disasters','Discrimination',
     'Education','Environment','Homelessness','Mental.Health','Physical.Health',
     'Poverty','Relationships','Sex','Violence')
-
-set %<>%
-  filter(!is.na(northstar_id) & (AGE >= 18 | is.na(AGE))) %>% 
-  mutate(
-    AGE = ifelse(is.na(AGE), mean(AGE, na.rm=T), AGE),
-    MAILADDRSTATE = as.factor(MAILADDRSTATE)
-  )
   
 stateCat <- recat(set, outcome = 'voted', feature = 'MAILADDRSTATE', compar=0.0027)
 
@@ -258,48 +254,101 @@ dtree <-
     )
 rpart.plot(dtree, main='Likelihood of Voting')
 
-
-set %<>% tbl_dt()
 cor(set$n_campaigns_pre_election, set$voted)
 
+
+# Plots -------------------------------------------------------------------
+
 set %>%
-  mutate(
-    didDSCampaign = ifelse(n_campaigns > 0, 1, 0)
-  ) %>% 
   group_by(didDSCampaign) %>% 
   summarise(
     meanVote = mean(voted)
-  ) -> voteByCampaign
-ggplot(voteByCampaign, aes(y=meanVote, x=didDSCampaign)) + 
-  geom_bar(stat='identity') + 
-  ggtitle('By Campaign') +
-  ylim(0,1)
+  ) %>% 
+  mutate(
+    Which = 'Did Any Campaign',
+    Flag = didDSCampaign
+    ) %>% select(Which, Flag, meanVote) -> voteByCampaign
 
 set %>%
   group_by(did_vcard_campaign) %>% 
   summarise(
     meanVote = mean(voted)
-  ) -> voteByVCard
-ggplot(voteByVCard, aes(y=meanVote, x=did_vcard_campaign)) + 
-  geom_bar(stat='identity') + 
-  ylim(0,1)
-
-set %>%
-  mutate(
-    didDSCampaign = ifelse(n_campaigns_pre_election > 0, 1, 0)
   ) %>% 
+  mutate(
+    Which = 'Did VCard Campaign',
+    Flag = did_vcard_campaign
+  ) %>% select(Which, Flag, meanVote) -> voteByVCard
+
+
+set %>% 
   filter(did_vcard_campaign==0) %>% 
   group_by(didDSCampaign) %>% 
   summarise(
     meanVote = mean(voted)
-  ) -> voteByCampaignNoVCard
-ggplot(voteByCampaignNoVCard, aes(y=meanVote, x=didDSCampaign)) + geom_bar(stat='identity') + ylim(0,1)
+  ) %>% 
+  mutate(
+    Which = 'Did Only Non-VCard Campaigns',
+    Flag = didDSCampaign
+  ) %>% select(Which, Flag, meanVote) -> voteByCampaignNoVCard
 
+sumSet <- 
+  voteByCampaign %>% 
+  bind_rows(voteByVCard) %>% 
+  bind_rows(voteByCampaignNoVCard)
+
+ggplot(sumSet, aes(y=meanVote, x=Which, fill=as.factor(Flag))) +
+  geom_bar(stat='identity', position='dodge', width=.66) +
+  labs(title='Campaign Impact', x='Comparison', y='Likelihood of Voting') +
+  guides(fill=guide_legend(title="Flag")) + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_y_continuous(breaks=pretty_breaks(20),limits = c(0,.8))
+  
 set %>%
-  mutate(perCampaign = ifelse(n_campaigns > 8, 8, n_campaigns)) %>% 
+  mutate(perCampaign = ifelse(n_campaigns_pre_election > 8, 8, n_campaigns_pre_election)) %>% 
   group_by(perCampaign) %>% 
   summarise(
     meanVote = mean(voted)
-  ) %>% arrange(perCampaign) -> perCampaign
+  ) %>% 
+  mutate(
+    Which = 'Campaign',
+    Count = perCampaign
+  ) %>% 
+  select(Which, Count, meanVote) -> perCampaign
 
-ggplot(perCampaign, aes(x=perCampaign, y=meanVote)) + geom_line() + geom_smooth(method='lm')
+set %>%
+  mutate(perReportback = ifelse(n_reportbacks > 8, 8, n_reportbacks)) %>% 
+  group_by(perReportback) %>% 
+  summarise(
+    meanVote = mean(voted)
+  ) %>% 
+  mutate(
+    Which = 'Reportback',
+    Count = perReportback
+  ) %>% 
+  select(Which, Count, meanVote) -> perReportback
+
+perItem <- perCampaign %>% bind_rows(perReportback)
+
+ggplot(perItem, aes(x=Count, y=meanVote, group=Which)) + 
+  geom_line(aes(color=Which)) + 
+  geom_smooth(method='lm', se=F, linetype='dotdash', aes(color=Which)) + 
+  labs(title='Marginal Impact', y='Likelihood of Voting') +
+  scale_y_continuous(breaks=pretty_breaks(20), limits = c(.4,1)) +
+  scale_x_continuous(breaks=pretty_breaks(8)) + 
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = 'bottom', legend.title=element_blank()
+  )
+
+perItem %>% 
+  as_tibble() %>% 
+  ggvis(~Count, ~meanVote, stroke=~Which) %>%
+  group_by(Which) %>% 
+  layer_points(fill=~Which) %>%
+  layer_lines() %>% 
+  layer_model_predictions(model='lm', strokeDash:=10) %>% 
+  add_axis("y", title = "Likelihood to Vote") %>% 
+  add_title()
+
+
+cor(set$n_reportbacks, set$voted) - cor(set$n_campaigns_pre_election, set$voted)
