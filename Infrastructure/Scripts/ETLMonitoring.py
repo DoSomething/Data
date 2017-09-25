@@ -52,8 +52,8 @@ def compile_statuses(queries):
         values.append(value)
         time = datetime.datetime.now().strftime("%m-%d-%y %H:%M:%S")
         ts.append(time)
-        thisTable = query.split('FROM')[1].split(' ')[1]
-        table.append(thisTable)
+        this_table = query.split('FROM')[1].split(' ')[1]
+        table.append(this_table)
 
     for description in queries.keys():
         descriptions.append(description)
@@ -64,6 +64,7 @@ def compile_statuses(queries):
          'table': table,
          'timestamp': ts
          })
+
     return out
 
 

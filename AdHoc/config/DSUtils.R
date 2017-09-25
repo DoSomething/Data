@@ -324,12 +324,16 @@ prepQueryObjects <- function(x) {
   return(out)
 }
 
+#garbage
 cleanDOB <- function(x) {
-  
+  browser()
   month.subs <- substr(month.name, 1, 3)
   x = as.character(x)
   x = gsub("-", "/", x)
   x = gsub("[^0-9\\/\\-]", "", x) 
+  slashCount <- nchar(gsub("[^\\/]","",x))
+  bigYFirst = ifelse(grepl('/', substr(x,1,4))==F, T, F)
+  bigYLast = ifelse(grepl('/', substr(x,nchar(x)-3,nchar(x)))==F, T, F)
   x = 
     as.Date(
       ifelse(substr(x,1,3) %in% month.subs, as.Date(paste0('01-', substr(x, 1, 3), substr(x, 4, 6)), format='%d-%b-%y'), 
