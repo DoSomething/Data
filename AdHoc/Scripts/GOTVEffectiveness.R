@@ -1,6 +1,6 @@
 source('config/init.R')
 source('config/mySQLConfig.R')
-
+library(scales)
 # Create Analytical Set ---------------------------------------------------
 
 badEmails <- c('blah', '@dosomething', 'test', '@example', 'bot', 'thing.org')
@@ -294,14 +294,16 @@ set %>%
 sumSet <- 
   voteByCampaign %>% 
   bind_rows(voteByVCard) %>% 
-  bind_rows(voteByCampaignNoVCard)
+  bind_rows(voteByCampaignNoVCard) %>% 
+  mutate(text = percent(meanVote))
 
 ggplot(sumSet, aes(y=meanVote, x=Which, fill=as.factor(Flag))) +
   geom_bar(stat='identity', position='dodge', width=.66) +
+  geom_text(aes(label=text, y=meanVote+0.01), position = position_dodge(width = .7), size=3) +
   labs(title='Campaign Impact', x='Comparison', y='Likelihood of Voting') +
   guides(fill=guide_legend(title="Flag")) + 
   theme(plot.title = element_text(hjust = 0.5)) +
-  scale_y_continuous(breaks=pretty_breaks(20),limits = c(0,.8))
+  scale_y_continuous(breaks=pretty_breaks(20))
   
 set %>%
   mutate(perCampaign = ifelse(n_campaigns_pre_election > 8, 8, n_campaigns_pre_election)) %>% 
