@@ -3,6 +3,7 @@ source('config/init.R')
 source('config/mySQLConfig.R')
 library(ggmap)
 library(ggthemes)
+library(xlsx)
 library(zipcode)
 library(maps)
 library(maptools)
@@ -10,6 +11,7 @@ library(noncensus)
 library(choroplethr)
 library(choroplethrZip)
 library(choroplethrMaps)
+library(scales)
 
 q <- "
 SELECT 
@@ -103,6 +105,61 @@ zip_choropleth(
   title = 'Proportion of Do Something Members per Zip Code', 
   legend = 'Proportion')
 
+county <-
+  read.xlsx('Data/DoSomething_CountyAgg_RAYSE.xlsx', sheetIndex = 1) %>% 
+  tbl_dt() %>% 
+  filter(!is.na(countyfp)) %>% 
+  mutate(
+    estMembers = Count*scale,
+    estMembers = ifelse(is.na(estMembers), 0, estMembers),
+    RAYSE_Scaled = (as.numeric(RAYSE_Rating)-1) / 10,
+    proportion = estMembers / population,
+    proportion = ifelse(proportion > 1, Count / population, proportion),
+    proportion = ifelse(proportion == Inf, 0, proportion),
+    proportion = ifelse(proportion > 1, 1 / population, proportion),
+    proportion = ifelse(is.na(proportion), 0, round(proportion, 5)),
+    proportionRank = rank(proportion)-9,
+    scaledRank = scalerange(proportionRank),
+    RAYSE_DS_Delta = scaledRank - RAYSE_Scaled
+  )
+
+ggplot(county, aes(x=scaledRank)) + geom_density() + geom_density(aes(x=RAYSE_Scaled))
+ggplot(county, aes(x=proportion)) + geom_density()
+
+Out <- 
+  county %>% 
+  select(countyfp, statefp, StateName, Countynamelsad, 
+         estMembers, proportion, population, RAYSE_Rating, RAYSE_DS_Delta) %>% 
+  mutate(
+    Group = cut(RAYSE_DS_Delta, breaks = seq(-1,1,.25))
+  ) 
+
+Agged <-
+  Out %>% 
+  group_by(Group) %>% 
+  summarise(
+    CountyPct = n(),
+    PopulationPct = sum(population) 
+  ) %>% 
+  mutate(
+    CountyPct = percent(CountyPct / sum(CountyPct)),
+    PopulationPct = percent(PopulationPct / sum(PopulationPct))
+  ) %>% arrange(Group)
+
+saveCSV(Out, desktop=T)
+saveCSV(Agged, desktop=T)
+
+mapCounty <-
+  county %>%
+  mutate(
+    region = as.numeric(paste0(statefp, countyfp)),
+    value = RAYSE_DS_Delta
+  ) %>% 
+  filter(!is.na(value)) %>% 
+  select(region, value)
+
+county_choropleth(mapCounty)
+
 # zip_county <- read_csv('Data/zip_county.csv')
 # 
 # countyCounts <-
@@ -146,26 +203,26 @@ zip_choropleth(
 #   ) %>%
 #   filter(!duplicated(zip))
 # 
-county_latlong <-
-  map_data('county') %>%
-  mutate(
-    county_name = toupper(subregion)
-  ) %>%
-  select(long, lat, county_name, group) %>%
-  tbl_dt()
-
-data(counties)
-county_fips <-
-  counties %>%
-  select(county_name, county_fips) %>%
-  mutate(
-    county_name = toupper(gsub(' County', '', county_name))
-  ) %>%
-  tbl_dt() %>%
-  filter(!duplicated(county_name))
-
-data(df_pop_county) 
-county_choropleth(df_pop_county)
+# county_latlong <-
+#   map_data('county') %>%
+#   mutate(
+#     county_name = toupper(subregion)
+#   ) %>%
+#   select(long, lat, county_name, group) %>%
+#   tbl_dt()
+# 
+# data(counties)
+# county_fips <-
+#   counties %>%
+#   select(county_name, county_fips) %>%
+#   mutate(
+#     county_name = toupper(gsub(' County', '', county_name))
+#   ) %>%
+#   tbl_dt() %>%
+#   filter(!duplicated(county_name))
+# 
+# data(df_pop_county) 
+# county_choropleth(df_pop_county)
 
 # ready <-
 #   zips %>% 
