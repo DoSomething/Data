@@ -12,7 +12,7 @@ rtv <-
     voted = as.factor(ifelse(is.na(E2016GVM), 'no', 'yes')),
     PHONE = as.character(PHONE)
   ) %>% 
-  select(DWID, FIRSTNAME, LASTNAME, AGE, GENDER, 
+  select(DWID, FIRSTNAME, LASTNAME, AGE, GENDER, RTV_PARTNERID,
          RACE, MAILADDRSTATE, PHONE, RTV_BIRTHDATE, voted)
 
 port <- 
@@ -147,12 +147,20 @@ cam <-
     n_campaigns = length(which(!is.na(signup_id))),
     n_campaigns_pre_election = length(which(!is.na(signup_id) & pre_election == 1)),
     n_reportbacks = length(which(post_id != -1)),
+    didDSCampaign = ifelse(n_campaigns_pre_election > 0, 1, 0),
+    oneOrMoreRbs = ifelse(n_reportbacks > 0, 1, 0),
     did_campaign = max(campaign_type == 'campaign', na.rm=T),
     did_sms_game = max(campaign_type == 'sms_game', na.rm=T),
-    did_vcard_campaign = max(campaign == 'Lose Your V-Card', na.rm=T),
     did_campaign = ifelse(did_campaign == -Inf, 0, did_campaign),
     did_sms_game = ifelse(did_sms_game == -Inf, 0, did_sms_game),
-    did_vcard_campaign = ifelse(did_vcard_campaign == -Inf, 0, did_vcard_campaign)
+    did_vcard_campaign = max(campaign == 'Lose Your V-Card', na.rm=T),
+    did_vcard_campaign = ifelse(did_vcard_campaign == -Inf, 0, did_vcard_campaign),
+    reportback_vcard = max(campaign == 'Lose Your V-Card' & post_id != -1, na.rm=T),
+    reportback_vcard = ifelse(reportback_vcard == -Inf, 0, reportback_vcard),
+    vcard_action = max(ifelse(reportback_vcard==1, 'Completed', 
+                              ifelse(did_vcard_campaign==1, 'Signup', 'None'))),
+    campaign_actions = max(ifelse(oneOrMoreRbs==1, 'Completed',
+                                  ifelse(didDSCampaign, 'Signup', 'None')))
   ) %>% 
   left_join(
     camp.query %>% 
@@ -216,8 +224,7 @@ set <-
   filter(!is.na(northstar_id) & (AGE >= 18 | is.na(AGE))) %>% 
   mutate(
     AGE = ifelse(is.na(AGE), mean(AGE, na.rm=T), AGE),
-    MAILADDRSTATE = as.factor(MAILADDRSTATE),
-    didDSCampaign = ifelse(n_campaigns_pre_election > 0, 1, 0)
+    MAILADDRSTATE = as.factor(MAILADDRSTATE)
   ) %>% tbl_dt()
 
 # Analysis ----------------------------------------------------------------
@@ -260,48 +267,58 @@ cor(set$n_campaigns_pre_election, set$voted)
 # Plots -------------------------------------------------------------------
 
 set %>%
-  group_by(didDSCampaign) %>% 
+  group_by(campaign_actions) %>% 
   summarise(
     meanVote = mean(voted)
   ) %>% 
   mutate(
     Which = 'Did Any Campaign',
-    Flag = didDSCampaign
-    ) %>% select(Which, Flag, meanVote) -> voteByCampaign
+    Status = campaign_actions
+    ) %>% select(Which, Status, meanVote) -> voteByCampaign
 
 set %>%
-  group_by(did_vcard_campaign) %>% 
+  group_by(vcard_action) %>% 
   summarise(
     meanVote = mean(voted)
   ) %>% 
   mutate(
     Which = 'Did VCard Campaign',
-    Flag = did_vcard_campaign
-  ) %>% select(Which, Flag, meanVote) -> voteByVCard
+    Status = vcard_action
+  ) %>% select(Which, Status, meanVote) -> voteByVCard
 
 
 set %>% 
   filter(did_vcard_campaign==0) %>% 
-  group_by(didDSCampaign) %>% 
+  group_by(campaign_actions) %>% 
   summarise(
     meanVote = mean(voted)
   ) %>% 
   mutate(
     Which = 'Did Only Non-VCard Campaigns',
-    Flag = didDSCampaign
-  ) %>% select(Which, Flag, meanVote) -> voteByCampaignNoVCard
+    Status = campaign_actions
+  ) %>% select(Which, Status, meanVote) -> voteByCampaignNoVCard
 
 sumSet <- 
   voteByCampaign %>% 
   bind_rows(voteByVCard) %>% 
   bind_rows(voteByCampaignNoVCard) %>% 
-  mutate(text = percent(meanVote))
+  bind_rows(
+    data.table(
+      Which = 'Overall Average', 
+      Status = c('DS Member','National'), 
+      meanVote = c(mean(set$voted),.5)
+    )
+  ) %>% 
+  mutate(
+    text = percent(meanVote),
+    Status = factor(Status, levels = c('None', 'Signup', 'Completed','National','DS Member'))
+    ) 
 
-ggplot(sumSet, aes(y=meanVote, x=Which, fill=as.factor(Flag))) +
+ggplot(sumSet, aes(y=meanVote, x=Which, fill=as.factor(Status))) +
   geom_bar(stat='identity', position='dodge', width=.66) +
   geom_text(aes(label=text, y=meanVote+0.01), position = position_dodge(width = .7), size=3) +
   labs(title='Campaign Impact', x='Comparison', y='Likelihood of Voting') +
-  guides(fill=guide_legend(title="Flag")) + 
+  guides(fill=guide_legend(title="Status")) + 
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_y_continuous(breaks=pretty_breaks(20))
   
