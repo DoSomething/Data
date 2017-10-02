@@ -24,7 +24,7 @@ WHERE (u.customer_io_subscription_status = 'subscribed'
 OR u.moco_current_status = 'active')
 "
 
-dat <- runQuery(q)
+qres <- runQuery(q)
 
 mzips <- "
 SELECT 
@@ -46,15 +46,16 @@ cleanMobileZips <-
   ) %>% 
   select(mobile, zip.m, country.m)
 
-dat %<>% 
+dat <- 
+  qres %>% 
   mutate(
     addr_zip = as.character(clean.zipcodes(addr_zip)),
     mobile = cleanPhone(mobile)
   ) %>% tbl_df() %>% 
   left_join(cleanMobileZips, by = 'mobile') %>% 
   mutate(
-    zip = ifelse(is.na(addr_zip), zip.m,
-                 ifelse(is.na(zip.m), addr_zip, NA)),
+    zip = ifelse(!is.na(addr_zip), addr_zip,
+                 ifelse(!is.na(zip.m), zip.m, NA)),
     countryFinal = ifelse(!is.na(country) & !is.na(country.m), country,
                           ifelse(is.na(country), country.m,
                                  ifelse(is.na(country.m), country, NA)))
@@ -138,13 +139,38 @@ Agged <-
   Out %>% 
   group_by(Group) %>% 
   summarise(
-    CountyPct = n(),
-    PopulationPct = sum(population) 
+    County = n(),
+    Population = sum(population),
+    Member = sum(estMembers)
   ) %>% 
   mutate(
-    CountyPct = percent(CountyPct / sum(CountyPct)),
-    PopulationPct = percent(PopulationPct / sum(PopulationPct))
-  ) %>% arrange(Group)
+    County = County / sum(County),
+    Population = Population / sum(Population),
+    Member = Member / sum(Member),
+    Group = ifelse(is.na(Group), 'Unknown', as.character(Group)),
+    Group = factor(
+      Group, 
+      levels = c('Unknown','(-1,-0.75]', '(-0.75,-0.5]', '(-0.5,-0.25]', 
+                 '(-0.25,0]','(0,0.25]','(0.25,0.5]','(0.5,0.75]','(0.75,1]')),
+    Order = as.numeric(Group)
+  ) %>% 
+  arrange(Group, Order) %>%
+  mutate(Order=NULL) %>% 
+  gather(Group, 'Percentage') %>% 
+  setNames(c('Bucket', 'Type', 'Percentage')) %>% 
+  group_by(Type) %>% 
+  mutate(
+    Text = percent(Percentage),
+    Position = cumsum(Percentage) - (0.5 * Percentage)
+  )
+
+ggplot(Agged, aes(x=Type, y=Percentage, fill=Bucket)) +
+  geom_bar(stat='identity', position='stack', width=.66) +
+  geom_text(aes(label=Text, y=1-Position), size=2.5) +
+  labs(title = 'Population Allocation by RAYSE <-> Member Concentration Delta',
+       x='', y='Proportion') + 
+  scale_y_continuous(breaks=pretty_breaks(10)) + 
+  theme(plot.title = element_text(hjust = 0.5))
 
 saveCSV(Out, desktop=T)
 saveCSV(Agged, desktop=T)
