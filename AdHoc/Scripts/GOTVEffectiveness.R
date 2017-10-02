@@ -247,7 +247,7 @@ candidates <-
     'Education','Environment','Homelessness','Mental.Health','Physical.Health',
     'Poverty','Relationships','Sex','Violence')
   
-stateCat <- recat(set, outcome = 'voted', feature = 'MAILADDRSTATE', compar=0.0027)
+stateCat <- recat(set, outcome = 'voted', feature = 'MAILADDRSTATE', compar=0.007)
 
 set %<>% left_join(stateCat, copy=T) %>% rename('state' = 'MAILADDRSTATE_category')
 
@@ -314,13 +314,66 @@ sumSet <-
     Status = factor(Status, levels = c('None', 'Signup', 'Completed','National','DS Member'))
     ) 
 
-ggplot(sumSet, aes(y=meanVote, x=Which, fill=as.factor(Status))) +
+ggplot(sumSet[Status %in% c('DS Member','National')], aes(y=meanVote, x=Which, fill=as.factor(Status))) +
   geom_bar(stat='identity', position='dodge', width=.66) +
   geom_text(aes(label=text, y=meanVote+0.01), position = position_dodge(width = .7), size=3) +
-  labs(title='Campaign Impact', x='Comparison', y='Likelihood of Voting') +
-  guides(fill=guide_legend(title="Status")) + 
+  labs(title='DS vs. National Average', x='', y='Likelihood of Voting') +
+  guides(fill=guide_legend(title="Group")) + 
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_y_continuous(breaks=pretty_breaks(20))
+
+State <- 
+  set %>% 
+  group_by(state) %>% 
+  summarise(
+    meanVote = mean(voted)
+  ) %>% 
+  filter(!is.na(state)) %>% 
+  mutate(text = percent(meanVote))
+
+ggplot(State, aes(x=state, y=meanVote, fill=state)) +
+  geom_bar(stat='identity', position='dodge', width=.66, aes(fill=state)) +
+  geom_text(aes(label=text, y=meanVote+0.02), position = position_dodge(width = .7), size=3) +
+  labs(title='Bucketed State Voting Averages', x='Bucketed States', y='Likelihood to Vote') + 
+  scale_y_continuous(breaks = pretty_breaks(n=20)) + theme(legend.position="none") +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+mean.A <- State[state=='A',meanVote]
+mean.B <- State[state=='B',meanVote]
+mean.C <- State[state=='C',meanVote]
+
+stateText <-
+  stateCat %>% 
+  arrange(MAILADDRSTATE_category) %>% 
+  transmute(
+    State = MAILADDRSTATE,
+    Bucket = MAILADDRSTATE_category,
+    StateName = state.name[match(State,state.abb)],
+    StateName = ifelse(is.na(StateName), State, StateName)
+  ) 
+
+iter <- stateText %>% group_by(Bucket) %>% summarise(Counts = n()) %>% tbl_dt()
+
+stateText %<>% 
+  mutate(
+    increments = ifelse(Bucket=='A', mean.A/iter[Bucket=='A',Counts], 
+                        ifelse(Bucket=='B', mean.B/iter[Bucket=='B',Counts],
+                               ifelse(Bucket=='C', mean.C/iter[Bucket=='C',Counts], NA)))
+  ) %>% 
+  group_by(Bucket) %>% 
+  mutate(
+    position = cumsum(increments)
+  )
+
+ggplot(State) +
+  geom_bar(stat='identity', position='dodge', width=.66, aes(x=state, y=meanVote, fill=state)) +
+  geom_text(aes(x=state, label=text, y=meanVote+0.02), position = position_dodge(width = .7), size=3) +
+  labs(title='Bucketed State Voting Averages', x='Bucketed States', y='Likelihood to Vote') + 
+  scale_y_continuous(breaks = pretty_breaks(n=20)) + theme(legend.position="none") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_text(data=stateText, aes(label=StateName, x=Bucket, y=position-0.01), size=2.5)
+
+# Per Campaign ------------------------------------------------------------
   
 set %>%
   mutate(perCampaign = ifelse(n_campaigns_pre_election > 8, 8, n_campaigns_pre_election)) %>% 
@@ -329,7 +382,7 @@ set %>%
     meanVote = mean(voted)
   ) %>% 
   mutate(
-    Which = 'Campaign',
+    Which = 'Campaign Sign-Up',
     Count = perCampaign
   ) %>% 
   select(Which, Count, meanVote) -> perCampaign
@@ -341,7 +394,7 @@ set %>%
     meanVote = mean(voted)
   ) %>% 
   mutate(
-    Which = 'Reportback',
+    Which = 'Campaign Completed',
     Count = perReportback
   ) %>% 
   select(Which, Count, meanVote) -> perReportback
