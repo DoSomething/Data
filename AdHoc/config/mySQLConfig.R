@@ -20,4 +20,4 @@ quasarConnect <- function(credentials) {
 
 }
 
-con <- quasarConnect('~/Documents/quasar_login.txt')
+con <- quasarConnect('~/quasar_login.txt')

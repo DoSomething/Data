@@ -18,32 +18,6 @@ cityList <- c('Boston','Chicago','Philadelphia',
               'Queens','Bronx','Brooklyn','Raleigh',
               'Dallas','Atlanta','Miami')
 
-# qhave <- "
-# SELECT 
-#   count(*) 
-# FROM quasar.users u
-# WHERE u.addr_zip IS NOT NULL 
-# AND u.addr_zip <> ''
-# AND u.country = 'US'
-# AND (u.customer_io_subscription_status = 'subscribed' 
-# OR u.moco_current_status = 'active')
-# "
-# 
-# haveZip <- runQuery(qhave)
-# 
-# qall <- "
-# SELECT 
-# count(*) 
-# FROM quasar.users u
-# WHERE u.country = 'US'
-# AND (u.customer_io_subscription_status = 'subscribed' 
-# OR u.moco_current_status = 'active')
-# "
-# 
-# all <- runQuery(qall)
-# 
-# scale <- 1 / (haveZip / all)
-
 q <- "
 SELECT 
   u.northstar_id,
@@ -85,12 +59,12 @@ zip <-
   ) %>% tbl_df() %>% 
   left_join(cleanMobileZips, by = 'mobile') %>% 
   mutate(
-    zip = ifelse(is.na(addr_zip), zip.m,
-                 ifelse(is.na(zip.m), addr_zip, NA)),
+    zip = ifelse(!is.na(addr_zip), addr_zip,
+                 ifelse(!is.na(zip.m), zip.m, NA)),
     countryFinal = ifelse(!is.na(country) & !is.na(country.m), country,
                           ifelse(is.na(country), country.m,
                                  ifelse(is.na(country.m), country, NA)))
-  ) 
+  ) %>% tbl_dt()
 
 pctUS <- 1 - (length(which(!(zip$countryFinal %in% c('US','')))) / length(which(zip$countryFinal=='US')))
 

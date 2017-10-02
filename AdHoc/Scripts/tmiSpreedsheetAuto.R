@@ -1,4 +1,5 @@
 source('config/init.R')
+options(java.parameters = "-Xmx8000m")
 library(xlsx)
 
 myLetters <- data.table(ChildAgeInterest = LETTERS[1:5])
@@ -25,7 +26,7 @@ fullList <-
 month.nums <- as.numeric(factor(substr(month.name,1,3), levels = substr(month.name,1,3)))
 month.subs <- substr(month.name, 1, 3)
 
-tmi.x <- read.csv('Data/TMIBezosSheets/Updated_Bdays.csv') %>%
+tmi.x <- read.csv('Data/TMIBezosSheets/9.28.17.Besos.BdaysVerified.csv') %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
   rename(Mobile.Number = device_address) %>%
@@ -36,10 +37,10 @@ tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
   filter(!is.na(Mobile.Number)) %>%
   mutate(
     TipTime = ifelse(TipTime == 'Morning', 'AM', toupper(TipTime)),
-    Child1DOB = as.Date(Child1DOB,'%m/%d/%y'),
-    Child2DOB = as.Date(Child2DOB,'%m/%d/%y'),
-    Child3DOB = as.Date(Child3DOB,'%m/%d/%y'),
-    Child4DOB = as.Date(Child4DOB,'%m/%d/%y')
+    Child1DOB = as.Date(Child1DOB,'%m/%d/%Y'),
+    Child2DOB = as.Date(Child2DOB,'%m/%d/%Y'),
+    Child3DOB = as.Date(Child3DOB,'%m/%d/%Y'),
+    Child4DOB = as.Date(Child4DOB,'%m/%d/%Y')
   ) %>%
   mutate(
     firstOfMonth = as.Date(paste0(substr(Sys.Date(), 1, 7), '-01')),
@@ -117,10 +118,10 @@ Ages <- c(0,1,2,3,4)
 
 allOptions <- data.table(expand.grid(ContentTrack = ContentTracks, TipTime = TipTimes, Language = Languages, Age = Ages))
 
-write.xlsx(EngDirect, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'ENG Direct', row.names=F, showNA=F)
+write.xlsx(tmi.x, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'All', row.names=F, append=T, showNA=F)
+write.xlsx(EngDirect, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'ENG Direct', row.names=F, append=T, showNA=F)
 write.xlsx(EngMotiv, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'ENG Motive', row.names=F, append=T, showNA=F)
 write.xlsx(ESPDirect, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'ESP Direct', row.names=F, append=T, showNA=F)
-write.xlsx(tmi.x, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'All', row.names=F, append=T, showNA=F)
 
 for (i in 1:nrow(allOptions[1:19])) {
   
