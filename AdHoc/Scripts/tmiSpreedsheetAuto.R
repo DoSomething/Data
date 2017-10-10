@@ -26,7 +26,7 @@ fullList <-
 month.nums <- as.numeric(factor(substr(month.name,1,3), levels = substr(month.name,1,3)))
 month.subs <- substr(month.name, 1, 3)
 
-tmi.x <- read.csv('Data/TMIBezosSheets/9.28.17.Besos.BdaysVerified.csv') %>%
+tmi.x <- read.csv('Data/TMIBezosSheets/bezos2017-10-05.csv') %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
   rename(Mobile.Number = device_address) %>%
