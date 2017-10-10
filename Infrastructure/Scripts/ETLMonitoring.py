@@ -5,7 +5,7 @@ import sys
 import datetime
 from pandas import DataFrame as df
 
-credentials = "/Users/shasan/Documents/quasar_login.txt"
+credentials = "/Users/shasan/quasar_login.txt"
 
 user_queries = {
     'user_count': 'SELECT count(*) FROM quasar.users',
