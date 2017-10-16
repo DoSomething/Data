@@ -26,28 +26,29 @@ fullList <-
 month.nums <- as.numeric(factor(substr(month.name,1,3), levels = substr(month.name,1,3)))
 month.subs <- substr(month.name, 1, 3)
 
-tmi.x <- read.csv('Data/TMIBezosSheets/bezos2017-10-05.csv') %>%
+tmi.x <- read_csv('Data/TMIBezosSheets/bezos2017-10-12.csv') %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
   rename(Mobile.Number = device_address) %>%
   filter(!is.na(Mobile.Number)) 
+
+firstOfMonth = as.Date(paste0(substr(Sys.Date(), 1, 7), '-01'))
 
 tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
   left_join(myLetters) %>%
   filter(!is.na(Mobile.Number)) %>%
   mutate(
     TipTime = ifelse(TipTime == 'Morning', 'AM', toupper(TipTime)),
-    Child1DOB = as.Date(Child1DOB,'%m/%d/%Y'),
-    Child2DOB = as.Date(Child2DOB,'%m/%d/%Y'),
-    Child3DOB = as.Date(Child3DOB,'%m/%d/%Y'),
-    Child4DOB = as.Date(Child4DOB,'%m/%d/%Y')
+    Child1DOB = as.Date(Child1DOB,'%m/%d/%y'),
+    Child2DOB = as.Date(Child2DOB,'%m/%d/%y'),
+    Child3DOB = as.Date(Child3DOB,'%m/%d/%y'),
+    Child4DOB = as.Date(Child4DOB,'%m/%d/%y')
   ) %>%
   mutate(
-    firstOfMonth = as.Date(paste0(substr(Sys.Date(), 1, 7), '-01')),
-    Child1Age = pmin(pmax(floor( as.numeric((firstOfMonth - Child1DOB)) / 365), 0), 4),
-    Child2Age = pmin(pmax(floor( as.numeric((firstOfMonth - Child2DOB)) / 365), 0), 4),
-    Child3Age = pmin(pmax(floor( as.numeric((firstOfMonth - Child3DOB)) / 365), 0), 4),
-    Child4Age = pmin(pmax(floor( as.numeric((firstOfMonth - Child4DOB)) / 365), 0), 4)
+    Child1Age = pmin(pmax(floor( as.numeric(firstOfMonth - Child1DOB) / 365), 0), 4),
+    Child2Age = pmin(pmax(floor( as.numeric(firstOfMonth - Child2DOB) / 365), 0), 4),
+    Child3Age = pmin(pmax(floor( as.numeric(firstOfMonth - Child3DOB) / 365), 0), 4),
+    Child4Age = pmin(pmax(floor( as.numeric(firstOfMonth - Child4DOB) / 365), 0), 4)
   ) %>%
   mutate(
     Child1Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child1Age),
