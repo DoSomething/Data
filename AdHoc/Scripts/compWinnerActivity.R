@@ -1,3 +1,4 @@
+# https://trello.com/c/Fj5JCcNh/1141-data-request-users-who-have-won-competitions-and-scholarships
 source('config/init.R')
 source('config/mySQLConfig.R')
 library(broom)
