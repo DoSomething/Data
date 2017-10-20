@@ -325,25 +325,33 @@ prepQueryObjects <- function(x) {
 }
 
 #garbage
+# cleanDOB <- function(x) {
+#   browser()
+#   month.subs <- substr(month.name, 1, 3)
+#   x = as.character(x)
+#   x = gsub("-", "/", x)
+#   x = gsub("[^0-9\\/\\-]", "", x) 
+#   slashCount <- nchar(gsub("[^\\/]","",x))
+#   bigYFirst = ifelse(grepl('/', substr(x,1,4))==F, T, F)
+#   bigYLast = ifelse(grepl('/', substr(x,nchar(x)-3,nchar(x)))==F, T, F)
+#   x = 
+#     as.Date(
+#       ifelse(substr(x,1,3) %in% month.subs, as.Date(paste0('01-', substr(x, 1, 3), substr(x, 4, 6)), format='%d-%b-%y'), 
+#              ifelse(nchar(gsub("[^\\/]", "", x))==2 & nchar(x)==7, as.Date(x, format='%m/%d/%y'),
+#                     ifelse(nchar(gsub("[^\\/]", "", x))==1 & nchar(x)==7, as.Date(paste0('01/', x), format='%d/%m/%Y'),
+#                            ifelse(nchar(x) %in% c(7), as.Date(x, format='%m/%d/%y'),
+#                                   ifelse(grepl('/', x), as.Date(x, format='%m/%d/%Y'), 
+#                                          ifelse(grepl('-', x), as.Date(x, format='%m-%d-%Y'), NA)))))),
+#       origin='1970-01-01')
+#   return(x)
+# }
+
 cleanDOB <- function(x) {
-  browser()
-  month.subs <- substr(month.name, 1, 3)
-  x = as.character(x)
-  x = gsub("-", "/", x)
-  x = gsub("[^0-9\\/\\-]", "", x) 
   slashCount <- nchar(gsub("[^\\/]","",x))
-  bigYFirst = ifelse(grepl('/', substr(x,1,4))==F, T, F)
-  bigYLast = ifelse(grepl('/', substr(x,nchar(x)-3,nchar(x)))==F, T, F)
-  x = 
-    as.Date(
-      ifelse(substr(x,1,3) %in% month.subs, as.Date(paste0('01-', substr(x, 1, 3), substr(x, 4, 6)), format='%d-%b-%y'), 
-             ifelse(nchar(gsub("[^\\/]", "", x))==2 & nchar(x)==7, as.Date(x, format='%m/%d/%y'),
-                    ifelse(nchar(gsub("[^\\/]", "", x))==1 & nchar(x)==7, as.Date(paste0('01/', x), format='%d/%m/%Y'),
-                           ifelse(nchar(x) %in% c(7), as.Date(x, format='%m/%d/%y'),
-                                  ifelse(grepl('/', x), as.Date(x, format='%m/%d/%Y'), 
-                                         ifelse(grepl('-', x), as.Date(x, format='%m-%d-%Y'), NA)))))),
-      origin='1970-01-01')
-  return(x)
+  out <- ifelse(slashCount == 1, 
+                as.Date(paste0('01/',x), '%d/%m/%Y'), 
+                as.Date(x, '%m/%d/%Y'))
+  return(as.Date(out, origin='1970-01-01'))
 }
 
 cleanPhone <- function(Phone) {
