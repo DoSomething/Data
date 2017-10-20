@@ -45,7 +45,7 @@ runQuery <- function(query) {
 
     }
 
-    out <- tbl_dt(dbGetQuery(con, q))
+    out <- tbl_df(dbGetQuery(con, q))
     return(out)
 
 }
