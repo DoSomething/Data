@@ -43,7 +43,7 @@ signs2017 <-
                                             if_else(rand1 > .5, '11-17', '12-11'))))),
     type = 'Control'
   ) %>% 
-  sample_n(5000) %>% 
+  sample_n(15000) %>% 
   select(mobile, group, type)
 
 out <- rs %>% bind_rows(signs2017) %>% arrange(type, group)
