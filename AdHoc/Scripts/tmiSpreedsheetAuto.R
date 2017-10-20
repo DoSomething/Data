@@ -26,7 +26,7 @@ fullList <-
 month.nums <- as.numeric(factor(substr(month.name,1,3), levels = substr(month.name,1,3)))
 month.subs <- substr(month.name, 1, 3)
 
-tmi.x <- read_csv('Data/TMIBezosSheets/bezos2017-10-12.csv') %>%
+tmi.x <- read_csv('Data/TMIBezosSheets/bezos2017-10-19.csv') %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
   rename(Mobile.Number = device_address) %>%
@@ -39,10 +39,10 @@ tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
   filter(!is.na(Mobile.Number)) %>%
   mutate(
     TipTime = ifelse(TipTime == 'Morning', 'AM', toupper(TipTime)),
-    Child1DOB = as.Date(Child1DOB,'%m/%d/%y'),
-    Child2DOB = as.Date(Child2DOB,'%m/%d/%y'),
-    Child3DOB = as.Date(Child3DOB,'%m/%d/%y'),
-    Child4DOB = as.Date(Child4DOB,'%m/%d/%y')
+    Child1DOB = cleanDOB(Child1DOB),
+    Child2DOB = cleanDOB(Child2DOB),
+    Child3DOB = cleanDOB(Child3DOB),
+    Child4DOB = cleanDOB(Child4DOB)
   ) %>%
   mutate(
     Child1Age = pmin(pmax(floor( as.numeric(firstOfMonth - Child1DOB) / 365), 0), 4),
