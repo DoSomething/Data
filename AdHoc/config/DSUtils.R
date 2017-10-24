@@ -13,11 +13,23 @@ logit2prob <- function(logit){
 saveCSV <- function(dat, desktop = F) {
   datName <- deparse(substitute(dat))
   if (desktop == T) {
-    write.csv(dat, row.names = F, na = '.',
-              file = paste0('~/Desktop/',datName,'_', gsub("[[:punct:]]|\\ ", "", Sys.time()),'.csv'))
+    write.csv(
+      dat, 
+      row.names = F, 
+      na = '.',
+      file = paste0(
+        '~/Desktop/',datName,'_', gsub("[[:punct:]]|\\ ", "", Sys.time()),'.csv'
+        )
+      )
   } else {
-    write.csv(dat, row.names = F, na = '.',
-              file = paste0(getwd(),'/',datName,'_', gsub("[[:punct:]]|\\ ", "", Sys.time()),'.csv'))
+    write.csv(
+      dat, 
+      row.names = F, 
+      na = '.',
+      file = paste0(
+        getwd(),'/',datName,'_', gsub("[[:punct:]]|\\ ", "", Sys.time()),'.csv'
+        )
+      )
     
   }
 }
@@ -37,7 +49,6 @@ runQuery <- function(query) {
     if(grepl('.sql', query)) {
 
         q <- getQuery(query)
-
 
     } else {
 
