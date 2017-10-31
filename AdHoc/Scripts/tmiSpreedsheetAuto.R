@@ -1,4 +1,5 @@
 source('config/init.R')
+library(data.table)
 options(java.parameters = "-Xmx8000m")
 library(xlsx)
 
@@ -26,13 +27,21 @@ fullList <-
 month.nums <- as.numeric(factor(substr(month.name,1,3), levels = substr(month.name,1,3)))
 month.subs <- substr(month.name, 1, 3)
 
-tmi.x <- read_csv('Data/TMIBezosSheets/bezos2017-10-19.csv') %>%
+tmi.x <- read_csv('Data/TMIBezosSheets/bezos2017-10-26.csv') %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
   rename(Mobile.Number = device_address) %>%
   filter(!is.na(Mobile.Number)) 
 
-firstOfMonth = as.Date(paste0(substr(Sys.Date(), 1, 7), '-01'))
+calcAge <- function(x) {
+  firstOfMonth = as.Date(paste0(substr(Sys.Date(), 1, 7), '-01'))
+  x <- as.Date(x)
+  out <- as.numeric(firstOfMonth - x)
+  out <- floor(out / 365)
+  out <- pmax(out, 0)
+  out <- pmin(out, 4)
+  return(out)
+}
 
 tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
   left_join(myLetters) %>%
@@ -42,19 +51,15 @@ tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
     Child1DOB = cleanDOB(Child1DOB),
     Child2DOB = cleanDOB(Child2DOB),
     Child3DOB = cleanDOB(Child3DOB),
-    Child4DOB = cleanDOB(Child4DOB)
-  ) %>%
-  mutate(
-    Child1Age = pmin(pmax(floor( as.numeric(firstOfMonth - Child1DOB) / 365), 0), 4),
-    Child2Age = pmin(pmax(floor( as.numeric(firstOfMonth - Child2DOB) / 365), 0), 4),
-    Child3Age = pmin(pmax(floor( as.numeric(firstOfMonth - Child3DOB) / 365), 0), 4),
-    Child4Age = pmin(pmax(floor( as.numeric(firstOfMonth - Child4DOB) / 365), 0), 4)
+    Child4DOB = cleanDOB(Child4DOB),
+    
+    Child1Age = calcAge(Child1DOB),
+    Child2Age = calcAge(Child2DOB),
+    Child3Age = calcAge(Child3DOB),
+    Child4Age = calcAge(Child4DOB)
   ) %>%
   mutate(
     Child1Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child1Age),
-    # Child2Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child2Age),
-    # Child3Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child3Age),
-    # Child4Age = ifelse(!(NumOfChildren %in% seq(1,4,1)), childAgeInterestRef, Child4Age),
     Child1FirstName = ifelse(!(NumOfChildren %in% seq(1,4,1)), 'your child', as.character(Child1FirstName)),
     Child2FirstName = as.character(Child2FirstName),
     Child3FirstName = as.character(Child3FirstName),
