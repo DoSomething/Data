@@ -1,4 +1,17 @@
-source('config/init.R')
+```{bash Move Files into Place}
+today=`date +%Y-%m-%d`
+fromfile="/Users/shasan/Downloads/bezos$today.csv"
+tofile="/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/bezos$today.csv"
+mv $fromfile $tofile
+```
+
+
+```{r Build Excel Sheets}
+library(tidyverse)
+library(lubridate)
+library(magrittr)
+library(broom)
+source('/Users/shasan/Data/AdHoc/config/DSUtils.R')
 library(data.table)
 options(java.parameters = "-Xmx8000m")
 library(xlsx)
@@ -27,7 +40,7 @@ fullList <-
 month.nums <- as.numeric(factor(substr(month.name,1,3), levels = substr(month.name,1,3)))
 month.subs <- substr(month.name, 1, 3)
 
-tmi.x <- read_csv(paste0('Data/TMIBezosSheets/bezos',Sys.Date(),'.csv')) %>%
+tmi.x <- read_csv(paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/bezos',Sys.Date(),'.csv')) %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
   rename(Mobile.Number = device_address) %>%
@@ -124,10 +137,22 @@ Ages <- c(0,1,2,3,4)
 
 allOptions <- data.table(expand.grid(ContentTrack = ContentTracks, TipTime = TipTimes, Language = Languages, Age = Ages))
 
-write.xlsx(tmi.x, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'All', row.names=F, append=T, showNA=F)
-write.xlsx(EngDirect, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'ENG Direct', row.names=F, append=T, showNA=F)
-write.xlsx(EngMotiv, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'ENG Motive', row.names=F, append=T, showNA=F)
-write.xlsx(ESPDirect, file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), sheetName = 'ESP Direct', row.names=F, append=T, showNA=F)
+write.xlsx(
+  tmi.x, 
+  file = paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), 
+  sheetName = 'All', row.names=F, append=T, showNA=F)
+write.xlsx(
+  EngDirect, 
+  file = paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), 
+  sheetName = 'ENG Direct', row.names=F, append=T, showNA=F)
+write.xlsx(
+  EngMotiv, 
+  file = paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), 
+  sheetName = 'ENG Motive', row.names=F, append=T, showNA=F)
+write.xlsx(
+  ESPDirect, 
+  file = paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), 
+  sheetName = 'ESP Direct', row.names=F, append=T, showNA=F)
 
 for (i in 1:nrow(allOptions[1:19])) {
   
@@ -142,7 +167,7 @@ for (i in 1:nrow(allOptions[1:19])) {
     
     write.xlsx(
       out, 
-      file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), 
+      file = paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), 
       sheetName = paste(allOptions[i,ContentTrack],allOptions[i,TipTime],allOptions[i,Language], allOptions[i,Age], sep='_'), 
       row.names=F, append=T, showNA=F
     )
@@ -164,7 +189,7 @@ for (i in 20:nrow(allOptions)) {
     
     write.xlsx(
       out, 
-      file = paste0('Data/TMIBezosSheets/output_',Sys.Date(),'b','.xlsx'), 
+      file = paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'b','.xlsx'), 
       sheetName = paste(allOptions[i,ContentTrack],allOptions[i,TipTime],allOptions[i,Language], allOptions[i,Age], sep='_'), 
       row.names=F, append=T, showNA=F
     )
@@ -172,3 +197,4 @@ for (i in 20:nrow(allOptions)) {
   }
   
 }
+```
