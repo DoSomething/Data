@@ -21,8 +21,14 @@ connectGambit <- function() {
       collection
       )
 
-  mongocon <- mongo(collection = "conversations", url = url, db=db,
-                    verbose = T, options = ssl_options(weak_cert_validation = T))
+  mongocon <-
+    mongo(
+      collection = "conversations",
+      url = url,
+      db=db,
+      verbose = F,
+      options = ssl_options(weak_cert_validation = T)
+      )
 
   return(mongocon)
 
