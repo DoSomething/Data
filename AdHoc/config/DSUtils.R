@@ -58,6 +58,7 @@ runQuery <- function(query, which=c('pg','mysql')) {
   }
   
   if (which=='mysql') {
+    
     connection <- con
   } else {
     connection <- channel
