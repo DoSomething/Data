@@ -43,22 +43,30 @@ getQuery <- function(path, wd = T) {
   }
 }
 
-runQuery <- function(query) {
-    require(RMySQL)
-
-    if(grepl('.sql', query)) {
-
-        q <- getQuery(query)
-
-    } else {
-
-        q <- query
-
-    }
-
-    out <- tbl_df(dbGetQuery(con, q))
-    return(out)
-
+runQuery <- function(query, which=c('pg','mysql')) {
+  require(RMySQL)
+  require(RPostgreSQL)
+  
+  if(grepl('.sql', query)) {
+    
+    q <- getQuery(query)
+    
+  } else {
+    
+    q <- query
+    
+  }
+  
+  if (which=='mysql') {
+    connection <- con
+  } else {
+    connection <- channel
+  }
+  
+  out <- tbl_df(dbGetQuery(connection, q))
+  
+  return(out)
+  
 }
 
 #####Save multiple data frame to tabs in spreadsheet#####
