@@ -24,7 +24,7 @@ WHERE (u.customer_io_subscription_status = 'subscribed'
 OR u.moco_current_status = 'active')
 "
 
-qres <- runQuery(q)
+qres <- runQuery(q, which='mysql')
 
 mzips <- "
 SELECT 
@@ -35,7 +35,7 @@ FROM users_and_activities.mobile_users m
 WHERE m.zip IS NOT NULL
 AND m.status = 'Active Subscriber'"
 
-mzips <- runQuery(mzips)
+mzips <- runQuery(mzips, which='mysql')
 
 cleanMobileZips <- 
   mzips %>% 
@@ -84,6 +84,19 @@ zips <-
     region = zip,
     Count = Count
   )
+
+states <- 
+  zips %>% 
+  inner_join(zip.regions %>% select(region, state.name)) %>% 
+  group_by(state.name) %>% 
+  summarise(
+    N = sum(Count)
+  ) %>% 
+  mutate(
+    proportion = percent(N / sum(N))
+  )
+
+saveCSV(states, desktop=T)
 
 mapthis <- 
   zip.regions %>% 

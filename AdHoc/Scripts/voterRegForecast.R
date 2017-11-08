@@ -1,6 +1,7 @@
 source('config/init.R')
 source('config/mySQLConfig.R')
 library(broom)
+library(scales)
 
 q <- "
 SELECT 
@@ -13,7 +14,7 @@ GROUP BY date(u.northstar_created_at_timestamp)
 ORDER BY date(u.northstar_created_at_timestamp)
 "
 
-qres <- runQuery(q)
+qres <- runQuery(q, which='mysql')
 
 signupsDay <-
   qres %>% 
@@ -69,15 +70,34 @@ blastMonths <- c(1,3,5,7,9,11)
 eoy <-
   signupsDay %>%
   mutate(
-    blastReg = cumsum(if_else(month(date) %in% blastMonths & date==firstDayOfMonth(date), 3000, 0)),
-    totalReg = (blastReg + vcardReg)*memberIndex
+    blastReg = cumsum(
+      if_else(month(date) %in% blastMonths & date==firstDayOfMonth(date) & date >= '2017-09-01', 3000, 0)
+      )
   ) %>% 
   # filter(date %in% as.Date(c('2018-12-30','2019-12-30','2020-12-30'))) %>% 
   mutate(
-    yearIndex = if_else(year(date)==2019, .75, 1),
-    diminishingReturn = case_when(year(date)==2018 ~ 1,
+    yearIndex = case_when(
+      year(date)==2017 ~ 1,
+      year(date)==2018 ~ 1,
+      year(date)==2019 ~ .75,
+      year(date)==2020 ~ 1.2
+      ),
+    diminishingReturn = case_when(year(date)==2017 ~ 1,
+                                  year(date)==2018 ~ 1,
                                   year(date)==2019 ~ .9,
-                                  year(date)==2020 ~ .8)
+                                  year(date)==2020 ~ .8),
+    totalReg = (blastReg + vcardReg)*memberIndex*yearIndex*diminishingReturn
   ) %>% 
-  group_by(year(date)) %>% 
-  select(-signups, -runningTotal)
+  filter(date >= '2017-12-01')
+
+ggplot(eoy, aes(x=date, y=totalReg)) + 
+  geom_smooth(method='lm') + 
+  ylim(0,200000) + scale_y_continuous(breaks=pretty_breaks(10)) +
+  scale_x_date(breaks = pretty_breaks(20)) +
+  labs(x='Date', y='Total Registrations', title='Expected Registrations') +
+  theme(plot.title = element_text(hjust = 0.5))
+  
+
+# %>% 
+#   group_by(year(date)) %>% 
+#   select(-signups, -runningTotal)
