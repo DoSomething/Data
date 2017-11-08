@@ -23,10 +23,10 @@ connectGambit <- function() {
 
   mongocon <-
     mongo(
-      collection = "conversations",
+      collection = "messages",
       url = url,
       db=db,
-      verbose = F,
+      verbose = T,
       options = ssl_options(weak_cert_validation = T)
       )
 
@@ -35,3 +35,7 @@ connectGambit <- function() {
 }
 
 gam <- connectGambit()
+
+gam$find("{}", limit =10)
+
+gam$find('{"text" : {$regex : "@"}, topic: { $in: [ "tmi_level1", "tmi_completed" ] }, direction: "inbound"}, {text: 1, _id: 0}')
