@@ -11,13 +11,14 @@ SELECT
 	page.host_s AS host,
 	page.href_s AS href, 
 	page.sessionid_s AS session_id,
-	use.northstarid_s
+	use.northstarid_s,
+	brow.size_s AS device_size
 INTO public.phoenix_next_events
 FROM heroku_wzsf6b3z.events_meta meta
 LEFT JOIN heroku_wzsf6b3z.events_event event ON event.did = meta.did
 LEFT JOIN heroku_wzsf6b3z.events_page page ON page.did = meta.did
 LEFT JOIN heroku_wzsf6b3z.events_user use ON use.did = meta.did
-LEFT JOIN heroku_wzsf6b3z.events_data dat ON dat.did = meta.did
+LEFT JOIN heroku_wzsf6b3z.events_browser brow ON brow.did = meta.did 
 ;
 
 SELECT 
@@ -27,11 +28,13 @@ SELECT
 	dat.source_s AS source,
 	dat.link_s AS link,
 	dat.modaltype_s AS modal_type,
-	dat.variant_s AS variant
+	dat.variant_s AS variant,
+	sdata.text_s AS source_data_text
 INTO public.phoenix_next_signup_data
 FROM heroku_wzsf6b3z.events_meta meta
 LEFT JOIN heroku_wzsf6b3z.events_event event ON event.did = meta.did
 LEFT JOIN heroku_wzsf6b3z.events_data dat ON dat.did = meta.did
+LEFT JOIN heroku_wzsf6b3z.events_data_sourcedata sdata ON sdata.did = meta.did
 WHERE event.name_s = 'signup'
 ;
 
