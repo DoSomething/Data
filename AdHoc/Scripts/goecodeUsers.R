@@ -87,14 +87,15 @@ zips <-
 
 states <- 
   zips %>% 
-  inner_join(zip.regions %>% select(region, state.name)) %>% 
-  group_by(state.name) %>% 
+  inner_join(zip.regions %>% select(region)) %>% 
+  group_by(region) %>% 
   summarise(
     N = sum(Count)
   ) %>% 
   mutate(
-    proportion = percent(N / sum(N))
-  )
+    proportion = N / sum(N),
+    region = paste0("'",region,"'")
+  ) %>% arrange(-proportion) %>% select(-N)
 
 saveCSV(states, desktop=T)
 
