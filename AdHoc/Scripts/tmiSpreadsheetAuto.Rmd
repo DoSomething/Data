@@ -13,8 +13,7 @@ library(magrittr)
 library(broom)
 source('/Users/shasan/Data/AdHoc/config/DSUtils.R')
 library(data.table)
-options(java.parameters = "-Xmx8000m")
-library(xlsx)
+library(openxlsx)
 
 myLetters <- data.table(ChildAgeInterest = LETTERS[1:5])
 myLetters[,childAgeInterestRef := as.numeric(row.names(myLetters)) - 1]
@@ -135,66 +134,48 @@ TipTimes <- c('AM','PM')
 Languages <- c('ENG','ESP')
 Ages <- c(0,1,2,3,4)
 
-allOptions <- data.table(expand.grid(ContentTrack = ContentTracks, TipTime = TipTimes, Language = Languages, Age = Ages))
+allOptions <- data.table(
+  expand.grid(ContentTrack = ContentTracks, 
+              TipTime = TipTimes,
+              Language = Languages, 
+              Age = Ages)
+  )
 
-write.xlsx(
-  tmi.x, 
-  file = paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), 
-  sheetName = 'All', row.names=F, append=T, showNA=F)
-write.xlsx(
-  EngDirect, 
-  file = paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), 
-  sheetName = 'ENG Direct', row.names=F, append=T, showNA=F)
-write.xlsx(
-  EngMotiv, 
-  file = paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), 
-  sheetName = 'ENG Motive', row.names=F, append=T, showNA=F)
-write.xlsx(
-  ESPDirect, 
-  file = paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), 
-  sheetName = 'ESP Direct', row.names=F, append=T, showNA=F)
+wb <- createWorkbook()
 
-for (i in 1:nrow(allOptions[1:19])) {
+addWorksheet(wb, 'All')
+addWorksheet(wb, 'ENG Direct')
+addWorksheet(wb, 'ENG Motive')
+addWorksheet(wb, 'ESP Direct')
+writeData(wb, 'All', tmi.x, rowNames=F)
+writeData(wb, 'ENG Direct', EngDirect, rowNames=F)
+writeData(wb, 'ENG Motive', EngMotiv, rowNames=F)
+writeData(wb, 'ESP Direct', ESPDirect, rowNames=F)
+
+for (i in 1:nrow(allOptions)) {
   
   out <-
     tmi.x %>%
     filter(
-      ContentTrack == allOptions[i,ContentTrack] & TipTime == allOptions[i,TipTime] & Language == allOptions[i,Language] &
-      (Child1Age == allOptions[i,Age] | Child2Age == allOptions[i,Age] | Child3Age  == allOptions[i,Age] | Child4Age  == allOptions[i,Age])
+      ContentTrack == allOptions[i,ContentTrack] & 
+        TipTime == allOptions[i,TipTime] & 
+        Language == allOptions[i,Language] &
+      (Child1Age == allOptions[i,Age] | Child2Age == allOptions[i,Age] | 
+         Child3Age == allOptions[i,Age] | Child4Age  == allOptions[i,Age])
     )
+  name <- 
+    paste(allOptions[i,ContentTrack],allOptions[i,TipTime],
+          allOptions[i,Language], allOptions[i,Age], sep='_')
   
-  if (nrow(out) > 0) {
-    
-    write.xlsx(
-      out, 
-      file = paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'a','.xlsx'), 
-      sheetName = paste(allOptions[i,ContentTrack],allOptions[i,TipTime],allOptions[i,Language], allOptions[i,Age], sep='_'), 
-      row.names=F, append=T, showNA=F
-    )
-    
-  }
+  addWorksheet(wb, name)
+  writeData(wb, name, out, rowNames=F)
   
 }
 
-for (i in 20:nrow(allOptions)) {
-  
-  out <-
-    tmi.x %>%
-    filter(
-      ContentTrack == allOptions[i,ContentTrack] & TipTime == allOptions[i,TipTime] & Language == allOptions[i,Language] &
-        (Child1Age == allOptions[i,Age] | Child2Age == allOptions[i,Age] | Child3Age  == allOptions[i,Age] | Child4Age  == allOptions[i,Age])
-    )
-  
-  if (nrow(out) > 0) {
-    
-    write.xlsx(
-      out, 
-      file = paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'b','.xlsx'), 
-      sheetName = paste(allOptions[i,ContentTrack],allOptions[i,TipTime],allOptions[i,Language], allOptions[i,Age], sep='_'), 
-      row.names=F, append=T, showNA=F
-    )
-    
-  }
-  
-}
+saveWorkbook(
+  wb, 
+  paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'.xlsx'), 
+  overwrite = TRUE
+  )
+
 ```
