@@ -1,6 +1,7 @@
 #Load libraries
 source('config/init.R')
 source('config/mySQLConfig.R')
+library(scales)
 
 #Set random number generator seed so same observations are picked every time
 set.seed(57)
@@ -70,7 +71,8 @@ dat %<>%
   #it is to the peak, the more likely it is to be selected
   mutate(
     prob = 1 - abs(scaleDates - peak)
-  )
+  ) %>%
+  mutate(id=northstar_id)
 
 #Now we draw samples by filtering to the group of interest, tell it how many
 #to draw, don't sample anyone more than once, and weight it by the prob
@@ -78,7 +80,7 @@ sampleNiche <-
   dat %>%
   filter(niche==1) %>%
   sample_n(20000, replace = F, weight = prob)
-
+saveCSV(select(sampleNiche, id))
 #Plot to visualize what we ended up with
 ggplot(sampleNiche, aes(x=avg_signup_date)) +
   geom_density() + ggtitle('Niche') +
@@ -89,6 +91,7 @@ sampleSMS <-
   dat %>%
   filter(sms_only==1 & !(northstar_id %in% sampleNiche$northstar_id)) %>%
   sample_n(12000, replace = F, weight = prob)
+saveCSV(select(sampleSMS, id))
 ggplot(sampleSMS, aes(x=avg_signup_date)) +
   geom_density() + ggtitle('SMS Only') +
   scale_x_date(breaks=pretty_breaks(15))
@@ -97,6 +100,7 @@ sampleRegular <-
   dat %>%
   filter(niche==0 & sms_only==0) %>%
   sample_n(20000, replace = F, weight = prob)
+saveCSV(select(sampleRegular, id))
 ggplot(sampleRegular, aes(x=avg_signup_date)) +
   geom_density() + ggtitle('Regular') +
   scale_x_date(breaks=pretty_breaks(15))
