@@ -141,6 +141,7 @@ allOptions <- data.table(
               Age = Ages)
   )
 
+#Worth reading
 wb <- createWorkbook()
 
 addWorksheet(wb, 'All')
