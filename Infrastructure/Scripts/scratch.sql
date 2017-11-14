@@ -138,7 +138,7 @@ FROM
 ; #Texas active verified 400,909 #Texas total verified 586,339 #No State 3,266,848 #Records 9,440,476
 
 SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%card%' LIMIT 50;
-
+SELECT * FROM quasar.campaign_activity m LIMIT 100;
 SELECT 
 	c.campaign_run_id,
 	date(c.signup_created_at) AS signup_date,
@@ -148,5 +148,7 @@ WHERE c.campaign_run_id IN (7060, 7944)
 GROUP BY c.campaign_run_id
 ORDER BY c.campaign_run_id;
 
-SELECT * FROM  users_and_activities.mobile_master_lookup_lite LIMIT 50
-
+SELECT * FROM  users_and_activities.mobile_master_lookup_lite LIMIT 50;
+SELECT count(*) FROM quasar.users u WHERE (u.moco_current_status = 'active' OR
+    u.customer_io_subscription_status = 'subscribed') LIMIT 100;
+SELECT * FROM quasar.users LIMIT 100
