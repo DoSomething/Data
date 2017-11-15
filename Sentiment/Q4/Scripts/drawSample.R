@@ -79,7 +79,7 @@ dat %<>%
 sampleNiche <-
   dat %>%
   filter(niche==1) %>%
-  sample_n(20000, replace = F, weight = prob)
+  sample_n(24000, replace = F, weight = prob)
 saveCSV(select(sampleNiche, id))
 #Plot to visualize what we ended up with
 ggplot(sampleNiche, aes(x=avg_signup_date)) +
