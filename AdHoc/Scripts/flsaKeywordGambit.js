@@ -8,6 +8,6 @@ db.messages.group({
         else prev.countstar++;
     },
     "cond": {
-        "text": {$regex : "flsa"}
+        "text": {$regex : /flsa/i}
     }
 });
