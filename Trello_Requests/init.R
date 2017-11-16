@@ -1,7 +1,0 @@
-library(tidyverse)
-library(data.table)
-library(dtplyr)
-library(lubridate)
-library(magrittr)
-source('Scripts/DSUtils.R')
-source('Scripts/mySQLConfig.R')
