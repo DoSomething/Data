@@ -13,38 +13,33 @@ age25 <- Sys.Date() - (365.25*25)
 
 #Query generated using paste to insert parameters
 q <- paste0("
-  SELECT
-    u.northstar_id,
-    CASE WHEN u.northstar_id_source_name = 'niche' THEN 1 ELSE 0 END as niche,
-    CASE WHEN u.moco_current_status = 'active'
-        AND (u.customer_io_subscription_status <> 'subscribed' OR
-             u.customer_io_subscription_status IS NULL)
-        THEN 1 ELSE 0 END AS sms_only,
-    c.signup_created_at
-  FROM quasar.users u
-  INNER JOIN quasar.campaign_activity c ON c.northstar_id = u.northstar_id
-  WHERE (u.moco_current_status = 'active' OR
-      u.customer_io_subscription_status = 'subscribed')
-  AND u.country = 'US'
-  AND u.email NOT like '%dosomething.org%'
-  AND c.signup_created_at >= '",yearAgo,"'
-  AND u.birthdate >= '", age25, "'
-  AND u.birthdate < '", age13,"'"
+  SELECT 
+            u.northstar_id, u.email,u.northstar_id_source_name,u.customer_io_subscription_status,
+            CASE WHEN u.northstar_id_source_name = 'niche' 
+            AND u.birthdate >= '", age25, "'
+            AND u.birthdate < '", age13,"'
+            THEN 1 ELSE 0 END as niche,
+            CASE WHEN (((u.customer_io_subscription_status IS NULL) OR u.customer_io_subscription_status = 'subscribed')) 
+            AND ((u.email IS NULL OR LENGTH(u.email ) = 0 )) AND ((u.mobile IS NOT NULL)) AND (u.moco_current_status = 'active') 
+            THEN 1 ELSE 0 END AS sms_only,
+            c.signup_created_at
+            FROM quasar.users u
+            INNER JOIN quasar.campaign_activity c ON c.northstar_id = u.northstar_id
+            WHERE (u.moco_current_status = 'active' OR
+            u.customer_io_subscription_status = 'subscribed')
+            AND u.country = 'US'
+            AND u.email NOT like '%dosomething.org%'
+            AND c.signup_created_at >= '",yearAgo,"'"
 )
+
 
 #Get data
 #It is at the NSID-Campaign signup level
 qres <- runQuery(q, which = 'mysql')
-# save(qres, file='Q4/queryResult_2017-11-15.RData')
-#load('Q4/queryResult_2017-11-15.RData')
+
 #Get earliest signup date
 minDate <- min(as.Date(substr(qres$signup_created_at, 1, 10)))
 
-niche<-read_csv('~/Documents/Sentiment Survey/Member Sentiment Q4/Recruitment/Q4_Sentiment_sampleNiche_20171115.csv')
-nonniche<-read_csv('~/Documents/Sentiment Survey/Member Sentiment Q4/Recruitment/Q4_Sentiment_sampleRegular_20171115.csv')
-sms<-read_csv('~/Documents/Sentiment Survey/Member Sentiment Q4/Recruitment/Q4_Sentiment_sampleSMS_20171115.csv')
-
-qres <- qres %>% filter(!(northstar_id %in% sms$id) & !(northstar_id %in% niche$id) & !(northstar_id %in% nonniche$id))
 #Group by northstar and get the average signup date per northstar
 #This required removing the time component with substr, turning it into a date,
 #then turning it into a number to be able to take the mean, then turning it
@@ -85,7 +80,7 @@ dat %<>%
 sampleNiche <-
   dat %>%
   filter(niche==1) %>%
-  sample_n(20000, replace = F, weight = prob)
+  sample_n(24000, replace = F, weight = prob)
 saveCSV(select(sampleNiche, id))
 #Plot to visualize what we ended up with
 ggplot(sampleNiche, aes(x=avg_signup_date)) +
