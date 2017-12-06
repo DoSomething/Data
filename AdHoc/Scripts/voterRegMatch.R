@@ -31,3 +31,5 @@ qres <- runQuery(q, which='mysql')
 match <- 
   nrod %>% 
   inner_join(qres, by=c('Email'='email'))
+
+saveCSV(match, desktop=T)
