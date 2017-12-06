@@ -5,6 +5,10 @@ library(scales)
 mel <- 
   read_csv('Data/entire_MEL_11_29_17.csv') %>% 
   setNames(c('nsid','type','event_id','ts')) %>% 
+  bind_rows(
+    read_csv('Data/entire_MEL_11_30_17_niche.csv') %>%
+      setNames(c('nsid','type','event_id','ts'))
+  ) %>%
   data.table()
 
 mel <- 
@@ -125,7 +129,7 @@ p <-
   geom_line(data=melMonCast, aes(x=dateYearMonth, y=round(eTotal)), linetype='dotdash') +
   geom_line(data=melMonCast, aes(x=dateYearMonth, y=total)) +
   labs(x='Date', y='Monthyl Active Members', 
-       title='Monthly Active Members Over Time - No Niche') +
+       title='Monthly Active Members Over Time - Including Niche') +
   theme(plot.title=element_text(hjust=0.5)) +
   scale_x_date(breaks=pretty_breaks(17), 
                limits=c(as.Date('2015-01-01'), as.Date('2020-12-31')),
@@ -142,3 +146,5 @@ for (i in 1:length(eoyVals$dateYearMonth)) {
       linetype='dotted', size=.5
     )
 }
+
+api_create(ggplotly(p), filename = "test_plot")

@@ -13,7 +13,7 @@ addRBs <-
 q <- "
 SELECT
 date(submission_created_at) AS date,
-count(*) as reportbacks
+count(*) as reportbacks_looker
 FROM quasar.campaign_activity c
 WHERE c.post_id <> -1
 GROUP BY date(submission_created_at)
@@ -25,7 +25,7 @@ qres <-
   left_join(addRBs) %>% 
   mutate(
     reportbacks = ifelse(!is.na(additionalRBs), 
-                         reportbacks + additionalRBs, reportbacks)
+                         reportbacks_looker + additionalRBs, reportbacks_looker)
   )
 
 addRows <- 
