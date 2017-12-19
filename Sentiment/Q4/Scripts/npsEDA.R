@@ -1,43 +1,8 @@
 source('config/init.R')
 source('config/mySQLConfig.R')
+source('Q4/Scripts/customFunctions.R')
 library(scales)
 library(caret)
-
-getNPS <- function(x, maxValue=NA) {
-  if (!(maxValue %in% c(10,11)) | is.na(maxValue)) {
-    stop('Please provide a maximum NPS value of either 10 or 11')
-  }
-  if (maxValue==11) {
-    promotorLimit <- 10
-    detractorLimit <- 7
-  } else {
-    promotorLimit <- 9
-    detractorLimit <- 6
-  }
-  promoters <- length(which(x>=promotorLimit))/length(x)
-  detractors <- length(which(x<=detractorLimit))/length(x)
-  nps <- round((promoters - detractors)*100)
-  return(nps)
-}
-
-mungeNPSQ4 <- function() {
-
-  nps.q4 <-
-    read_csv('Q4/Data/q4_nps.csv') %>%
-    mutate(
-      nps = nps+1,
-      group =
-        case_when(
-          survey=='niche' ~ 'niche',
-          survey=='sms' ~ 'sms_only',
-          TRUE ~ 'other'
-        ),
-      type = 'Q4 2017'
-    ) %>%
-    select(northstar_id, nps, group, type)
-  return(nps.q4)
-
-}
 
 nps.q4 <- mungeNPSQ4()
 
@@ -153,3 +118,15 @@ ggplot(noMissing, aes(x=value, y=detractor.n)) + ylim(0,1) +
 
 ggplot(noMissing, aes(x=value, y=p_detract)) + ylim(0,1) +
   geom_bar(stat = "summary", fun.y = "mean", position='dodge',aes(fill=group))
+
+nps.eda %>% group_by(group) %>% summarise(n=n()) %>% mutate(prop=n/sum(n))
+
+# load('~/Downloads/model.rds')
+#
+# preds <-
+#   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
+#                         action_type_DonateSomething = seq(0,10,1))) %>%
+#   arrange(survey, action_type_DonateSomething)
+#
+# preds$predictions <- predict(model, preds, type='response')
+# ggplot(preds, aes(x=action_type_DonateSomething, y=predictions, color=survey)) + geom_line()
