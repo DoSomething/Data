@@ -129,3 +129,22 @@ r <- bind_rows(
 matched <- 
   r %>% 
   filter(mobile %in% resp$mobile)
+
+
+# More Control ------------------------------------------------------------
+
+q <-
+    "SELECT DISTINCT
+      u.northstar_id,
+      COALESCE(m.mobile, u.mobile) as mobile
+    FROM quasar.users u
+    LEFT JOIN quasar.moco_profile_import m ON m.moco_id = u.moco_commons_profile_id
+    INNER JOIN quasar.campaign_activity c ON c.northstar_id = u.northstar_id
+    WHERE COALESCE(m.mobile, u.mobile) IS NOT NULL
+    AND c.signup_created_at >= '2017-01-01' 
+    AND c.campaign_run_id <> 7931
+    AND RAND() < .01
+    LIMIT 12000"
+
+getControl <- runQuery(q, 'mysql')
+saveCSV(getControl, desktop=T)
