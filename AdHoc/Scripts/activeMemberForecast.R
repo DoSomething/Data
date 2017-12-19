@@ -2,6 +2,26 @@ source('config/init.R')
 source('config/mySQLConfig.R')
 library(scales)
 
+q <- "
+SELECT DISTINCT
+  baddies.northstar_id
+FROM (
+  SELECT 
+    u.northstar_id,
+    count(DISTINCT ca.signup_id) AS total_signups,
+    sum(case when post_id <> -1 then 1 else 0 end) as total_rbs,
+    max(case when greatest(u.last_accessed, u.last_logged_in) > u.created_at THEN 1 ELSE 0 END) as activated
+  FROM quasar.users u
+  LEFT JOIN quasar.campaign_activity ca
+  ON u.northstar_id=ca.northstar_id
+  WHERE u.source='niche'
+  GROUP BY u.northstar_id) baddies
+WHERE baddies.total_signups <= 1 
+AND baddies.total_rbs < 1
+AND baddies.activated = 0"
+
+badNiche <- runQuery(q, 'mysql')
+
 mel <- 
   read_csv('Data/entire_MEL_11_29_17.csv') %>% 
   setNames(c('nsid','type','event_id','ts')) %>% 

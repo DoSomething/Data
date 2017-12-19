@@ -8,15 +8,22 @@ addRBs <-
     date = as.Date(date, '%m/%d/%y'),
     additionalRBs = phone_calls + social_shares + voter_reg
     ) %>% 
-  select(date, additionalRBs)
+  select(date, additional_v2)
 
 q <- "
 SELECT
-date(submission_created_at) AS date,
-count(*) as reportbacks_looker
-FROM quasar.campaign_activity c
-WHERE c.post_id <> -1
-GROUP BY date(submission_created_at)
+  ca.date,
+  SUM(ca.reportback) AS reportbacks_looker
+FROM
+  (SELECT
+    c.signup_id,
+    MAX(date(submission_created_at)) AS date,
+    MAX(CASE WHEN c.post_id <> -1 THEN 1 ELSE 0 END) AS reportback
+  FROM quasar.campaign_activity c
+  WHERE c.post_id <> -1
+  GROUP BY c.signup_id
+  ) ca
+GROUP BY ca.date
 "
 
 qres <- 
@@ -24,8 +31,8 @@ qres <-
   mutate(date = as.Date(date)) %>% 
   left_join(addRBs) %>% 
   mutate(
-    reportbacks = ifelse(!is.na(additionalRBs), 
-                         reportbacks_looker + additionalRBs, reportbacks_looker)
+    reportbacks = ifelse(!is.na(additional_v2), 
+                         reportbacks_looker + additional_v2, reportbacks_looker)
   )
 
 addRows <- 
