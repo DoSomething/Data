@@ -1,5 +1,6 @@
 DROP TABLE IF EXISTS public.phoenix_next_events;
 DROP TABLE IF EXISTS public.phoenix_next_sessions;
+DROP TABLE IF EXISTS public.device_northstar_crosswalk;
 
 CREATE TEMPORARY TABLE path_campaign_lookup AS 
 	(SELECT DISTINCT 
@@ -68,5 +69,31 @@ LEFT JOIN heroku_wzsf6b3z.events_user use ON page.did = use.did
 LEFT JOIN heroku_wzsf6b3z.events_page_referrer refer ON refer.did = page.did
 LEFT JOIN heroku_wzsf6b3z.events_page_referrer_query ref_q ON ref_q.did = page.did;
 
+CREATE TABLE public.device_northstar_crosswalk AS 
+	(SELECT 
+		nsids.deviceid_s,
+		nsids.northstarid_s,
+		counts.proportion
+	FROM 
+		(SELECT 
+			dis.deviceid_s,
+			1/count(dis.deviceid_s)::FLOAT AS proportion
+		FROM 
+			(SELECT DISTINCT 
+			    u.deviceid_s,
+			    u.northstarid_s
+			  FROM heroku_wzsf6b3z.events_user u 
+			  WHERE u.northstarid_s IS NOT NULL) dis
+		GROUP BY dis.deviceid_s) counts
+	LEFT JOIN 
+		(SELECT DISTINCT 
+		    u.deviceid_s,
+		    u.northstarid_s
+		 FROM heroku_wzsf6b3z.events_user u 
+		 WHERE u.northstarid_s IS NOT NULL) nsids
+		ON nsids.deviceid_s = counts.deviceid_s
+	);
+
 GRANT SELECT ON public.phoenix_next_sessions TO public;
 GRANT SELECT ON public.phoenix_next_events TO public;
+GRANT SELECT ON public.device_northstar_crosswalk TO public;
