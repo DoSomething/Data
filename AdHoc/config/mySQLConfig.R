@@ -17,5 +17,3 @@ quasarConnect <- function() {
   return(con)
 
 }
-
-con <- quasarConnect()
