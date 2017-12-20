@@ -15,7 +15,6 @@ CREATE TEMPORARY TABLE path_campaign_lookup AS
 			LEFT JOIN heroku_wzsf6b3z.events_data dat ON dat.did = meta.did
 			LEFT JOIN heroku_wzsf6b3z.events_page page ON page.did = meta.did
 			WHERE dat.campaignid_s IS NOT NULL
-			AND char_length(dat.campaignid_s) = 4
 			) camps
 	GROUP BY camps.campaign_name
 	)
