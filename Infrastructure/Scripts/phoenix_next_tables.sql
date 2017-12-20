@@ -52,23 +52,24 @@ CREATE TABLE public.phoenix_next_events AS
 
 CREATE TABLE public.phoenix_next_sessions AS 
 	(SELECT DISTINCT
-		page.sessionid_s AS session_id,  
-		use.deviceid_s AS device_id,
-		use.ip_s AS ip_address,
-		COALESCE(page.landingtimestamp_d, page.landingtimestamp_s::numeric) AS landing_ts,
-		refer.path_s AS referrer_path,
-		refer.host_s AS referrer_host,
-		refer.href_s AS referrer_href,
-		ref_q.from_session_s,
-		ref_q.source_s AS referrer_source,
-		ref_q.utm_medium_s AS referrer_utm_medium,
-		ref_q.utm_source_s AS referrer_utm_source,
-		ref_q.utm_campaign_s AS referrer_utm_campaign
-	INTO public.phoenix_next_sessions
-	FROM heroku_wzsf6b3z.events_page page
-	LEFT JOIN heroku_wzsf6b3z.events_user use ON page.did = use.did
-	LEFT JOIN heroku_wzsf6b3z.events_page_referrer refer ON refer.did = page.did
-	LEFT JOIN heroku_wzsf6b3z.events_page_referrer_query ref_q ON ref_q.did = page.did)
+			page.sessionid_s AS session_id,  
+			use.deviceid_s AS device_id,
+			use.ip_s AS ip_address,
+			COALESCE(page.landingtimestamp_d, 
+				(CASE WHEN page.landingtimestamp_s = 'null' THEN NULL ELSE page.landingtimestamp_s END)::bigint
+				)::bigint AS landing_ts,
+			refer.path_s AS referrer_path,
+			refer.host_s AS referrer_host,
+			refer.href_s AS referrer_href,
+			ref_q.from_session_s,
+			ref_q.source_s AS referrer_source,
+			ref_q.utm_medium_s AS referrer_utm_medium,
+			ref_q.utm_source_s AS referrer_utm_source,
+			ref_q.utm_campaign_s AS referrer_utm_campaign
+		FROM heroku_wzsf6b3z.events_page page
+		LEFT JOIN heroku_wzsf6b3z.events_user use ON page.did = use.did
+		LEFT JOIN heroku_wzsf6b3z.events_page_referrer refer ON refer.did = page.did
+		LEFT JOIN heroku_wzsf6b3z.events_page_referrer_query ref_q ON ref_q.did = page.did)
 ;
 
 CREATE TABLE public.device_northstar_crosswalk AS 
