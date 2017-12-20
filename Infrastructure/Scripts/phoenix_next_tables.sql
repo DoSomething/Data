@@ -3,20 +3,21 @@ DROP TABLE IF EXISTS public.phoenix_next_sessions;
 DROP TABLE IF EXISTS public.device_northstar_crosswalk;
 
 CREATE TEMPORARY TABLE path_campaign_lookup AS 
-	(SELECT DISTINCT 
-	a.campaign_id, 
-	a.full_path,
-	a.path_array[4] AS campaign_name
+	(
+	SELECT 
+		max(camps.campaign_id) AS campaign_id,
+		camps.campaign_name
 	FROM 
 		(SELECT DISTINCT 
-		dat.campaignid_s AS campaign_id,
-		regexp_split_to_array(page.path_s, E'\/') AS path_array,
-		page.path_s AS full_path
-		FROM heroku_wzsf6b3z.events_meta meta
-		LEFT JOIN heroku_wzsf6b3z.events_data dat ON dat.did = meta.did
-		LEFT JOIN heroku_wzsf6b3z.events_page page ON page.did = meta.did
-		WHERE dat.campaignid_s IS NOT NULL
-		AND char_length(dat.campaignid_s) = 4) a
+			dat.campaignid_s::NUMERIC AS campaign_id,
+			(regexp_split_to_array(page.path_s, E'\/'))[4] AS campaign_name
+			FROM heroku_wzsf6b3z.events_meta meta
+			LEFT JOIN heroku_wzsf6b3z.events_data dat ON dat.did = meta.did
+			LEFT JOIN heroku_wzsf6b3z.events_page page ON page.did = meta.did
+			WHERE dat.campaignid_s IS NOT NULL
+			AND char_length(dat.campaignid_s) = 4
+			) camps
+	GROUP BY camps.campaign_name
 	)
 ;
 
@@ -26,30 +27,39 @@ CREATE TABLE public.phoenix_next_events AS
 		meta.timestamp_d AS ts,
 		event.name_s AS event_name,
 		event.source_s AS event_source,
-		page.path_s AS path,
-		page.host_s AS host,
-		page.href_s AS href, 
+		page.path AS path,
+		page.host AS host,
+		page.href AS href, 
 		dat.parentsource_s AS parent_source, 
-		COALESCE(dat.campaignid_s, lookup.campaign_id) AS campaign_id,
-		lookup.campaign_name,
+		COALESCE(dat.campaignid_s::varchar, lookup.campaign_id::varchar) AS campaign_id,
+		page.campaign_name,
 		dat.source_s AS source,
 		dat.link_s AS link,
 		dat.modaltype_s AS modal_type,
 		dat.variant_s AS variant,
 		sdata.text_s AS source_data_text,
-		page.sessionid_s AS session_id,
+		page.session_id AS session_id,
 		use.northstarid_s,
 		brow.size_s AS device_size
 	FROM heroku_wzsf6b3z.events_meta meta
 	LEFT JOIN heroku_wzsf6b3z.events_event event ON event.did = meta.did
 	LEFT JOIN heroku_wzsf6b3z.events_data dat ON dat.did = meta.did
 	LEFT JOIN heroku_wzsf6b3z.events_data_sourcedata sdata ON sdata.did = meta.did
-	LEFT JOIN heroku_wzsf6b3z.events_page page ON page.did = meta.did
+	LEFT JOIN 
+		(SELECT 
+			p.did,
+			p.path_s AS path,
+			p.host_s AS host,
+			p.href_s AS href, 
+			p.sessionid_s AS session_id,
+			(regexp_split_to_array(p.path_s, E'\/'))[4] AS campaign_name
+		FROM heroku_wzsf6b3z.events_page p) page ON page.did = meta.did
+	LEFT JOIN path_campaign_lookup lookup ON page.campaign_name = lookup.campaign_name
 	LEFT JOIN heroku_wzsf6b3z.events_user use ON use.did = meta.did
 	LEFT JOIN heroku_wzsf6b3z.events_browser brow ON brow.did = meta.did
-	LEFT JOIN path_campaign_lookup lookup ON lookup.full_path = page.path_s) 
-;
-
+	)
+;	
+	
 CREATE TABLE public.phoenix_next_sessions AS 
 	(SELECT DISTINCT
 			page.sessionid_s AS session_id,  
