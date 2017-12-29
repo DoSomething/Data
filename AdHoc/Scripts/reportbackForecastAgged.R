@@ -1,14 +1,86 @@
 source('config/init.R')
 source('config/mySQLConfig.R')
 library(scales)
+library(googlesheets)
 
-addRBs <- 
-  read_csv('Data/additionalReportbacks2017.csv') %>% 
+
+# Get 2018 Forecasts ------------------------------------------------------
+
+rbSheetKey <- 
+  gs_ls() %>% 
+  filter(grepl('CJS',sheet_title)) %>% 
+  select(sheet_key) %>% 
+  as.character()
+
+rbWB <- 
+  gs_key(rbSheetKey)
+
+sheetNames <- 
+  gs_key(rbSheetKey) %>% 
+  gs_ws_ls() 
+
+rbSheet <-  rbWB %>% gs_read(sheetNames[3])
+
+procSheet <- 
+  rbSheet %>% 
+  select(Month, Campaign, Source, Traffic, `Total Reportbacks`) %>% 
+  do(na.locf(.)) %>% 
+  rename(Reportbacks = `Total Reportbacks`) %>% 
+  filter(grepl('DS.TurboVote.org',Campaign)) %>% 
   mutate(
-    date = as.Date(date, '%m/%d/%y'),
-    additionalRBs = phone_calls + social_shares + voter_reg
-    ) %>% 
-  select(date, additional_v2)
+    Traffic = as.numeric(gsub(',','',Traffic)),
+    Reportbacks = as.numeric(gsub(',','',Reportbacks))
+  )
+
+rb2018Addition <- (sum(procSheet$Reportbacks) * 4) / 365
+
+# Get Additional Reportbacks ----------------------------------------------
+
+rbAsterKey <- 
+  gs_ls() %>% 
+  filter(grepl('Reportbacks Ast',sheet_title)) %>% 
+  select(sheet_key) %>% 
+  as.character()
+
+asterWB <- 
+  gs_key(rbAsterKey)
+
+sheetNames <- 
+  gs_key(rbAsterKey) %>% 
+  gs_ws_ls() 
+
+rbAsterSheet <-  asterWB %>% gs_read(sheetNames[1])
+
+procAsterSheet <- 
+  rbAsterSheet %>% 
+  rename(date = `March 2017`, additional_v2 = `# Rbs not in Looker`) %>% 
+  select(date, additional_v2) %>% 
+  mutate(
+    date = ifelse(grepl(paste(month.name, collapse="|"), date), date, NA),
+    additional_v2 = ifelse(is.na(additional_v2), 0, additional_v2)
+  ) %>% 
+  do(na.locf(.)) %>% 
+  filter(as.numeric(additional_v2) != 0) %>% 
+  head(nrow(.)-1) %>% 
+  mutate(additional_v2 = as.numeric(additional_v2)) %>% 
+  group_by(date) %>% 
+  summarise(
+    additional_v2 = sum(additional_v2)
+  ) %>% 
+  mutate(
+    date = as.Date(paste0('1 ',date), '%d %B %Y')
+  )
+
+# addRBs <-
+#   read_csv('Data/additionalReportbacks2017.csv') %>%
+#   mutate(
+#     date = as.Date(date, '%m/%d/%y'),
+#     additionalRBs = phone_calls + social_shares + voter_reg
+#     ) %>%
+#   select(date, additional_v2)
+
+
+# Get Regular Reportbacks -------------------------------------------------
 
 q <- "
 SELECT
@@ -29,7 +101,7 @@ GROUP BY ca.date
 qres <- 
   runQuery(q, which='mysql') %>% 
   mutate(date = as.Date(date)) %>% 
-  left_join(addRBs) %>% 
+  left_join(procAsterSheet) %>% 
   mutate(
     reportbacks = ifelse(!is.na(additional_v2), 
                          reportbacks_looker + additional_v2, reportbacks_looker)
@@ -57,6 +129,9 @@ rbs$expectRBs <- round(predict(rbMod, rbs, type='response'))
 
 rbs %<>%
   mutate(
+    expectRBs = ifelse( (date >= '2018-02-01' & date < '2018-11-07') | 
+                        (date >= '2020-01-01' & date < '2020-11-07'), 
+                       round(expectRBs + rb2018Addition), expectRBs),
     runningTotal = ifelse(!is.na(reportbacks), cumsum(reportbacks), NA),
     expectRunTotal = cumsum(expectRBs)
   )
