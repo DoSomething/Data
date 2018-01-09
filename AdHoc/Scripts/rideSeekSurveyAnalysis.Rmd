@@ -1,0 +1,130 @@
+---
+title: "Ride & Seek Survey Analysis"
+output: html_notebook
+---
+```{r}
+library(scales)
+rerun=F
+```
+
+```{r}
+if (rerun==T) {
+  source('Scripts/Scripts/rideSeekSurveyAnalysis.R')
+} else {
+  load('Data/rideSeekSurveyAnalyticalSet.Rdata')
+}
+```
+#Outcomes and Pivots
+```{r}
+controls <- c('age','gender','region','license','vehicle','driving_freq','group')
+outcomes <- c('distraction_prone','considers_dangers','willing_intervene',
+              'seatbelt_driver','seatbelt_front','seatbelt_back')
+```
+
+```{r}
+ggplot(dat, aes(x=group,y=survey_submit,fill=group)) + 
+  geom_violin(position='dodge') + 
+  coord_flip() + theme(legend.position="none") + 
+  ggtitle('Survey Date by Group') + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+pivotBars <- function(pivot=NULL) {
+  if (is.null(pivot)) {
+    dat %>% 
+      group_by_('group') %>% 
+      summarise(
+        considerDistraction = mean(distraction_prone),
+        considerDangers = mean(considers_dangers),
+        willingIntervene = mean(willing_intervene),
+        wearSeatbelt.Drive = mean(seatbelt_driver, na.rm=T),
+        wearSeatbelt.Front = mean(seatbelt_front, na.rm=T),
+        wearSeatbelt.Back = mean(seatbelt_back, na.rm=T)
+      ) %>%
+      melt(id.var=c('group')) %>%
+      ggplot(.,aes(x=variable, y=value, fill=group)) +
+      geom_bar(stat='identity', position='dodge') +
+      geom_text(aes(label=percent(value)), position = position_dodge(width = 1), size=2) +
+      coord_flip() +
+      theme(legend.position='bottom', 
+            axis.title.x=element_blank(),
+            axis.title.y=element_blank())
+  } else {
+  dat %>% 
+    group_by_('group', pivot) %>% 
+    summarise(
+      considerDistraction = mean(distraction_prone),
+      considerDangers = mean(considers_dangers),
+      willingIntervene = mean(willing_intervene),
+      wearSeatbelt.Drive = mean(seatbelt_driver, na.rm=T),
+      wearSeatbelt.Front = mean(seatbelt_front, na.rm=T),
+      wearSeatbelt.Back = mean(seatbelt_back, na.rm=T)
+    ) %>%
+    melt(id.var=c('group',pivot)) %>%
+    ggplot(.,aes(x=variable, y=value, fill=group)) +
+    geom_bar(stat='identity', position='dodge') +
+    geom_text(aes(label=percent(value)), position = position_dodge(width = 1), size=2) +
+    coord_flip() +
+    facet_wrap(~get(pivot)) + 
+    theme(legend.position='none',
+          axis.title.x=element_blank(), 
+          axis.title.y=element_blank()) 
+  }
+}
+
+pivotBars() %>% print()
+```
+
+```{r}
+for (i in 2:length(controls)) {
+  pivotBars(controls[i]) %>% 
+    print()
+}
+```
+
+```{r}
+dat %>% 
+  group_by(group, age) %>% 
+  summarise(
+    considerDistraction = mean(distraction_prone),
+    considerDangers = mean(considers_dangers),
+    willingIntervene = mean(willing_intervene),
+    wearSeatbelt.Drive = mean(seatbelt_driver, na.rm=T),
+    wearSeatbelt.Front = mean(seatbelt_front, na.rm=T),
+    wearSeatbelt.Back = mean(seatbelt_back, na.rm=T)
+  ) %>%
+  melt(id.var=c('group','age')) %>%
+  ggplot(.,aes(x=age, y=value, colour=group)) +
+  geom_point() + 
+  geom_smooth(method='lm', linetype='dotted', size=.8, se=F) +
+  geom_line() +
+  scale_x_continuous(breaks=pretty_breaks(8)) +
+  facet_wrap(~variable)
+```
+
+```{r}
+controls <- c('age','gender','region','license','vehicle','driving_freq','group')
+outcomes <- c('distraction_prone','considers_dangers','willing_intervene',
+              'seatbelt_driver','seatbelt_front','seatbelt_back')
+
+f <- as.formula(paste0(outcomes[1], '~', paste(controls, collapse="+")))
+modDistract <- lm(f, dat)
+out <- list()
+for (i in 1:length(outcomes)) {
+  f <- as.formula(paste0(outcomes[i], '~', paste(controls, collapse="+")))
+  mod <- lm(f, dat)
+  d <- tidy(mod)
+  d$p.value <- round(d$p.value, 4)
+  d$significance <- ifelse(d$p.value <= 0.01, '**', 
+                           ifelse(d$p.value <= 0.05, '*', ''))
+  temp <- list(d)
+  out[outcomes[i]] <- temp
+}
+
+```
+
+```{r}
+
+```
+

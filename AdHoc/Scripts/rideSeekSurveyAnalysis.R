@@ -1,4 +1,37 @@
 source('config/init.R')
+rerun = F
+# Functions ---------------------------------------------------------------
+
+recodeSeatbelt <- function(x) {
+  y <- case_when(
+    x %in% c('Never','Almost Never') ~ 0,
+    x %in% c('Less than half the time') ~ .25,
+    x %in% c('Most of the time','At least half of the time') ~ .75,
+    x %in% c('Every time') ~ 1,
+    is.na(x) ~ NA_real_,
+    TRUE ~ as.numeric(x)
+  )
+  return(y)
+}
+
+recodeOneValNA <- function(x) {
+  y <- ifelse(is.na(x), 0, 1)
+  return(y)
+}
+
+recodeIntervention <- function(x) {
+  y <- case_when(
+    grepl('nothing', x) ~ 0,
+    grepl("Don't", x) ~ .25,
+    grepl('Comment', x) ~ .5,
+    grepl('Ask', x) ~ .75,
+    grepl('stop', tolower(x)) ~ 1,
+    is.na(x) ~ NA_real_,
+    TRUE ~ as.numeric(x)
+  )
+  return(y)
+}
+
 
 # Data Cleaning -----------------------------------------------------------
 
@@ -36,7 +69,8 @@ surv %<>%
     nsid = ifelse(is.na(nsid), northstar_id, nsid),
     northstar_id=NULL
     ) %>% 
-  filter(response_status!='Started' & !duplicated(survey_id))
+  filter((response_status!='Started' | is.na(response_status)) & 
+           !duplicated(survey_id))
 
 nsids <- prepQueryObjects(surv$nsid)
 
@@ -60,35 +94,9 @@ camp_attributes <- runQuery(q, 'mysql')
 surv %<>%
   left_join(camp_attributes, c('nsid' = 'northstar_id'))
 
-recodeSeatbelt <- function(x) {
-  y <- case_when(
-    x %in% c('Never','Almost Never') ~ 0,
-    x %in% c('Less than half the time') ~ .25,
-    x %in% c('Most of the time','At least half of the time') ~ .75,
-    x %in% c('Every time') ~ 1,
-    is.na(x) ~ NA_real_,
-    TRUE ~ as.numeric(x)
-  )
-  return(y)
-}
-
-recodeOneValNA <- function(x) {
-  y <- ifelse(is.na(x), 0, 1)
-  return(y)
-}
-
-recodeIntervention <- function(x) {
-  y <- case_when(
-    grepl('nothing', x) ~ 0,
-    grepl('Comment', x) ~ .25,
-    grepl("Don't", x) ~ .5,
-    grepl('Ask', x) ~ .75,
-    grepl('stop', tolower(x)) ~ 1,
-    is.na(x) ~ NA_real_,
-    TRUE ~ as.numeric(x)
-  )
-  return(y)
-}
+lameVars <- c('distract_none', 'X1', 'ip_address', 'country',
+              'language', 'device_survey', 'operating_system',
+              'response_status','time_to_complete','network_id')
 
 dat <- 
   surv %>% 
@@ -96,10 +104,26 @@ dat <-
   mutate_at(vars(starts_with('danger')), function(x) as.numeric(substr(x, 1, 1))) %>% 
   mutate_at(vars(starts_with('seatbelt_')), recodeSeatbelt) %>% 
   mutate_at(vars(starts_with('intervene_')), recodeIntervention) %>% 
-  select(-distract_none) %>% 
   mutate(
     distraction_prone = rowMeans(.[grep("distract_", names(.))], na.rm = TRUE),
-    considers_dangers = rowMeans(.[grep("danger", names(.))], na.rm = TRUE),
+    considers_dangers = scalerange(rowMeans(.[grep("danger", names(.))], na.rm = TRUE)),
     # seatbelt_usage = rowMeans(.[grep("seatbelt_", names(.))], na.rm = TRUE),
-    willing_intervene = rowMeans(.[grep("intervene_", names(.))], na.rm = TRUE)
-  )
+    willing_intervene = rowMeans(.[grep("intervene_", names(.))], na.rm = TRUE),
+    survey_submit = as.Date(paste0(date_submitted, ':00'), '%m/%d/%y %H:%M:%S'),
+    signup_date = as.Date(signup_date, '%Y-%m-%d %H:%M:%S'),
+    time_to_survey = survey_submit - signup_date,
+    gender = case_when(
+      gender == 'Female' ~ 'Female',
+      gender == 'Male' ~ 'Male',
+      TRUE ~ 'Other'
+    ),
+    age = case_when(
+      age == 'Older than 25' ~ 26,
+      age == 'Younger than 15' ~ 14,
+      TRUE ~ as.numeric(age)
+    )
+  ) %>% 
+  filter(!is.na(driving_freq)) %>% 
+  select(-one_of(lameVars), -starts_with('distract_'))
+
+save(dat, file = 'Data/rideSeekSurveyAnalyticalSet.Rdata')
