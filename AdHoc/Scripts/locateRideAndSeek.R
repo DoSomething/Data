@@ -57,10 +57,4 @@ zipCount <-
   arrange(-Count) %>% 
   select(-n)
 
-getDigitAfterDecimal <- function(x) {
-  trunced <- sprintf("%.1f", x)
-  out <- substr(trunced, nchar(trunced)-1, nchar(trunced))
-  return(as.numeric(out))
-}
-
 saveCSV(zipCount, desktop=T)
