@@ -2,90 +2,274 @@
 title: "Ride & Seek Survey Analysis"
 output: html_notebook
 ---
-```{r}
+```{r echo=FALSE, warnings=FALSE}
 library(scales)
+library(knitr)
+options(scipen=5)
 rerun=F
 ```
 
-```{r}
+```{r echo=FALSE}
 if (rerun==T) {
   source('Scripts/Scripts/rideSeekSurveyAnalysis.R')
 } else {
-  load('Data/rideSeekSurveyAnalyticalSet.Rdata')
+  load('~/Data/AdHoc/Data/rideSeekSurveyAnalyticalSet.Rdata')
 }
 ```
-#Outcomes and Pivots
-```{r}
-controls <- c('age','gender','region','license','vehicle','driving_freq','group')
+
+```{r echo=FALSE}
+numControl <- c('age')
+experiment <- c('Group')
+controls <- c('gender','region','license','vehicle','driving_freq')
 outcomes <- c('distraction_prone','considers_dangers','willing_intervene',
               'seatbelt_driver','seatbelt_front','seatbelt_back')
+titles <- c('Gender', 'Region', 'License', 'Vehicle Type', 'Driving Frequency')
 ```
-
-```{r}
+###Defining Outcomes
+* **Seatbelt.XXX**
+    + Respondents were asked how often they wear a seat belt in a vehicle, 
+    with options ranging from "Never" and "Almost Never" to "Every time". 
+    These responses were recoded into values between 0 and 1 with higher values for 
+    more frequent seat belt usage. This was captured for when individuals were driving, 
+    seated in the front, or seated in the back
+        + 0 = Never/Almost Never
+        + 0.25 = Less than half the time
+        + .75 = At least half of time/Most of the time
+        + 1 = Every time
+    + We hypothesize that participating in the campaign will increase this metric
+    across all three options.
+* **Distractions**
+    + Respondents were asked to tick off items they considered to be distractions
+    while driving from a menu of options. The menu contained items such us texting,
+    making phone calls, and listening to the radio. We encode each option in the menu
+    as either 0 and 1 then take the mean across all the options for each survey response.
+    + We hypothesize that participating in Ride & Seek will increase the number 
+    the number of items the participants acknowledges as distractions while driving.
+* **Interventions**
+    + Respondents were asked about the types of interventions they were willing
+    to engage in if they saw someone in a car without a seatbelt. The responses 
+    varied in severity where the most severe was stopping the car until a seatbelt 
+    was worn, and the least severe was to do nothing. These responses were coded to
+    range between 0 and 1. 
+        + 0 = Nothing
+        + 0.25 = Don't know
+        + 0.50 = Comment on it but not force them to wear it
+        + 0.75 = Ask them directly to wear a seat belt
+        + 1 = Stop the car until they wear a seat belt
+    + We hypothesize that participants in Ride & Seek will be more willing to engage 
+    in higher severity interventions.
+* **Dangers**
+    + Respondents were asked how dangerous they consider not wearing a seat belt 
+    in the front seat, back seat, and engaging in distracting behavior on a scale
+    of 1 (not very dangerous) through 5 (very dangerous). We then rescaled these values 
+    to range from  0 to 1 and then  took the mean across the three questions for each respondant.
+    + We hypothesize that participants in Ride & Seek will begin to acknolwedge 
+    the danger of more of these activites. 
+    
+###Timeline of Surveys
+The following shows survey submission volume over time, pivoted by experiment group. 
+We see experiment surveys came in waves, as designed, whereas control group were 
+distributed broadly throughout, with some bumps as we realized more control group surveys
+were required.
+```{r echo=FALSE}
 ggplot(dat, aes(x=group,y=survey_submit,fill=group)) + 
   geom_violin(position='dodge') + 
   coord_flip() + theme(legend.position="none") + 
-  ggtitle('Survey Date by Group') + 
+  labs(title='Survey Date by Group', y='Survey Submission Date', x='') + 
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-```{r}
-pivotBars <- function(pivot=NULL) {
+###Control vs. Experiment
+
+* **The difference on every outcome is statistically significant at alpha=0.01.** 
+This suggests it is highly unlikely the effects we are seeing are spurious. 
+```{r echo=FALSE}
+getPval <- function(dat, outcome, metName) {
+  e <- dat %>% filter(group=='experiment') %>% select(outcome)
+  c <- dat %>% filter(group=='control') %>% select(outcome)
+  pval <- round(t.test(unlist(e),unlist(c))$p.value, 10)
+  out <- tibble(Metric=metName, pvalue=pval)
+  return(out)
+}
+
+metNames <- c('Seatbelt.Back','Seatbelt.Front','Seatbelt.Drive',
+              'Interventions','Dangers','Distractions')
+ttests <- tibble()
+for (i in 1:length(outcomes)) {
+  temp <- getPval(dat,outcomes[i],metNames[i])
+  ttests <- bind_rows(temp, ttests)
+}
+kable(ttests)
+```
+
+* Important to note that the values below are **not** percentages. They are the mean values 
+of the metrics described above. 
+* We can see the campaign lead to significant progress in all of the metrics 
+considered. Some of the effect sizes were likely capped because of where they began, 
+for example, most people already always wear seat belts in the front seat, hence
+we could only move the needle so much. 
+```{r echo=FALSE}
+pivotBars <- function(group='group', pivot=NULL, title=NULL) {
   if (is.null(pivot)) {
     dat %>% 
-      group_by_('group') %>% 
+      group_by_(group) %>% 
       summarise(
-        considerDistraction = mean(distraction_prone),
-        considerDangers = mean(considers_dangers),
-        willingIntervene = mean(willing_intervene),
-        wearSeatbelt.Drive = mean(seatbelt_driver, na.rm=T),
-        wearSeatbelt.Front = mean(seatbelt_front, na.rm=T),
-        wearSeatbelt.Back = mean(seatbelt_back, na.rm=T)
+        Distractions = mean(distraction_prone),
+        Dangers = mean(considers_dangers),
+        Interventions = mean(willing_intervene),
+        Seatbelt.Drive = mean(seatbelt_driver, na.rm=T),
+        Seatbelt.Front = mean(seatbelt_front, na.rm=T),
+        Seatbelt.Back = mean(seatbelt_back, na.rm=T)
       ) %>%
-      melt(id.var=c('group')) %>%
-      ggplot(.,aes(x=variable, y=value, fill=group)) +
+      melt(id.var=c(group)) %>%
+      ggplot(.,aes(x=variable, y=value, fill=get(group))) +
       geom_bar(stat='identity', position='dodge') +
-      geom_text(aes(label=percent(value)), position = position_dodge(width = 1), size=2) +
-      coord_flip() +
+      geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=2) +
+      coord_flip() + ggtitle('Control vs. Experiment') +
       theme(legend.position='bottom', 
+            legend.title=element_blank(), 
             axis.title.x=element_blank(),
-            axis.title.y=element_blank())
+            axis.title.y=element_blank(),
+            plot.title = element_text(hjust = 0.5))
   } else {
   dat %>% 
-    group_by_('group', pivot) %>% 
+    group_by_(group, pivot) %>% 
     summarise(
-      considerDistraction = mean(distraction_prone),
-      considerDangers = mean(considers_dangers),
-      willingIntervene = mean(willing_intervene),
-      wearSeatbelt.Drive = mean(seatbelt_driver, na.rm=T),
-      wearSeatbelt.Front = mean(seatbelt_front, na.rm=T),
-      wearSeatbelt.Back = mean(seatbelt_back, na.rm=T)
+      Distractions = mean(distraction_prone),
+      Dangers = mean(considers_dangers),
+      Interventions = mean(willing_intervene),
+      Seatbelt.Drive = mean(seatbelt_driver, na.rm=T),
+      Seatbelt.Front = mean(seatbelt_front, na.rm=T),
+      Seatbelt.Back = mean(seatbelt_back, na.rm=T)
     ) %>%
-    melt(id.var=c('group',pivot)) %>%
-    ggplot(.,aes(x=variable, y=value, fill=group)) +
+    melt(id.var=c(group,pivot)) %>%
+    ggplot(.,aes(x=variable, y=value, fill=get(group))) +
     geom_bar(stat='identity', position='dodge') +
-    geom_text(aes(label=percent(value)), position = position_dodge(width = 1), size=2) +
-    coord_flip() +
+    geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=2) +
+    coord_flip() + ggtitle(paste0('Pivoted by ',title)) +
     facet_wrap(~get(pivot)) + 
     theme(legend.position='none',
           axis.title.x=element_blank(), 
-          axis.title.y=element_blank()) 
+          axis.title.y=element_blank(),
+          plot.title = element_text(hjust = 0.5)) 
   }
 }
 
-pivotBars() %>% print()
+pivotBars(group='Group') %>% print()
 ```
 
-```{r}
-for (i in 2:length(controls)) {
-  pivotBars(controls[i]) %>% 
+
+
+###Digging deeper
+#####Distribution shifts in outcomes
+**Seatbelt:** Across the board we see a higher percentage of individuals always wearing 
+seat belts, regardless of where they are seated.
+
+**Dangers:** We see about 55% of respondents in the control group saw all three
+(driving in front or back and engaging in distracted behaviors) as being very 
+dangerous vs 75% of repsondents in the experiment group.
+
+**Interventions:** We see that 20% of respondents in the experiment group were 
+willing to take the strongest intervention in both situations, vs. 10% of respondents 
+in the control group.
+
+**Distractions:** We see that 17.5% of respondents in the control group acknowledged
+all the items that could be considered a distraction, vs. 26% of those in the experiment
+group.
+
+**Across all key metrics, participants are consistently nudged from lower levels to higher levels.**   
+```{r echo=FALSE, warning=FALSE}
+getProportions <- function(dat, outcome, group=NULL) {
+  
+  split <- strsplit(outcome, '_')[[1]]
+  proportions <-
+    dat %>% 
+    group_by_(group, outcome) %>% 
+    summarise(count = n()) %>% 
+    filter(!is.na(get(outcome))) %>% 
+    mutate(Proportion = round(count/sum(count), 3),
+           outcome = as.factor(round(get(outcome), 3)))
+  if (grepl('distract', outcome)) {
+    proportions$outcome <- factor(proportions$outcome, levels=c(as.character(seq(1,12,1))))
+  }
+  labels = c('Never/Almost Never', 'Less than Half', 'Most Times', 'Always')
+  if (grepl('seatbelt',outcome)) {
+    ggplot(proportions, aes(x=outcome, y=Proportion, fill=get(group))) + 
+      geom_bar(stat='identity', position='dodge', width=1.1) +
+      labs(x='', y='',
+           title = 
+             paste0('Wear ', 
+                    firstLetterUpper(split[1]), ' - ', 
+                    firstLetterUpper(split[2])
+             )
+      ) +
+      scale_x_discrete(labels=c(labels)) + 
+      theme(legend.position="none", 
+            plot.title = element_text(hjust = 0.5))
+  } else {
+    p <- 
+      ggplot(proportions, aes(x=outcome, y=Proportion, fill=get(group))) +
+      geom_bar(stat='identity', position='dodge', width=1) +
+      labs(x='', y='') + 
+      theme(legend.position="none", 
+            plot.title = element_text(hjust = 0.5)) + 
+      scale_y_continuous(breaks=pretty_breaks(8))
+    if (grepl('inter', outcome)) {
+      p <- p + ggtitle('Strength of Intervention')
+    } else if (grepl('danger',outcome)) {
+      p <- p + ggtitle('Acknowledgement of Dangers')
+    } else {
+      proportions %<>% 
+        filter(outcome != '12')
+      p <- 
+      ggplot(proportions, aes(x=outcome, y=Proportion, fill=get(group))) +
+      geom_bar(stat='identity', position='dodge', width=1) +
+      labs(x='', y='') + 
+      theme(legend.position="none", 
+            plot.title = element_text(hjust = 0.5)) + 
+      scale_y_continuous(breaks=pretty_breaks(8))
+      p <- p + ggtitle('Distractions Acknowledged')
+    }
+  }
+}
+
+histOutcomes <- c('seatbelt_driver','seatbelt_front',
+                  'seatbelt_back','willing_intervene',
+                  'considers_dangers','distraction_sums')
+for (i in 1:length(histOutcomes)) {
+  getProportions(dat, histOutcomes[i], group='Group') %>% 
     print()
 }
 ```
 
-```{r}
+
+
+###Comparison across key pivots
+
+####Estimated campaign impact on key sub-populations
+* Identified most important pivots as being 
+    + **For number of items considered distractions:** Not having license(-) and identifying as male(-).
+    + **For how dangerous it is to not wear seat belt or drive while distracted:** Identifying as male(-).
+    + **For intervention severity:** Identifying as male(-), having a limited or no license(+), 
+    driving every day(+)
+    + **For wearing a seat belt while driving:** Age(-), not driving(-), driving infrequently(+)
+    + **For wearing a seat belt in the passenger seat:** Age(-), living in a suburban region(+), 
+    driving a truck(-), driving daily(-)
+    + **For wearing a seat belt in back seats:** Age(-)
+* Overall, men are less less responsive to the campaign across all metrics.
+Age also appears to be a driver of seatbelt usage, showing an inverse relationship. 
+The only other consistent driver appears to driving infrequently and/or not having
+a license. 
+```{r echo=FALSE}
+for (i in 1:length(controls)) {
+  pivotBars(controls[i], titles[i],group = 'Group') %>% 
+    print()
+}
+```
+
+```{r echo=FALSE}
 dat %>% 
-  group_by(group, age) %>% 
+  group_by(Group, age) %>% 
   summarise(
     considerDistraction = mean(distraction_prone),
     considerDangers = mean(considers_dangers),
@@ -94,16 +278,20 @@ dat %>%
     wearSeatbelt.Front = mean(seatbelt_front, na.rm=T),
     wearSeatbelt.Back = mean(seatbelt_back, na.rm=T)
   ) %>%
-  melt(id.var=c('group','age')) %>%
-  ggplot(.,aes(x=age, y=value, colour=group)) +
+  melt(id.var=c('Group','age')) %>%
+  ggplot(.,aes(x=age, y=value, colour=Group)) +
   geom_point() + 
   geom_smooth(method='lm', linetype='dotted', size=.8, se=F) +
   geom_line() +
   scale_x_continuous(breaks=pretty_breaks(8)) +
-  facet_wrap(~variable)
+  facet_wrap(~variable) + 
+  ggtitle('Age') + 
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.title=element_blank())
 ```
 
-```{r}
+
+```{r echo=FALSE}
 controls <- c('age','gender','region','license','vehicle','driving_freq','group')
 outcomes <- c('distraction_prone','considers_dangers','willing_intervene',
               'seatbelt_driver','seatbelt_front','seatbelt_back')
@@ -124,7 +312,72 @@ for (i in 1:length(outcomes)) {
 
 ```
 
-```{r}
 
+
+###Estimated aggregate campaign impact
+
+We compute the aggregate campaign impact by first capturing the mean value across
+key metrics in the control group. We then build a model to predict the outcome
+controlling for the all the pivots identified above. The coefficient for being 
+in the experiment group can then be considered the expect change in behavior
+for the metric in question, after applying control. We add this number to the 
+average, which gives us a sense of how each behavior would shift, in aggregate,
+if the general population was pushed through the campaign.
+```{r  warning=FALSE, message=FALSE, echo=FALSE}
+effects <- tibble()
+for (i in 1:length(out)) {
+  temp <- 
+    out[[i]] %>% 
+    filter(term=='groupexperiment') %>% 
+    select(estimate) %>% 
+    bind_cols(tibble(metric = names(out[i])))
+  effects <- effects %>% bind_rows(temp)
+}
+varnames <- c('Distractions','Dangers','Interventions', 
+              'Seatbelt.Drive','Seatbelt.Front','Seatbelt.Back')
+impacts <- 
+  dat %>% 
+  filter(Group=='Control') %>% 
+  summarise(
+    distraction_prone = mean(distraction_prone),
+    considers_dangers = mean(considers_dangers),
+    willing_intervene = mean(willing_intervene),
+    seatbelt_driver = mean(seatbelt_driver, na.rm=T),
+    seatbelt_front = mean(seatbelt_front, na.rm=T),
+    seatbelt_back = mean(seatbelt_back, na.rm=T)
+  ) %>% 
+  melt(value.name = 'Average') %>% 
+  rename('metric' = 'variable') %>% 
+  left_join(effects) %>% 
+  mutate(
+    Campaign = Average+estimate,
+    Metric = varnames
+    ) %>% 
+  melt(id.vars='Metric', measure.vars=c('Average','Campaign'))
+
+ggplot(impacts, aes(x=Metric, y=value, fill=variable)) +
+  geom_bar(stat='identity', position='dodge') +
+  geom_text(aes(label=round(value,3)), vjust = -0.5, position = position_dodge(width = 1), size=2) +
+  theme(legend.title=element_blank())
 ```
 
+
+###Outstanding analyses
+* How do campaign effects diminish over time, if at all?
+* Is there a difference in behavior among regular signups and folks who signed
+up after seeing a poster?
+* Look at responses in the flow, are choices different as you go through the various flows
+    + How do responses vary by terminal node in decision tree
+* Can we understand **why** it is so effective for a given sub-population
+* How many people **will not die**
+* What do we do with this information with respect to campaigns going forward
+    + Should we start by educating on the dangers of these activities
+* Looping in CTD findings. What is the overall narrative?
+    + Would help with the why
+    + Could we have asked more interesting questions around speeding?
+* What about external distractions?
+
+###Next Steps
+* What do we wish we had so we could dig even deeper?
+* Forgetting GM, how does this info help DS campaigns?
+* Bring this up at mgmt meeting

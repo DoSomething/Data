@@ -106,12 +106,20 @@ dat <-
   mutate_at(vars(starts_with('intervene_')), recodeIntervention) %>% 
   mutate(
     distraction_prone = rowMeans(.[grep("distract_", names(.))], na.rm = TRUE),
+    distraction_sums = rowSums(.[grep("distract_", names(.))], na.rm = TRUE),
     considers_dangers = scalerange(rowMeans(.[grep("danger", names(.))], na.rm = TRUE)),
+    dangers_unscaled = rowSums(.[grep("danger", names(.))], na.rm = TRUE),
     # seatbelt_usage = rowMeans(.[grep("seatbelt_", names(.))], na.rm = TRUE),
     willing_intervene = rowMeans(.[grep("intervene_", names(.))], na.rm = TRUE),
     survey_submit = as.Date(paste0(date_submitted, ':00'), '%m/%d/%y %H:%M:%S'),
     signup_date = as.Date(signup_date, '%Y-%m-%d %H:%M:%S'),
     time_to_survey = survey_submit - signup_date,
+    sawPoster = if_else(nsid %in% rsPoster, T, F),
+    Group = case_when(
+      sawPoster==T & group=='experiment' ~ 'Experiment - Poster',
+      sawPoster==F & group=='experiment' ~ 'Experiment - Regular',
+      TRUE ~ 'Control'
+      ),
     gender = case_when(
       gender == 'Female' ~ 'Female',
       gender == 'Male' ~ 'Male',
