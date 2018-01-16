@@ -2,7 +2,7 @@ source('config/init.R')
 source('config/mySQLConfig.R')
 library(scales)
 library(googlesheets)
-
+first=F
 
 # Get 2018 Forecasts ------------------------------------------------------
 
@@ -120,16 +120,22 @@ rbs <-
     dayOfYear = yday(date)
   )
 
-rbMod <- lm(
-  reportbacks ~ year + dayOfYear + year*dayOfYear,
-  data=filter(rbs, !is.na(reportbacks))
-)
+if (first==T) {
+  
+  rbMod <- lm(
+    reportbacks ~ year + dayOfYear + year*dayOfYear,
+    data=filter(rbs, !is.na(reportbacks))
+  )
+  
+} else {
+  load('Data/reportbackForecast2018Model.RData')
+}
 
 rbs$expectRBs <- round(predict(rbMod, rbs, type='response'))
 
 rbs %<>%
   mutate(
-    expectRBs = ifelse( (date >= '2018-02-01' & date < '2018-11-07') | 
+    expectRBs = ifelse( (date >= '2018-01-01' & date < '2018-11-07') | 
                         (date >= '2020-01-01' & date < '2020-11-07'), 
                        round(expectRBs + rb2018Addition), expectRBs),
     runningTotal = ifelse(!is.na(reportbacks), cumsum(reportbacks), NA),
