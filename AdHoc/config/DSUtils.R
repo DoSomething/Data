@@ -46,6 +46,8 @@ getQuery <- function(path, wd = T) {
 runQuery <- function(query, which=c('pg','mysql')) {
   require(RMySQL)
   require(RPostgreSQL)
+  source('config/mySQLConfig.R')
+  source('config/pgConnect.R')
   
   if(grepl('.sql', query)) {
     
@@ -58,10 +60,9 @@ runQuery <- function(query, which=c('pg','mysql')) {
   }
   
   if (which=='mysql') {
-    
-    connection <- con
+    connection <- quasarConnect()
   } else {
-    connection <- channel
+    connection <- pgConnect()
   }
   
   out <- tbl_df(dbGetQuery(connection, q))

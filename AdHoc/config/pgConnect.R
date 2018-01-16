@@ -1,6 +1,6 @@
 library(RPostgreSQL)
 
-pgConnect <- function(db=c('torod','quasar','postgres')) {
+pgConnect <- function() {
   
   drv <- dbDriver("PostgreSQL")
   user=Sys.getenv('QUASAR_USERNAME')
@@ -11,7 +11,7 @@ pgConnect <- function(db=c('torod','quasar','postgres')) {
       drv, 
       user = "shasan", 
       password=pw, 
-      dbname = "torod", 
+      dbname = "quasar", 
       host = "quasar-pg.c9ajz690mens.us-east-1.rds.amazonaws.com", 
       port = 5432
       )
@@ -19,3 +19,4 @@ pgConnect <- function(db=c('torod','quasar','postgres')) {
   return(channel)
   
 }
+

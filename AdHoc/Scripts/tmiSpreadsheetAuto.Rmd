@@ -42,7 +42,7 @@ month.subs <- substr(month.name, 1, 3)
 tmi.x <- read_csv(paste0('/Users/jli/Data/AdHoc/Data/TMIBezosSheets/bezos',Sys.Date(),'.csv')) %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
-  rename(Mobile.Number = device_address) %>%
+  rename(Mobile.Number = `Mobile Number`) %>%
   filter(!is.na(Mobile.Number)) 
 
 calcAge <- function(x) {

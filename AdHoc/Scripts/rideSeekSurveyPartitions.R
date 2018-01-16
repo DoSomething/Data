@@ -99,7 +99,7 @@ both <-
 
 extraCont <- 
   signs2017 %>% 
-  filter(group %in% c('11-02', '11-17', '12-11') & ) %>% 
+  filter(group %in% c('11-02', '11-17', '12-11')) %>% 
   sample_n(1000)
   
 secondSend <- 
@@ -108,3 +108,43 @@ secondSend <-
   filter(!is.na(northstar_id))
 
 saveCSV(secondSend)
+
+
+# Review Response Groups --------------------------------------------------
+
+resp <- 
+  read_csv('~/Downloads/Ride and Seek - 10-19-2017_sh.csv') %>% 
+  select(`Response ID`, `16 - Q7`) %>% 
+  transmute(id=`Response ID`, mobile=cleanPhone(`16 - Q7`)) 
+  
+
+r1 <- read_csv('Survey_Recipients.csv')
+r2 <- read_csv('Survey_Recipients_v2.csv')
+
+r <- bind_rows(
+  mutate(r1, mobile = cleanPhone(mobile)), 
+  mutate(r2, mobile = cleanPhone(mobile))
+  )
+
+matched <- 
+  r %>% 
+  filter(mobile %in% resp$mobile)
+
+
+# More Control ------------------------------------------------------------
+
+q <-
+    "SELECT DISTINCT
+      u.northstar_id,
+      COALESCE(m.mobile, u.mobile) as mobile
+    FROM quasar.users u
+    LEFT JOIN quasar.moco_profile_import m ON m.moco_id = u.moco_commons_profile_id
+    INNER JOIN quasar.campaign_activity c ON c.northstar_id = u.northstar_id
+    WHERE COALESCE(m.mobile, u.mobile) IS NOT NULL
+    AND c.signup_created_at >= '2017-01-01' 
+    AND c.campaign_run_id <> 7931
+    AND RAND() < .01
+    LIMIT 12000"
+
+getControl <- runQuery(q, 'mysql')
+saveCSV(getControl, desktop=T)
