@@ -3,6 +3,28 @@ library(data.table)
 library(dtplyr)
 library(lubridate)
 
+nDaysInMonth <- function(date) {
+  m <- format(date, format="%m")
+  
+  while (format(date, format="%m") == m) {
+    date <- date + 1
+  }
+  
+  return(as.integer(format(date - 1, format="%d")))
+}
+
+getDigitAfterDecimal <- function(x) {
+  trunced <- sprintf("%.1f", x)
+  out <- substr(trunced, nchar(trunced)-1, nchar(trunced))
+  return(as.numeric(out))
+}
+
+#####Upper case first letter of string#####
+firstLetterUpper <- function(x) {
+  x  <- paste0(toupper(substr(x, 1, 1)), substr(x, 2, nchar(x)))
+  return(x)
+}
+#####Convert Log-Odds to Probability#####
 logit2prob <- function(logit){
   odds <- exp(logit)
   prob <- odds / (1 + odds)
@@ -160,7 +182,7 @@ fillNAs = function(df) {
       set(df, which(is.na(df[[j]])), j, mean(df[[j]], na.rm=T))
     }
   }
-  return(data.table(df))
+  return(as_tibble(df))
 } 
 
 #####Convert character features to factors when levels are fewer than X#####
