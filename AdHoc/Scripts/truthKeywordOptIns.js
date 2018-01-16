@@ -15,7 +15,7 @@ var cursor = db.getCollection('messages').aggregate([
             from: 'conversations',
             foreignField: '_id',
             as: 'conversation'
-        }
+    }
     },
     {
         '$unwind': '$conversation'
