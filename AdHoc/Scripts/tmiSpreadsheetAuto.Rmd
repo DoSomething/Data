@@ -1,7 +1,7 @@
 ```{bash Move Files into Place}
 today=`date +%Y-%m-%d`
-fromfile="/Users/shasan/Downloads/bezos$today.csv"
-tofile="/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/bezos$today.csv"
+fromfile="/Users/jli/Downloads/bezos$today.csv"
+tofile="/Users/jli/Data/AdHoc/Data/TMIBezosSheets/bezos$today.csv"
 mv $fromfile $tofile
 ```
 
@@ -11,7 +11,7 @@ library(tidyverse)
 library(lubridate)
 library(magrittr)
 library(broom)
-source('/Users/shasan/Data/AdHoc/config/DSUtils.R')
+source('/Users/jli/Data/AdHoc/config/DSUtils.R')
 library(data.table)
 library(openxlsx)
 
@@ -39,7 +39,7 @@ fullList <-
 month.nums <- as.numeric(factor(substr(month.name,1,3), levels = substr(month.name,1,3)))
 month.subs <- substr(month.name, 1, 3)
 
-tmi.x <- read_csv(paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/bezos',Sys.Date(),'.csv')) %>%
+tmi.x <- read_csv(paste0('/Users/jli/Data/AdHoc/Data/TMIBezosSheets/bezos',Sys.Date(),'.csv')) %>%
   tbl_dt() %>%
   select(-starts_with('NA')) %>%
   rename(Mobile.Number = device_address) %>%
@@ -141,7 +141,6 @@ allOptions <- data.table(
               Age = Ages)
   )
 
-#Worth reading
 wb <- createWorkbook()
 
 addWorksheet(wb, 'All')
@@ -175,7 +174,7 @@ for (i in 1:nrow(allOptions)) {
 
 saveWorkbook(
   wb, 
-  paste0('/Users/shasan/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'.xlsx'), 
+  paste0('/Users/jli/Data/AdHoc/Data/TMIBezosSheets/output_',Sys.Date(),'.xlsx'), 
   overwrite = TRUE
   )
 
