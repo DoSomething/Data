@@ -1,9 +1,13 @@
 source('config/init.R')
 source('config/mySQLConfig.R')
 source('Q4/Scripts/customFunctions.R')
-library(scales)
+
+
+# Get survey data ------------------------------------------------------------
 
 nps.q4 <- mungeNPSQ4()
+
+# Get population breakdown -----------------------------------------------------
 
 q <- paste0("
   SELECT
@@ -31,12 +35,17 @@ pop <-
   setNames(c('group','n')) %>%
   mutate(p=n/sum(n))
 
+# survey breakdown --------------------------------------------------------
+
 nps.q4 %>% count(group) %>% mutate(p = n/sum(n))
+
+# attach population proportions -------------------------------------------
 
 nps <-
   nps.q4 %>%
   left_join(pop)
 
+# Simulate ----------------------------------------------------------------
 
 scores <- numeric()
 for (i in 1:10000) {
