@@ -1,0 +1,92 @@
+---
+title: "Show Stress Face Data Request"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(data.table)
+library(rmarkdown)
+library(plyr)
+library(gmodels)
+```
+
+
+```{r}
+#Upload CSV files
+groupB<-read.csv('~/Desktop/Show Stress B group.csv')
+groupB$group<-"groupB"
+control<-read.csv('~/Desktop/Show Stress Face Control.csv')
+control$group<-"control"
+```
+
+```{r}
+#Merge csv files
+showstress<-rbind(groupB,control)
+
+showstress<-showstress%>%
+  mutate(
+    reportedback=ifelse(total_rbs>0,'yes','no'),
+    visitedsite=ifelse(site_visits>0, 'yes', 'no')
+  )
+```
+
+###Control vs. Messaging - Reported back and Visited site
+
+* **23% of those who received drip messaging reported back vs. 21% of the control group. This difference is not statistically significant (p>0.05)** 
+* **98.5% of those who received drip messaging visited the site vs. 100% of the control group. This difference is statistically significant (p<0.05)**
+
+```{r}
+#Percentage reporting back and visiting site
+CrossTable(showstress$group, showstress$reportedback, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+CrossTable(showstress$group, showstress$visitedsite, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+```
+
+###Control vs. Messaging - Average number of RBs and Site Visits
+
+* **The average number of report backs for those who received drip messaging was 1.14 vs. 1.04 for the control. This difference was not statistically significant** 
+* **The average number of visits to site for those who received drip messaging was 3.15 vs. 3.00 for the control. This difference was not statistically significant**
+
+```{r}
+#Average number of reportbacks
+group_by(showstress, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(total_rbs, na.rm = TRUE),
+    sd = sd(total_rbs, na.rm = TRUE),
+     var = var(total_rbs,na.rm = TRUE)
+  )
+
+```
+```{r}
+#Average number of site visits
+group_by(showstress, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(site_visits, na.rm = TRUE),
+    sd = sd(site_visits, na.rm = TRUE),
+    var = var(site_visits,na.rm = TRUE)
+  )
+```
+
+```{r}
+#T-test for statistical significance
+t.test(showstress$total_rbs~showstress$group)
+t.test(showstress$site_visits~showstress$group)
+```
+
+
+```{r}
+#Total number of reportbacks
+# aggregate(showstress$total_rbs, by=list(Category=showstress$group), FUN=sum)
+# 
+# #Total number of site visits
+# aggregate(showstress$site_visits, by=list(Category=showstress$group), FUN=sum)
+```
+```{r}
+render('~/Data/Trello_Requests/Show_Stress_Face.Rmd', "html_notebook")
+
+```
+
+
+
