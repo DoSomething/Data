@@ -5,7 +5,6 @@ library(scales)
 
 nps.q4 <- mungeNPSQ4()
 
-#Query generated using paste to insert parameters
 q <- paste0("
   SELECT
    	count(*) AS total_active,
