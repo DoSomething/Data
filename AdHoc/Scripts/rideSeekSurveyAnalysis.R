@@ -1,5 +1,5 @@
 source('config/init.R')
-rerun = F
+rerun = T
 # Functions ---------------------------------------------------------------
 
 recodeSeatbelt <- function(x) {
@@ -98,6 +98,8 @@ lameVars <- c('distract_none', 'X1', 'ip_address', 'country',
               'language', 'device_survey', 'operating_system',
               'response_status','time_to_complete','network_id')
 
+rsPoster <- rideSeekPosterPeople()
+
 dat <- 
   surv %>% 
   mutate_at(vars(starts_with('distract')), recodeOneValNA) %>% 
@@ -114,7 +116,7 @@ dat <-
     survey_submit = as.Date(paste0(date_submitted, ':00'), '%m/%d/%y %H:%M:%S'),
     signup_date = as.Date(signup_date, '%Y-%m-%d %H:%M:%S'),
     time_to_survey = survey_submit - signup_date,
-    sawPoster = if_else(nsid %in% rsPoster, T, F),
+    sawPoster = if_else(nsid %in% rsPoster$northstar_id, T, F),
     Group = case_when(
       sawPoster==T & group=='experiment' ~ 'Experiment - Poster',
       sawPoster==F & group=='experiment' ~ 'Experiment - Regular',
@@ -135,3 +137,67 @@ dat <-
   select(-one_of(lameVars), -starts_with('distract_'))
 
 save(dat, file = 'Data/rideSeekSurveyAnalyticalSet.Rdata')
+
+dists <- surv %>% select(starts_with('distract')) %>% names()
+out <- tibble()
+for (i in 1:length(dists)) {
+  t <- surv %>% count(group, get(dists[i])) %>% setNames(c('group','which','n'))
+  out <- out %>% bind_rows(t)
+}
+out %>% 
+  filter(!is.na(which)) %>% 
+  spread(group, n) %>% 
+  arrange(experiment)
+
+
+
+pivotBars <- function(expid='group', pivot=NULL, title=NULL) {
+  if (is.null(pivot)) {
+    dat %>% 
+      group_by_(expid) %>% 
+      summarise(
+        Distractions = mean(distraction_prone),
+        Dangers = mean(considers_dangers),
+        Interventions = mean(willing_intervene),
+        Seatbelt.Drive = mean(seatbelt_driver, na.rm=T),
+        Seatbelt.Front = mean(seatbelt_front, na.rm=T),
+        Seatbelt.Back = mean(seatbelt_back, na.rm=T)
+      ) %>%
+      melt(id.var=c(expid)) %>%
+      ggplot(.,aes(x=variable, y=value, fill=get(expid))) +
+      geom_bar(stat='identity', position='dodge') +
+      geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=2) +
+      coord_flip() + ggtitle('Control vs. Experiment') +
+      theme(legend.position='bottom', 
+            legend.title=element_blank(), 
+            axis.title.x=element_blank(),
+            axis.title.y=element_blank(),
+            plot.title = element_text(hjust = 0.5))
+  } else {
+    dat %>% 
+      group_by_(expid, pivot) %>% 
+      summarise(
+        Distractions = mean(distraction_prone),
+        Dangers = mean(considers_dangers),
+        Interventions = mean(willing_intervene),
+        Seatbelt.Drive = mean(seatbelt_driver, na.rm=T),
+        Seatbelt.Front = mean(seatbelt_front, na.rm=T),
+        Seatbelt.Back = mean(seatbelt_back, na.rm=T)
+      ) %>%
+      melt(id.var=c(expid,pivot)) %>%
+      ggplot(.,aes(x=get(pivot), y=value, fill=get(expid))) +
+      geom_bar(stat='identity', position='dodge') +
+      geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=2) +
+      ggtitle(paste0('Pivoted by ',title)) +
+      facet_wrap(~variable) + 
+      theme(legend.position='none',
+            axis.title.x=element_blank(), 
+            axis.title.y=element_blank(),
+            plot.title = element_text(hjust = 0.5)) 
+  }
+}
+
+for (i in 1:length(controls)) {
+  pivotBars(controls[i], titles[i],expid = 'group') %>% 
+    print()
+}

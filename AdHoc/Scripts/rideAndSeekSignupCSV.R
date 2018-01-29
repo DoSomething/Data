@@ -28,10 +28,13 @@ rideSeekPosterPeople <- function() {
       text = gsub("\\:","",stripStrings(text, strings)),
       signup_created_at_timestamp = stripStrings(signup_created_at_timestamp, strings),
       signup_created_at_timestamp = substr(signup_created_at_timestamp,3,nchar(signup_created_at_timestamp)),
+      signup_created_at_timestamp = paste0(substr(signup_created_at_timestamp, 1, 10),
+                                           ' ', substr(signup_created_at_timestamp, 12, 19)),
       score = gsub("\\:","",stripStrings(score, strings)),
       mobile = cleanPhone(stripStrings(mobile, strings)),
       campaign_node_id = 7930,
-      campaign_run_id = 7931
+      campaign_run_id = 7931,
+      sawPoster = case_when(grepl('ride', tolower(text)) ~ F, TRUE ~ T)
     ) 
   
   q <-
@@ -52,12 +55,15 @@ rideSeekPosterPeople <- function() {
   
   fo %<>%
     left_join(phoneLook) %>% 
-    filter(!is.na(northstar_id) & !duplicated(northstar_id)) %>% 
-    select(northstar_id, signup_created_at_timestamp, campaign_node_id, campaign_run_id)
+    filter(!is.na(northstar_id) & !duplicated(northstar_id))
   
-  rsPoster <- fo$northstar_id
+  rsPoster <- fo %>% filter(sawPoster==T) %>% select(northstar_id)
+  
+  fo %<>% 
+    select(northstar_id, signup_created_at_timestamp, campaign_node_id, campaign_run_id)
   
   saveCSV(fo, desktop = T)
   
-  return(nsids)
+  return(rsPoster)
 }
+rsPoster <- rideSeekPosterPeople()

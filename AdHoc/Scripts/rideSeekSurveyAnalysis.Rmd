@@ -92,7 +92,7 @@ getPval <- function(dat, outcome, metName) {
   return(out)
 }
 
-metNames <- c('Seatbelt.Back','Seatbelt.Front','Seatbelt.Drive',
+metNames <- c('Seat Belt - Rear','Seat Belt - Front','Seat Belt - Drive',
               'Interventions','Dangers','Distractions')
 ttests <- tibble()
 for (i in 1:length(outcomes)) {
@@ -109,53 +109,59 @@ considered. Some of the effect sizes were likely capped because of where they be
 for example, most people already always wear seat belts in the front seat, hence
 we could only move the needle so much. 
 ```{r echo=FALSE}
-pivotBars <- function(group='group', pivot=NULL, title=NULL) {
+pivotBars <- function(expid='group', pivot=NULL, title=NULL) {
   if (is.null(pivot)) {
     dat %>% 
-      group_by_(group) %>% 
+      group_by_(expid) %>% 
       summarise(
         Distractions = mean(distraction_prone),
         Dangers = mean(considers_dangers),
         Interventions = mean(willing_intervene),
-        Seatbelt.Drive = mean(seatbelt_driver, na.rm=T),
-        Seatbelt.Front = mean(seatbelt_front, na.rm=T),
-        Seatbelt.Back = mean(seatbelt_back, na.rm=T)
+        `Seat Belt Drive` = mean(seatbelt_driver, na.rm=T),
+        `Seat Belt Front` = mean(seatbelt_front, na.rm=T),
+        `Seat Belt Rear` = mean(seatbelt_back, na.rm=T)
       ) %>%
-      melt(id.var=c(group)) %>%
-      ggplot(.,aes(x=variable, y=value, fill=get(group))) +
+      melt(id.var=c(expid)) %>%
+      ggplot(.,aes(x=variable, y=value, fill=get(expid))) +
       geom_bar(stat='identity', position='dodge') +
-      geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=2) +
+      geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=4, hjust=0) +
       coord_flip() + ggtitle('Control vs. Experiment') +
       theme(legend.position='bottom', 
             legend.title=element_blank(), 
             axis.title.x=element_blank(),
             axis.title.y=element_blank(),
-            plot.title = element_text(hjust = 0.5))
+            plot.title = element_text(hjust = 0.5),
+            axis.text.y = element_text(face="bold", size=16)) +
+       scale_fill_manual(values=c('#000000',"#23b7fbff"))
   } else {
-  dat %>% 
-    group_by_(group, pivot) %>% 
-    summarise(
-      Distractions = mean(distraction_prone),
-      Dangers = mean(considers_dangers),
-      Interventions = mean(willing_intervene),
-      Seatbelt.Drive = mean(seatbelt_driver, na.rm=T),
-      Seatbelt.Front = mean(seatbelt_front, na.rm=T),
-      Seatbelt.Back = mean(seatbelt_back, na.rm=T)
-    ) %>%
-    melt(id.var=c(group,pivot)) %>%
-    ggplot(.,aes(x=variable, y=value, fill=get(group))) +
-    geom_bar(stat='identity', position='dodge') +
-    geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=2) +
-    coord_flip() + ggtitle(paste0('Pivoted by ',title)) +
-    facet_wrap(~get(pivot)) + 
-    theme(legend.position='none',
-          axis.title.x=element_blank(), 
-          axis.title.y=element_blank(),
-          plot.title = element_text(hjust = 0.5)) 
+    dat %>% 
+      group_by_(expid, pivot) %>% 
+      summarise(
+        Distractions = mean(distraction_prone),
+        Dangers = mean(considers_dangers),
+        Interventions = mean(willing_intervene),
+        `Seat Belt Drive` = mean(seatbelt_driver, na.rm=T),
+        `Seat Belt Front` = mean(seatbelt_front, na.rm=T),
+        `Seat Belt Rear` = mean(seatbelt_back, na.rm=T)
+      ) %>%
+      melt(id.var=c(expid,pivot)) %>%
+      ggplot(.,aes(x=get(pivot), y=value, fill=get(expid))) +
+      geom_bar(stat='identity', position='dodge') +
+      geom_text(aes(label=round(value, 3)), vjust=-0.25, position = position_dodge(width = 1), size=4) +
+      ggtitle(paste0('Pivoted by ',title)) +
+      facet_wrap(~variable) + 
+      theme(legend.position='none',
+            axis.title.x=element_blank(), 
+            axis.title.y=element_blank(),
+            plot.title = element_text(hjust = 0.5),
+            axis.text.x = element_text(face="bold", size=13),
+            axis.text.y = element_text(face="bold", size=16),
+            strip.text.x = element_text(size = 18)) +
+       scale_fill_manual(values=c('#000000',"#23b7fbff"))
   }
 }
 
-pivotBars(group='Group') %>% print()
+pivotBars(expid='group') %>% print()
 ```
 
 
@@ -175,16 +181,18 @@ in the control group.
 
 **Distractions:** We see that 17.5% of respondents in the control group acknowledged
 all the items that could be considered a distraction, vs. 26% of those in the experiment
-group.
+group. Top distractions both groups are using your mobile device and personal grooming.
+The fact that the top are same for both groups suggests the effect was distributed across
+distraction types.
 
 **Across all key metrics, participants are consistently nudged from lower levels to higher levels.**   
 ```{r echo=FALSE, warning=FALSE}
-getProportions <- function(dat, outcome, group=NULL) {
+getProportions <- function(dat, outcome, expid=NULL) {
   
   split <- strsplit(outcome, '_')[[1]]
   proportions <-
     dat %>% 
-    group_by_(group, outcome) %>% 
+    group_by_(expid, outcome) %>% 
     summarise(count = n()) %>% 
     filter(!is.na(get(outcome))) %>% 
     mutate(Proportion = round(count/sum(count), 3),
@@ -194,7 +202,7 @@ getProportions <- function(dat, outcome, group=NULL) {
   }
   labels = c('Never/Almost Never', 'Less than Half', 'Most Times', 'Always')
   if (grepl('seatbelt',outcome)) {
-    ggplot(proportions, aes(x=outcome, y=Proportion, fill=get(group))) + 
+    ggplot(proportions, aes(x=outcome, y=Proportion, fill=get(expid))) + 
       geom_bar(stat='identity', position='dodge', width=1.1) +
       labs(x='', y='',
            title = 
@@ -208,7 +216,7 @@ getProportions <- function(dat, outcome, group=NULL) {
             plot.title = element_text(hjust = 0.5))
   } else {
     p <- 
-      ggplot(proportions, aes(x=outcome, y=Proportion, fill=get(group))) +
+      ggplot(proportions, aes(x=outcome, y=Proportion, fill=get(expid))) +
       geom_bar(stat='identity', position='dodge', width=1) +
       labs(x='', y='') + 
       theme(legend.position="none", 
@@ -222,12 +230,12 @@ getProportions <- function(dat, outcome, group=NULL) {
       proportions %<>% 
         filter(outcome != '12')
       p <- 
-      ggplot(proportions, aes(x=outcome, y=Proportion, fill=get(group))) +
-      geom_bar(stat='identity', position='dodge', width=1) +
-      labs(x='', y='') + 
-      theme(legend.position="none", 
-            plot.title = element_text(hjust = 0.5)) + 
-      scale_y_continuous(breaks=pretty_breaks(8))
+        ggplot(proportions, aes(x=outcome, y=Proportion, fill=get(expid))) +
+        geom_bar(stat='identity', position='dodge', width=1) +
+        labs(x='', y='') + 
+        theme(legend.position="none", 
+              plot.title = element_text(hjust = 0.5)) + 
+        scale_y_continuous(breaks=pretty_breaks(8))
       p <- p + ggtitle('Distractions Acknowledged')
     }
   }
@@ -237,7 +245,7 @@ histOutcomes <- c('seatbelt_driver','seatbelt_front',
                   'seatbelt_back','willing_intervene',
                   'considers_dangers','distraction_sums')
 for (i in 1:length(histOutcomes)) {
-  getProportions(dat, histOutcomes[i], group='Group') %>% 
+  getProportions(dat, histOutcomes[i], expid='group') %>% 
     print()
 }
 ```
@@ -256,20 +264,20 @@ for (i in 1:length(histOutcomes)) {
     + **For wearing a seat belt in the passenger seat:** Age(-), living in a suburban region(+), 
     driving a truck(-), driving daily(-)
     + **For wearing a seat belt in back seats:** Age(-)
-* Overall, men are less less responsive to the campaign across all metrics.
+* Overall, men are less responsive to the campaign across all metrics.
 Age also appears to be a driver of seatbelt usage, showing an inverse relationship. 
 The only other consistent driver appears to driving infrequently and/or not having
 a license. 
 ```{r echo=FALSE}
 for (i in 1:length(controls)) {
-  pivotBars(controls[i], titles[i],group = 'Group') %>% 
+  pivotBars(controls[i], titles[i],expid = 'group') %>% 
     print()
 }
 ```
 
 ```{r echo=FALSE}
 dat %>% 
-  group_by(Group, age) %>% 
+  group_by(group, age) %>% 
   summarise(
     considerDistraction = mean(distraction_prone),
     considerDangers = mean(considers_dangers),
@@ -278,8 +286,8 @@ dat %>%
     wearSeatbelt.Front = mean(seatbelt_front, na.rm=T),
     wearSeatbelt.Back = mean(seatbelt_back, na.rm=T)
   ) %>%
-  melt(id.var=c('Group','age')) %>%
-  ggplot(.,aes(x=age, y=value, colour=Group)) +
+  melt(id.var=c('group','age')) %>%
+  ggplot(.,aes(x=age, y=value, colour=group)) +
   geom_point() + 
   geom_smooth(method='lm', linetype='dotted', size=.8, se=F) +
   geom_line() +
@@ -287,20 +295,21 @@ dat %>%
   facet_wrap(~variable) + 
   ggtitle('Age') + 
   theme(plot.title = element_text(hjust = 0.5),
-        legend.title=element_blank())
+        legend.title=element_blank()) + 
+  scale_color_manual(values=c('#000000',"#23b7fbff"))
 ```
 
 
 ```{r echo=FALSE}
-controls <- c('age','gender','region','license','vehicle','driving_freq','group')
+regcontrols <- c('age','gender','region','license','vehicle','driving_freq','group')
 outcomes <- c('distraction_prone','considers_dangers','willing_intervene',
               'seatbelt_driver','seatbelt_front','seatbelt_back')
 
-f <- as.formula(paste0(outcomes[1], '~', paste(controls, collapse="+")))
+f <- as.formula(paste0(outcomes[1], '~', paste(regcontrols, collapse="+")))
 modDistract <- lm(f, dat)
 out <- list()
 for (i in 1:length(outcomes)) {
-  f <- as.formula(paste0(outcomes[i], '~', paste(controls, collapse="+")))
+  f <- as.formula(paste0(outcomes[i], '~', paste(regcontrols, collapse="+")))
   mod <- lm(f, dat)
   d <- tidy(mod)
   d$p.value <- round(d$p.value, 4)

@@ -294,6 +294,13 @@ proportionsOverall <-
   print()
 
 ```
+```{r message=FALSE, warning=FALSE}
+ggplot(ctd, aes(x=group, y=textDriveDanger, fill=group)) + 
+  geom_bar(stat = "summary", fun.y = "mean", position='dodge')
+
+```
+
+
 #####License Type
 - We see that the campaign is most effective for licensed drivers and doesn't seem effective for drivers with permits or who have neither
 - The caveat is obviously that non-licensed drivers have peciliarly low rates of texting and driving
