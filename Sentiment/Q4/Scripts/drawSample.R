@@ -15,15 +15,15 @@ age25 <- Sys.Date() - (365.25*25)
 q <- paste0("
   SELECT
     u.northstar_id,
-    CASE WHEN u.northstar_id_source_name = 'niche' THEN 1 ELSE 0 END as niche,
-    CASE WHEN u.moco_current_status = 'active'
+    CASE WHEN u.source = 'niche' THEN 1 ELSE 0 END as niche,
+    CASE WHEN u.sms_status = 'active'
         AND (u.customer_io_subscription_status <> 'subscribed' OR
              u.customer_io_subscription_status IS NULL)
         THEN 1 ELSE 0 END AS sms_only,
     c.signup_created_at
   FROM quasar.users u
   INNER JOIN quasar.campaign_activity c ON c.northstar_id = u.northstar_id
-  WHERE (u.moco_current_status = 'active' OR
+  WHERE (u.sms_status = 'active' OR
       u.customer_io_subscription_status = 'subscribed')
   AND u.country = 'US'
   AND u.email NOT like '%dosomething.org%'

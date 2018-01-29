@@ -12,10 +12,9 @@ nps.q4 <- mungeNPSQ4()
 q <- paste0("
   SELECT
    	count(*) AS total_active,
-	  sum(CASE WHEN sms_status='active' AND
-            (u.customer_io_subscription_status <> 'subscribed' OR
-            u.customer_io_subscription_status IS NULL)
-            THEN 1 ELSE 0 END) AS sms_only,
+	  sum(CASE WHEN (((u.customer_io_subscription_status IS NULL) OR u.customer_io_subscription_status = 'subscribed'))
+            AND ((u.email IS NULL OR LENGTH(u.email ) = 0 )) AND ((u.mobile IS NOT NULL)) AND (u.sms_status = 'active')
+        THEN 1 ELSE 0 END) AS sms_only,
             sum(CASE WHEN source='niche' THEN 1 ELSE 0 END) AS niche
   FROM quasar.users u
   WHERE (u.sms_status = 'active' OR
@@ -58,3 +57,7 @@ for (i in 1:10000) {
 scores <- tibble(score = scores)
 mean(scores$score)
 ggplot(scores, aes(x=score)) + geom_density()
+
+s <-
+  nps %>%
+  filter(group=='sms_only')
