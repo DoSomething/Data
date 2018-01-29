@@ -1,4 +1,5 @@
 getNPS <- function(x, maxValue=NA) {
+  # browser()
   if (!(maxValue %in% c(10,11)) | is.na(maxValue)) {
     stop('Please provide a maximum NPS value of either 10 or 11')
   }
