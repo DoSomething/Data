@@ -279,4 +279,27 @@ SELECT * FROM campaign_activity WHERE post_id IN (151680,127764,128127,133430,13
 SELECT distinct log.source  FROM quasar.member_event_log log LIMIT 1000;
 SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%ride%' ;
 
-SELECT count(DISTINCT event_id)  FROM quasar.member_event_log LIMIT 50 = 29,545,434
+SELECT count(DISTINCT event_id)  FROM quasar.member_event_log LIMIT 50 = 29,545,434;
+
+SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%eye%' OR i.campaign_node_id_title LIKE '%regret%' LIMIT 10;
+SELECT * FROM quasar.campaign_activity WHERE campaign_run_id IN (7651,7979);
+
+SELECT 
+	u.northstar_id,
+	u.mobile, 
+	u.email,
+	u.first_name,
+	u.last_name,
+	u.birthdate,
+	COALESCE(NULLIF(u.addr_state,''), NULLIF(m.addr_state,''), NULLIF(m.loc_state, '')) AS addr_state
+FROM quasar.users u
+LEFT JOIN quasar.moco_profile_import m
+	ON m.moco_id = u.moco_commons_profile_id
+LIMIT 10;
+
+SELECT 
+	*
+FROM campaign_activity c
+WHERE c.campaign_run_id IN (7651, 7979);
+
+SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%ride%'LIMIT 100
