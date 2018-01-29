@@ -48,10 +48,10 @@ SELECT
   u.first_name,
   u.last_name
 FROM quasar.users u
-WHERE u.northstar_created_at_timestamp >= '2014-01-01'
+WHERE u.created_at >= '2014-01-01'
 "
 
-qres <- runQuery(q)
+qres <- runQuery(q, 'mysql')
 
 users <- 
   qres %>% 
@@ -94,6 +94,8 @@ users %>%
   select(northstar_id) -> ns2
 
 matched <- ns1 %>% bind_rows(ns2) %>% filter(!duplicated(northstar_id))
+
+write_csv(matched, path = '~/Desktop/RockTheVote_matched.csv')
 
 uid <- prepQueryObjects(matched$northstar_id)
 
