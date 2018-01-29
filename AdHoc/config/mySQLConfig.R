@@ -1,7 +1,7 @@
 library(RMySQL)
 
 quasarConnect <- function() {
-
+  require(RMySQL)
   user=Sys.getenv('QUASAR_USERNAME')
   pw=Sys.getenv('QUASAR_PASSWORD')
 
