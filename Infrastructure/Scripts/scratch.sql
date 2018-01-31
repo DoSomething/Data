@@ -171,17 +171,18 @@ GROUP BY u.state;
 
 SELECT 
 	count(*) AS total_active,
-	sum(CASE WHEN moco_current_status='active' AND 
+	sum(CASE WHEN sms_status='active' AND 
 		(u.customer_io_subscription_status <> 'subscribed' OR
 		u.customer_io_subscription_status IS NULL) 
 	THEN 1 ELSE 0 END) AS sms_only,
-	sum(CASE WHEN (moco_current_status<>'active' OR
-					moco_current_status IS null) 
+	sum(CASE WHEN source='niche' THEN 1 ELSE 0 END) AS niche,
+	sum(CASE WHEN (sms_status<>'active' OR
+					sms_status IS null) 
 				  AND u.customer_io_subscription_status = 'subscribed' 
 		THEN 1 ELSE 0 END) AS email_only,
-	sum(CASE WHEN moco_current_status='active' AND u.customer_io_subscription_status = 'subscribed' THEN 1 ELSE 0 END) AS 'both'
+	sum(CASE WHEN sms_status='active' AND u.customer_io_subscription_status = 'subscribed' THEN 1 ELSE 0 END) AS 'both'
 FROM quasar.users u
-WHERE (u.moco_current_status = 'active' OR
+WHERE (u.sms_status = 'active' OR
     u.customer_io_subscription_status = 'subscribed');
     
     
@@ -302,4 +303,130 @@ SELECT
 FROM campaign_activity c
 WHERE c.campaign_run_id IN (7651, 7979);
 
-SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%ride%'LIMIT 100
+SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%ride%'LIMIT 100;
+
+DROP TABLE playpen.legacy_reportbacks;
+CREATE TABLE playpen.legacy_reportbacks (
+date DATE,
+rbs INT,
+calls INT,
+social INT,
+voter_registrations INT,
+other INT
+);
+LOAD DATA INFILE '/Users/shasan/Desktop/legacy_reportbacks_01_18_17.csv' INTO TABLE playpen.legacy_reportbacks;
+SELECT * FROM playpen.legacy_reportbacks;
+
+SELECT * FROM quasar.monitoring WHERE query = 'active_user_count' ORDER BY `timestamp` DESC;
+SELECT count(*) FROM quasar.users u  
+                WHERE u.customer_io_subscription_status = 'subscribed' 
+                OR u.sms_status = 'active';
+
+CREATE TABLE quasar.monitoring AS (
+	SELECT 
+		`output`, 
+		query, 
+		`table`, 
+		`timestamp`, 
+		STR_TO_DATE(`timestamp`, '%m-%d-%y %H:%i:%s') AS `timestamp`
+	FROM quasar.monitoring_
+)
+;
+
+SELECT
+   MAX(CASE WHEN GREATEST(u.last_accessed, u.last_logged_in) <= u.created_at 
+     AND u.source='niche' 
+     AND COUNT(DISTINCT c.signup_id), 0 <= 1
+     AND COUNT(DISTINCT c.post_id), 0 <= 1
+  THEN 1 ELSE 0 END) as bad_niche
+FROM quasar.users u
+LEFT JOIN quasar.campaign_activity c ON c.northstar_id = u.northstar_id
+GROUP BY u.northstar_id;
+
+SELECT 
+	u.northstar_id,
+	u.mobile,
+	u.email,
+	rbs_7890.reportback AS within_campaign_rbs,
+	non_7890_rbs.reportback AS outside_campaign_rbs,
+	IFNULL(rbs_7890.reportback, 0) + IFNULL(non_7890_rbs.reportback, 0) AS total_reportbacks
+FROM quasar.users u 
+LEFT JOIN 
+	(SELECT 
+		rbs.northstar_id,
+		sum(rbs.reportback) AS reportback
+	FROM 
+		(SELECT 
+			c.northstar_id,
+			c.signup_id,
+			c.campaign_run_id,
+			max(CASE WHEN c.post_id <> -1 AND c.status='approved'  THEN 1 ELSE 0 END) AS reportback
+		FROM quasar.campaign_activity c
+		GROUP BY c.northstar_id, c.signup_id) rbs
+	WHERE rbs.campaign_run_id <> 7890
+	GROUP BY rbs.northstar_id) non_7890_rbs
+	ON non_7890_rbs.northstar_id = u.northstar_id
+LEFT JOIN 
+	 (SELECT 
+	 	c1.northstar_id,
+	 	c1.signup_id,
+	 	sum(CASE WHEN c1.post_id <> -1 AND c1.status='approved'  THEN 1 ELSE 0 END) AS reportback
+	 FROM quasar.campaign_activity c1
+	 WHERE c1.campaign_run_id = 7890
+	 GROUP BY c1.northstar_id
+	 ) rbs_7890
+ON u.northstar_id = rbs_7890.northstar_id
+LIMIT 200;
+
+select * FROM quasar.monitoring;
+DROP DATABASE playpen;
+SELECT * FROM quasar.monitoring WHERE query='active_user_count' ORDER BY `timestamp` DESC;
+
+;WITH tblDifference AS
+(
+    SELECT ROW_NUMBER() OVER(ORDER BY `timestamp`) AS RowNumber, columnOfNumbers 
+    FROM quasar.monitoring
+    WHERE query='active_user_count'
+)
+
+SELECT cur.columnOfNumbers, cur.columnOfNumbers - previous.columnOfNumbers
+FROM tblDifference cur
+LEFT OUTER JOIN tblDifference previous
+ON cur.RowNumber = previous.RowNumber + 1
+;
+
+SELECT * FROM quasar.campaign_activity LIMIT 10;
+
+SELECT 
+	*
+FROM 
+	(SELECT 
+		c.northstar_id,
+		c.campaign_run_id
+		sum(case when c.post_id <> -1 then 1 else 0 end) as reported_backsquasar.campaign_activity c)
+	FROM quasar.campaign_activity c 
+	WHERE c.campaign_run_id = 7916
+	GROUP BY c.northstar_id) camp
+LEFT JOIN
+	(SELECT 
+		ul.northstar_id,
+		sum(case when ul.last_accessed >= '2017-09-01' AND ul.last_accessed <= '2017-10-31' then 1 else 0 end ) as site_visits
+	FROM quasar.users_log ul
+	GROUP BY ul.northstar_id) userlog
+ON camp.northstar_id=userlog.northstar_id
+WHERE 
+c.northstar_id IN ('565e25c7469c64a8178b7cf5');
+
+SELECT 
+	count(*)
+FROM quasar.users u
+LEFT OUTER JOIN quasar.users_log l ON l.northstar_id = u.northstar_id;
+
+SELECT count(*)
+FROM quasar.users u
+INNER JOIN 
+	(SELECT DISTINCT l.northstar_id
+	FROM quasar.users_log l) ulog
+ON ulog.northstar_id = u.northstar_id;
+
+SELECT count(*) FROM quasar.users u;
