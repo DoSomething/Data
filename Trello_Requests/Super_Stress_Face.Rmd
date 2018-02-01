@@ -1,0 +1,109 @@
+---
+title: "Super Stress Face Data Request"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(data.table)
+library(rmarkdown)
+library(plyr)
+library(gmodels)
+```
+
+
+```{r}
+#Upload CSV files
+groupB<-read.csv('~/Documents/Super Stress Boss/Super Stress Boss Group B avg days.csv')
+groupB$group<-"groupB"
+control<-read.csv('~/Documents/Super Stress Boss/Super Stress Boss Control avg days.csv')
+control$group<-"control"
+#transform site visits as integer
+
+groupB$site_visits<-as.numeric(as.character(groupB$site_visits))
+groupB$days_to_rb<-as.numeric(as.character(groupB$days_to_rb))
+control$days_to_rb<-as.numeric(as.character(control$days_to_rb))
+```
+
+```{r}
+#Merge csv files
+superstress<-rbind(groupB,control)
+
+superstress<-superstress%>%
+  mutate(
+    reportedback=ifelse(reported_backs>0,'yes','no'),
+    visitedsite=ifelse(site_visits>0, 'yes', 'no')
+  )
+```
+
+###Control vs. Messaging - Reported back and Visited site
+
+* **23% of those who received drip messaging reported back vs. 21% of the control group. This difference is not statistically significant (p>0.05)** 
+* **99% of those who received drip messaging visited the site between the campaign start and end date (Sept 1-Oct 31, 2017) vs. 98% of the control group. This difference was statistically significant**
+
+```{r}
+#Percentage reporting back and visiting site
+CrossTable(superstress$group, superstress$reportedback, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE, format= c("SPSS"))
+CrossTable(superstress$group, superstress$visitedsite, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+
+```
+
+###Control vs. Messaging - Average number of RBs, Site Visits, and Days to Report back
+
+* **The average number of report backs for those who received drip messaging was 0.26 vs. 0.23 for the control. This difference was not statistically significant (p>0.05)** 
+* **The average number of visits to site for those who received drip messaging was 2.18 vs. 1.99 for the control. This difference was statistically significant(p<0.05)**
+* **The average number of days to report back for those who received drip messaging was 0.98 vs. 1.58 for the control. This difference was statistically significant(p<0.05)**
+
+
+```{r}
+#Average number of reportbacks
+group_by(superstress, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(reported_backs, na.rm = TRUE),
+    sd = sd(reported_backs, na.rm = TRUE),
+     var = var(reported_backs,na.rm = TRUE)
+  )
+
+```
+```{r}
+#Average number of site visits
+group_by(superstress, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(site_visits, na.rm = TRUE),
+    sd = sd(site_visits, na.rm = TRUE),
+    var = var(site_visits,na.rm = TRUE)
+  )
+```
+```{r}
+#Average number of days to report back
+group_by(superstress, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(days_to_rb, na.rm = TRUE),
+    sd = sd(days_to_rb, na.rm = TRUE),
+    var = var(days_to_rb,na.rm = TRUE)
+  )
+```
+
+```{r}
+#T-test for statistical significance
+t.test(superstress$reported_backs~superstress$group)
+t.test(superstress$site_visits~superstress$group)
+t.test(superstress$days_to_rb~superstress$group)
+```
+
+
+```{r}
+#Total number of reportbacks
+# aggregate(showstress$total_rbs, by=list(Category=showstress$group), FUN=sum)
+# 
+# #Total number of site visits
+# aggregate(showstress$site_visits, by=list(Category=showstress$group), FUN=sum)
+# # 
+# render('~/Data/Trello_Requests/Super_Stress_Face.Rmd', "html_notebook")
+```
+
+
+
+
