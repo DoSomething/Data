@@ -3,6 +3,28 @@ library(data.table)
 library(dtplyr)
 library(lubridate)
 
+nDaysInMonth <- function(date) {
+  m <- format(date, format="%m")
+  
+  while (format(date, format="%m") == m) {
+    date <- date + 1
+  }
+  
+  return(as.integer(format(date - 1, format="%d")))
+}
+
+getDigitAfterDecimal <- function(x) {
+  trunced <- sprintf("%.1f", x)
+  out <- substr(trunced, nchar(trunced)-1, nchar(trunced))
+  return(as.numeric(out))
+}
+
+#####Upper case first letter of string#####
+firstLetterUpper <- function(x) {
+  x  <- paste0(toupper(substr(x, 1, 1)), substr(x, 2, nchar(x)))
+  return(x)
+}
+#####Convert Log-Odds to Probability#####
 logit2prob <- function(logit){
   odds <- exp(logit)
   prob <- odds / (1 + odds)
@@ -13,11 +35,23 @@ logit2prob <- function(logit){
 saveCSV <- function(dat, desktop = F) {
   datName <- deparse(substitute(dat))
   if (desktop == T) {
-    write.csv(dat, row.names = F, na = '.',
-              file = paste0('~/Desktop/',datName,'_', gsub("[[:punct:]]|\\ ", "", Sys.time()),'.csv'))
+    write.csv(
+      dat, 
+      row.names = F, 
+      na = '.',
+      file = paste0(
+        '~/Desktop/',datName,'_', gsub("[[:punct:]]|\\ ", "", Sys.time()),'.csv'
+        )
+      )
   } else {
-    write.csv(dat, row.names = F, na = '.',
-              file = paste0(getwd(),'/',datName,'_', gsub("[[:punct:]]|\\ ", "", Sys.time()),'.csv'))
+    write.csv(
+      dat, 
+      row.names = F, 
+      na = '.',
+      file = paste0(
+        getwd(),'/',datName,'_', gsub("[[:punct:]]|\\ ", "", Sys.time()),'.csv'
+        )
+      )
     
   }
 }
@@ -31,23 +65,32 @@ getQuery <- function(path, wd = T) {
   }
 }
 
-runQuery <- function(query) {
-    require(RMySQL)
-
-    if(grepl('.sql', query)) {
-
-        q <- getQuery(query)
-
-
-    } else {
-
-        q <- query
-
-    }
-
-    out <- tbl_dt(dbGetQuery(con, q))
-    return(out)
-
+runQuery <- function(query, which=c('pg','mysql')) {
+  require(RMySQL)
+  require(RPostgreSQL)
+  source('config/mySQLConfig.R')
+  source('config/pgConnect.R')
+  
+  if(grepl('.sql', query)) {
+    
+    q <- getQuery(query)
+    
+  } else {
+    
+    q <- query
+    
+  }
+  
+  if (which=='mysql') {
+    connection <- quasarConnect()
+  } else {
+    connection <- pgConnect()
+  }
+  
+  out <- tbl_df(dbGetQuery(connection, q))
+  
+  return(out)
+  
 }
 
 #####Save multiple data frame to tabs in spreadsheet#####
@@ -139,7 +182,7 @@ fillNAs = function(df) {
       set(df, which(is.na(df[[j]])), j, mean(df[[j]], na.rm=T))
     }
   }
-  return(data.table(df))
+  return(as_tibble(df))
 } 
 
 #####Convert character features to factors when levels are fewer than X#####
@@ -322,4 +365,47 @@ prepQueryObjects <- function(x) {
   out <- paste0(out, ')')
   
   return(out)
+}
+
+#garbage
+# cleanDOB <- function(x) {
+#   browser()
+#   month.subs <- substr(month.name, 1, 3)
+#   x = as.character(x)
+#   x = gsub("-", "/", x)
+#   x = gsub("[^0-9\\/\\-]", "", x) 
+#   slashCount <- nchar(gsub("[^\\/]","",x))
+#   bigYFirst = ifelse(grepl('/', substr(x,1,4))==F, T, F)
+#   bigYLast = ifelse(grepl('/', substr(x,nchar(x)-3,nchar(x)))==F, T, F)
+#   x = 
+#     as.Date(
+#       ifelse(substr(x,1,3) %in% month.subs, as.Date(paste0('01-', substr(x, 1, 3), substr(x, 4, 6)), format='%d-%b-%y'), 
+#              ifelse(nchar(gsub("[^\\/]", "", x))==2 & nchar(x)==7, as.Date(x, format='%m/%d/%y'),
+#                     ifelse(nchar(gsub("[^\\/]", "", x))==1 & nchar(x)==7, as.Date(paste0('01/', x), format='%d/%m/%Y'),
+#                            ifelse(nchar(x) %in% c(7), as.Date(x, format='%m/%d/%y'),
+#                                   ifelse(grepl('/', x), as.Date(x, format='%m/%d/%Y'), 
+#                                          ifelse(grepl('-', x), as.Date(x, format='%m-%d-%Y'), NA)))))),
+#       origin='1970-01-01')
+#   return(x)
+# }
+
+cleanDOB <- function(x) {
+  slashCount <- nchar(gsub("[^\\/]","",x))
+  out <- ifelse(slashCount == 1, 
+                as.Date(paste0('01/',x), '%d/%m/%Y'), 
+                as.Date(x, '%m/%d/%Y'))
+  return(as.Date(out, origin='1970-01-01'))
+}
+
+cleanPhone <- function(Phone) {
+  
+  Phone = as.numeric(gsub("[^0-9]", "", Phone))
+  Phone = ifelse(
+    nchar(Phone) == 11 & 
+      substr(Phone, 1, 1)==1, 
+    substr(Phone, 2, nchar(Phone)), 
+    Phone
+  )
+  Phone = ifelse(nchar(Phone) > 10, substr(Phone, nchar(Phone) - 9 , nchar(Phone)), Phone)
+  return(as.character(Phone))
 }

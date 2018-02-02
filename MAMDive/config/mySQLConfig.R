@@ -1,12 +1,9 @@
 library(RMySQL)
-library(stringr)
 
-quasarConnect <- function(path) {
-  pw_file <- path
-
-  login <- readChar(pw_file, file.info(pw_file)$size)
-  user <- str_split(login, ':')[[1]][1]
-  pw <- str_split(login, ':')[[1]][2]
+quasarConnect <- function() {
+  require(RMySQL)
+  user=Sys.getenv('QUASAR_USERNAME')
+  pw=Sys.getenv('QUASAR_PASSWORD')
 
   con <-
     dbConnect(
@@ -20,5 +17,3 @@ quasarConnect <- function(path) {
   return(con)
 
 }
-
-con <- quasarConnect('~/Documents/quasar_login.txt')
