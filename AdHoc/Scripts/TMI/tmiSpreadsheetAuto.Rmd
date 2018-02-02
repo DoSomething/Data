@@ -38,8 +38,8 @@ month.subs <- substr(month.name, 1, 3)
 
 tmi.x <- read_csv(paste0('/Users/shasan//Data/AdHoc/Data/TMIBezosSheets/bezos',Sys.Date(),'.csv')) %>%
   tbl_dt() %>%
-  select(-starts_with('NA'))# %>%
-  # rename(Mobile.Number = `Mobile Number`) %>%
+  select(-starts_with('NA')) %>%
+  rename(`Mobile Number` = device_address)
   # filter(!is.na(Mobile.Number)) 
 
 calcAge <- function(x) {
@@ -108,24 +108,6 @@ tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
     -childAgeInterestRef, -starts_with('X')
   )
 
-EngDirect <-
-  tmi.x %>%
-  filter(
-   Language == 'ENG' & ContentTrack == 'Direct' 
-  )
-
-EngMotiv <-
-  tmi.x %>%
-  filter(
-    Language == 'ENG' & ContentTrack == 'Motivational' 
-  )
-
-ESPDirect <-
-  tmi.x %>%
-  filter(
-    Language == 'ESP' & ContentTrack == 'Direct' 
-  )
-
 ContentTracks <- c('Direct','Motivational')
 TipTimes <- c('AM','PM')
 Languages <- c('ENG','ESP')
@@ -141,13 +123,7 @@ allOptions <- data.table(
 wb <- createWorkbook()
 
 addWorksheet(wb, 'All')
-addWorksheet(wb, 'ENG Direct')
-addWorksheet(wb, 'ENG Motive')
-addWorksheet(wb, 'ESP Direct')
 writeData(wb, 'All', tmi.x, rowNames=F)
-writeData(wb, 'ENG Direct', EngDirect, rowNames=F)
-writeData(wb, 'ENG Motive', EngMotiv, rowNames=F)
-writeData(wb, 'ESP Direct', ESPDirect, rowNames=F)
 
 for (i in 1:nrow(allOptions)) {
   
@@ -159,7 +135,9 @@ for (i in 1:nrow(allOptions)) {
         Language == allOptions[i,Language] &
       (Child1Age == allOptions[i,Age] | Child2Age == allOptions[i,Age] | 
          Child3Age == allOptions[i,Age] | Child4Age  == allOptions[i,Age])
-    )
+    ) %>% 
+    select(`Mobile Number`)
+  
   name <- 
     paste(allOptions[i,ContentTrack],allOptions[i,TipTime],
           allOptions[i,Language], allOptions[i,Age], sep='_')
