@@ -89,7 +89,8 @@ process.2018 <- function(sheet) {
       dateVals = sapply(strsplit(date," "), `[`, 1) ,
       campaign = ifelse(grepl(paste(month.name, collapse="|"), date), NA, date),
       date = ifelse(grepl(paste(month.name, collapse="|"), date), date, NA),
-      date = na.locf(date)
+      date = na.locf(date),
+      social = as.numeric(ifelse(social_count=='y', social, 0))
     ) %>% 
     select(date, rbs, calls, voter_registrations, social, campaign, campaign_run_id) %>% 
     filter(!is.na(campaign_run_id)) %>%
