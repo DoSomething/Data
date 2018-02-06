@@ -1,3 +1,4 @@
+setwd('~/Data/Infrastructure/')
 source('config/init.R')
 source('config/mySQLConfig.R')
 source('config/pgConnect.R')
