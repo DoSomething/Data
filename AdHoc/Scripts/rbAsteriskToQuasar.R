@@ -83,6 +83,7 @@ process.2018 <- function(sheet) {
            voter_registrations = `# of Voter Registrations`,
            social = `# of Social Shares (Verified, tracked to NSID)`,
            social_count = `Social shares as reportbacks?`,
+           other = `# of Verified Additional Actions (Multiple photos of different actions in one campaign)`,
            campaign_run_id = `Campaign Run ID`
     ) %>% 
     mutate(
@@ -92,12 +93,12 @@ process.2018 <- function(sheet) {
       date = na.locf(date),
       social = as.numeric(ifelse(social_count=='y', social, 0))
     ) %>% 
-    select(date, rbs, calls, voter_registrations, social, campaign, campaign_run_id) %>% 
+    select(date, rbs, calls, voter_registrations, social, campaign, other, campaign_run_id) %>% 
     filter(!is.na(campaign_run_id)) %>%
     mutate(
       rbs = as.numeric(gsub("[^0-9]", "",rbs)),
       date = as.Date(paste0('1 ',date), '%d %B %Y'),
-      other = 0,
+      other = as.numeric(other),
       calls = as.numeric(calls)
     ) %>% 
     mutate_at(.vars = vars(-date,-campaign), .funs = funs(ifelse(is.na(.), 0, .)))
