@@ -1,4 +1,5 @@
 #https://trello.com/c/OUfjyD6T/1230-data-request-text-in-loud
+source('config/init.R')
 
 unfo <-
   read_csv('Data/textLoudUnformatted.csv')
