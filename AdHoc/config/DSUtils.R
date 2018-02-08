@@ -1,8 +1,3 @@
-library(tidyverse)
-library(data.table)
-library(dtplyr)
-library(lubridate)
-
 nDaysInMonth <- function(date) {
   m <- format(date, format="%m")
   
