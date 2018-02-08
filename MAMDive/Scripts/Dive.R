@@ -1,6 +1,8 @@
 source('config/init.R')
-source('config/mySQLConfig.R')
 
-q <- "SELECT * FROM quasar.campaign_activity LIMIT 10"
+q <- getQuery('Scripts/MAMDive.sql')
+q <- gsub('TODAY_DATE', Sys.Date(),q)
 
-t <- runQuery.s(q)
+qres <- runQuery('Scripts/MAMDive.sql', 'mysql')
+
+
