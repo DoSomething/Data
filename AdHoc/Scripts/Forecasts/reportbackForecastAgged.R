@@ -75,7 +75,7 @@ qres <-
 
 addRows <- 
   tibble(
-    date = seq.Date(max(qres$date)+1, as.Date('2020-12-31'), 1)
+    date = seq.Date(max(qres$date)+1, as.Date('2019-01-01'), 1)
   )
 
 rbs <-
@@ -113,11 +113,12 @@ rbs %<>%
   )
 
 q1s <- as.Date(c('2018-03-31','2019-03-31','2020-03-31'))
+q2018 <- as.Date(c('2018-03-31','2018-06-30','2018-09-31','2018-12-31'))
 eoys <- as.Date(c('2018-01-01','2019-01-01','2020-01-01','2020-12-31'))
 
 datesOfInterest <-
   rbs %>% 
-  filter(date %in% c(q1s, eoys)) %>% 
+  filter(date %in% c(q2018)) %>% 
   data.table()
 
 p <- 
@@ -149,21 +150,20 @@ yoy <-
   mutate(
     yearRunningTotal = cumsum(reportbacks),
     expectedYearRunningTotal = cumsum(expectRBs)
-  )
+  ) %>% 
+  filter(year(date)!=2019)
 
-q1DOY <- yday(as.Date('2017-03-31'))
+DOYs <- c(yday(as.Date('2017-03-31')),
+          yday(as.Date('2017-06-30')),
+          yday(as.Date('2017-09-30')),
+          yday(as.Date('2017-12-31')))
 
-EOYVals <- 
+qVals <- 
   yoy %>% 
-  filter(dayOfYear==365 & year >= 2017) %>% data.table()
+  filter(dayOfYear %in% DOYs & year > 2017) %>% data.table()
 
-q1Vals <- 
-  yoy %>% 
-  filter(dayOfYear==q1DOY & year >= 2017) %>% data.table()
-
-ticks <- c(EOYVals$expectedYearRunningTotal, 
-           q1Vals$expectedYearRunningTotal, 
-           0,25000,75000,100000,125000,250000)
+ticks <- c(qVals$expectedYearRunningTotal, 
+           0,25000,50000,75000,100000,150000,175000)
 
 p <-
   ggplot(yoy, aes(x=dayOfYear, y=yearRunningTotal, group=year)) + 
@@ -172,26 +172,20 @@ p <-
             linetype='dashed', size=.75) + 
   labs(x='Day of Year', y='Reportbacks', 
        title='Reportbacks Over Time Per Year', colour='Year') + 
-  theme(plot.title=element_text(hjust=0.5)) +
-  geom_vline(aes(xintercept=q1DOY), linetype='dotdash') +
-  geom_text(aes(x=q1DOY+5, label="End of Q1", y=200000, angle=90), size=3.5) + 
-  scale_x_continuous(breaks=pretty_breaks(20)) +
-  scale_y_continuous(breaks=ticks)# + ylim(0,250000)
+  theme(plot.title=element_text(hjust=0.5),
+        axis.text.x = element_text(face="bold", size=13),
+        axis.text.y = element_text(face="bold", size=13)) +
+  geom_vline(aes(xintercept=DOYs[1]), linetype='dotdash') +
+  geom_text(aes(x=DOYs[1]+5, label="End of Q1", y=175000, angle=90), size=3.5) + 
+  scale_x_continuous(breaks=pretty_breaks(20),limits=c(0,365)) +
+  scale_y_continuous(breaks=ticks) 
 
-for (i in 2017:2020) {
+for (i in 1:length(qVals)) {
   p <- p + geom_segment(
     x=-15, 
-    xend=365,
-    y=EOYVals[year==i,expectedYearRunningTotal],
-    yend=EOYVals[year==i,expectedYearRunningTotal], 
-    linetype='dotted', size=.25
-  )
-  
-  p <- p + geom_segment(
-    x=-15, 
-    xend=q1DOY,
-    y=q1Vals[year==i,expectedYearRunningTotal],
-    yend=q1Vals[year==i,expectedYearRunningTotal], 
+    xend=DOYs[i],
+    y=qVals[i,expectedYearRunningTotal],
+    yend=qVals[i,expectedYearRunningTotal], 
     linetype='dotted', size=.25
   )
 } 

@@ -115,6 +115,9 @@ melMonCast %<>%
   arrange(yearMonth) %>% 
   mutate(yearMonth.n = as.numeric(as.factor(yearMonth)))
 
+melMonCast %<>%
+  filter(yearMonth != '2017-04')
+
 melMonCast$eNew <- round(predict(newMod, melMonCast, type='response'))
 melMonCast$eRepeat <- round(predict(repeatMod, melMonCast, type='response'))
 melMonCast$eTotal <- round(predict(totalMod, melMonCast, type='response'))
@@ -169,7 +172,9 @@ p <-
   geom_line(data=melMonCast, aes(x=dateYearMonth, y=total)) +
   labs(x='Date', y='Monthly Active Members', 
        title='Monthly Active Members Over Time - Including Niche') +
-  theme(plot.title=element_text(hjust=0.5)) +
+  theme(plot.title=element_text(hjust=0.5),
+        axis.text.x = element_text(face="bold", size=13),
+        axis.text.y = element_text(face="bold", size=13)) +
   scale_x_date(breaks=pretty_breaks(17), 
                limits=c(min(NR$dateYearMonth), max(NR$dateYearMonth)),
                expand = c(0,0)) +
