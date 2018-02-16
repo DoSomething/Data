@@ -21,7 +21,7 @@ FROM
 	GROUP BY ca.northstar_id) candidates
 LEFT JOIN quasar.campaign_activity camps ON camps.northstar_id = candidates.northstar_id
 WHERE candidates.amount_reported_back > 0
-ORDER BY -log(rand())/truncate(candidates.amount_reported_back/1,0) ASC
+ORDER BY -log(rand(57))/truncate(candidates.amount_reported_back/1,0) ASC
 LIMIT 30
 ;;
 
@@ -47,7 +47,7 @@ FROM
 	AND ca.quantity >= QUANTITY
 	GROUP BY u.northstar_id
 	ORDER BY 
-		-log(rand()) 
+		-log(rand(82)) 
 	LIMIT 30) winners
 LEFT JOIN quasar.campaign_activity camps ON camps.northstar_id = winners.northstar_id
 ;
