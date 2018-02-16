@@ -429,4 +429,25 @@ INNER JOIN
 	FROM quasar.users_log l) ulog
 ON ulog.northstar_id = u.northstar_id;
 
-SELECT count(*) FROM quasar.users u;
+SELECT DISTINCT 
+	c.northstar_id,
+	c.signup_created_at,
+	u.addr_state,
+	u.addr_zip,
+	CASE WHEN mel.action_ts >= c.signup_created_at THEN 0 ELSE 1 END AS new_member
+FROM quasar.campaign_activity c
+INNER JOIN quasar.users u ON c.northstar_id = u.northstar_id
+INNER JOIN 
+	(SELECT 
+		m.northstar_id,
+		min(m.`timestamp`) AS action_ts
+	FROM quasar.campaign_activity camp
+	LEFT JOIN quasar.member_event_log m ON camp.northstar_id = m.northstar_id
+	WHERE camp.campaign_run_id=7931 
+	GROUP BY m.northstar_id) mel
+ON mel.northstar_id = c.northstar_id
+LIMIT 500;
+
+SELECT * FROM quasar.member_event_log  LIMIT 50;
+
+ALTER TABLE quasar.member_event_log ADD INDEX (COLUMN_NAME);
