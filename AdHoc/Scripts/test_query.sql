@@ -1,0 +1,1 @@
+select northstar_id, first_name from  quasar.users limit 10;
