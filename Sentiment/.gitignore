@@ -9,6 +9,7 @@
 **.jpeg
 .DS_Store
 **.rds
+**.RData
 **.json
 **.sav
 **DS_Store
