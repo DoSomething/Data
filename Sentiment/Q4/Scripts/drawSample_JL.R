@@ -123,3 +123,22 @@ saveCSV(select(sampleRegular, id))
 # ggplot(sampleRegular, aes(x=avg_signup_date)) +
 #   geom_density() + ggtitle('Regular') +
 #   scale_x_date(breaks=pretty_breaks(15))
+
+set.seed(57)
+sampleRegular2 <-
+  dat %>%
+  filter(niche==0 & sms_only==0 & !(id %in% regularSend$id)) %>%
+  sample_n(5566, replace = F, weight = prob) %>%
+  select(id)
+
+ids2 <- prepQueryObjects(sampleRegular2$id)
+
+q <- paste0("
+            select u.northstar_id, u.source
+            from quasar.users u
+            where u.northstar_id in ",ids2)
+
+sources <- runQuery(q, 'mysql') %>% filter(source=='niche')
+sampleRegular2 %<>%
+  filter(!(id %in% sources$northstar_id))
+saveCSV(sampleRegular2)
