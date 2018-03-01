@@ -1,0 +1,131 @@
+---
+output: html_notebook
+---
+
+#### MAM Investigation
+
+* Summary
+	* The drop in active membership is a consequence of a broad decrease in activity
+	*  Primary causes appear to be a combination of seasonality, fewer niche account creations, and general decrease in activity by returning members
+
+```{r warning=FALSE, echo=FALSE}
+library(scales)
+
+mm <- 
+  read_csv('~/Downloads/MAM_breakdown.csv') %>% 
+  setNames(c('month','return_user','niche','count')) %>% 
+  filter(month != '2017-04') %>% 
+  mutate(
+    niche = ifelse(niche=='Yes', 'Niche', 'Non-Niche')
+    ) 
+act <- 
+  read_csv('~/Downloads/action_breakdown.csv') %>% 
+  setNames(c('month', 'action_type', 'niche', 'count')) %>% 
+  mutate(
+    niche = ifelse(niche=='Yes', 'Niche', 'Non-Niche'),
+    action_type = 
+    ) %>% 
+  filter(month != '2017-04') %>% 
+  group_by(month, niche) %>% 
+  mutate(
+    prop = count/sum(count),
+    Text = percent(prop), 
+    position = 1-cumsum(prop) + (.5*prop)
+    )
+act.N <- 
+  read_csv('~/Downloads/action_breakdown.csv') %>% 
+  setNames(c('month', 'action_type', 'niche', 'count')) %>% 
+  mutate(niche = ifelse(niche=='Yes', 'Niche', 'Non-Niche')) %>% 
+  filter(month != '2017-04') %>% 
+  group_by(month, action_type) %>% 
+  summarise(
+    count = sum(count)
+  ) %>% 
+  mutate(
+    prop = count/sum(count),
+    Text = percent(prop), 
+    position = 1-cumsum(prop) + (.5*prop)
+  )
+```
+
+#### Deeper Dive
+
+* Seasonality likely plays a role as we saw similar decreases in activity from December to February last year
+```{r warning=FALSE, echo=FALSE, fig.width=11, fig.height=6.5}
+labs <- mm %>% group_by(month) %>% summarise(count=sum(count))
+ggplot(mm, aes(x=month, y=count)) + 
+  geom_bar(stat='identity') + 
+  ggtitle('Overall Trend') + 
+  geom_text(data = labs, aes(x=month, label=count, y=count), vjust=-1, size=2.5) + 
+  scale_y_continuous(breaks=pretty_breaks(10)) + 
+  theme(plot.title=element_text(hjust=.5)) 
+```
+* Pivoting by Niche and New/Returning
+	* Repeat engagement dropped across the board
+	* This was exacerbated by a large decline in new niche, whereas new non-niche wasn’t much changed
+	* Niche repeat engagement buffered some of the drop last Feb, but didn’t come back to help us this Feb
+```{r warning=FALSE, echo=FALSE, fig.width=18, fig.height=6.5}
+ggplot(mm, aes(x=month, y=count, fill=return_user)) + 
+  geom_bar(stat='identity', position='stack') + 
+  geom_text(position=position_stack(vjust = 0.5), aes(label=count), size=2.5) +
+  facet_wrap(~niche) + 
+  scale_y_continuous(breaks=pretty_breaks(16)) +
+  scale_fill_brewer(palette="Set2")
+```
+* Which actions aren’t people taking?
+	* Activity seasonality shows up more clearly here. Summer is our peak, with an additional bump around Christmas time. We should become concerned if activity doesn’t pick up in March
+	* We should reach out to campaigns/product to help us understand whether some theory can help us understand this trend
+```{r warning=FALSE, echo=FALSE, fig.width=16, fig.height=6.5}
+act.agg <- act %>% group_by(month, action_type) %>% summarise(count = sum(count))
+ggplot(act.agg, aes(x=month, y=count, fill=reorder(action_type, count))) + 
+  geom_bar(stat='identity', position='stack') + 
+  geom_text(position=position_stack(vjust=.5), aes(label=count), vjust=0, size=2.5) +
+  scale_y_continuous(breaks=pretty_breaks(10)) + 
+  ggtitle('Action Counts') + 
+  theme(plot.title=element_text(hjust=.5)) + 
+  guides(fill=guide_legend(title="Action Type")) +
+  scale_fill_brewer(palette="Set2")
+```
+* Splitting by Niche
+  * Both niche and non-niche show a general drop in activity, with niche activity dropping nearly 50%
+  * Decreases in activity were more pronounced this year than last
+```{r warning=FALSE, echo=FALSE, fig.width=18, fig.height=6.5}
+ggplot(act, aes(x=month, y=count, fill=reorder(action_type, count))) + 
+  geom_bar(stat='identity', position='stack') + 
+  geom_text(position=position_stack(vjust = 0.5), aes(label=count), vjust=0, size=2.5) +
+  scale_y_continuous(breaks=pretty_breaks(10)) + 
+  ggtitle('Action Counts') + facet_wrap(~niche) + 
+  theme(plot.title=element_text(hjust=.5)) + 
+  guides(fill=guide_legend(title="Action Type")) +
+  scale_fill_brewer(palette="Set2")
+```
+* Activity composition 
+  * Fairly comparable Jan to Feb with the only major drop seen in account creation, which is largely attributable to decreased Niche spend 
+  * We would expect that all action types would increase in proportion by what was freed up by fewer account creations. This is true with the exception of reportbacks which decreased relatively as well as absolutely. 
+```{r warning=FALSE, echo=FALSE, fig.width=16, fig.height=6.5}
+ggplot(act.N, aes(x=month, y=prop, fill=reorder(action_type, prop))) + 
+  geom_bar(stat='identity', position='stack') + 
+  geom_text(position=position_stack(vjust=.5), aes(label=Text), size=2.5) +
+  scale_y_continuous(breaks=pretty_breaks(10)) + 
+  theme(plot.title=element_text(hjust=.5)) + 
+  labs(y='Proportion', title='Action Composition') +
+  guides(fill=guide_legend(title="Action Type")) +
+  scale_fill_brewer(palette="Set2")
+```
+* Splitting by Niche
+  * Action composition is almost unchanged for non-niche
+  * In niche, main change is fewer accounts created
+  * Account creation is commensurate with decrease in overall activity in non-niche
+  * Decrease in reportbacks is concentrated among non-niche
+```{r warning=FALSE, echo=FALSE, fig.width=18, fig.height=6.5}
+ggplot(act, aes(x=month, y=prop, fill=reorder(action_type, prop))) + 
+  geom_bar(stat='identity', position='stack') + 
+  geom_text(position=position_stack(vjust=.5), aes(label=Text), size=3) +
+  facet_wrap(~niche) + 
+  scale_y_continuous(breaks=pretty_breaks(10)) + 
+  labs(title='Action Composition', y='Proportion') + 
+  theme(plot.title=element_text(hjust=.5)) +
+  guides(fill=guide_legend(title="Action Type")) +
+  scale_fill_brewer(palette="Set2")
+```
+
