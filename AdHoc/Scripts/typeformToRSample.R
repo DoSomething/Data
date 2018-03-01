@@ -16,7 +16,7 @@ allTypeForms %>%
   filter(name == 'DoSomething SMS Survey') %>% 
   select(id) %>% as.character() -> feedback
 
-smsq1Key <- 'ENmagA'
+smsq1Key <- 'gD7ObP'
 
 # Submit request for that survey
 npsfeedback <- paste0('https://api.typeform.com/v1/form/',smsq1Key,'?key=',key)
@@ -31,4 +31,4 @@ answers <- as.tibble(cbind(feedbackResults$responses$hidden, feedbackResults$res
 answers %<>%
   filter(!is.na(id))
 
-getNPS(answers$opinionscale_y5vvCZBD43lH,11)
+getNPS(as.numeric(answers$opinionscale_bOTkXJWgyQGZ),10)
