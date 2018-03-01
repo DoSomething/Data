@@ -451,3 +451,67 @@ LIMIT 500;
 SELECT * FROM quasar.member_event_log  LIMIT 50;
 
 ALTER TABLE quasar.member_event_log ADD INDEX (COLUMN_NAME);
+
+SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%mascot%' 
+;;
+
+
+
+SELECT 
+	winners.*,
+	camps.status AS 'report_back_status'
+FROM
+	(SELECT 
+		ca.signup_id, 
+		ca.campaign_run_id, 
+		ca.signup_created_at, 
+		ca.northstar_id,
+		u.first_name,
+		u.email, 
+		u.mobile, 
+		if((UNIX_TIMESTAMP(ca.signup_created_at) - UNIX_TIMESTAMP(u.`created_at`)) <= 300,1,0) AS 'new_member', 
+		SUM(ca.quantity) AS total_quantity
+	FROM quasar.campaign_activity ca 
+	LEFT OUTER JOIN quasar.users u 
+	    ON u.northstar_id = ca.northstar_id 
+	WHERE ca.campaign_run_id = 8043 
+	AND ca.quantity >= 0
+	GROUP BY u.northstar_id
+	ORDER BY 
+		-log(rand(57)) 
+	LIMIT 30) winners
+LEFT JOIN quasar.campaign_activity camps ON camps.northstar_id = winners.northstar_id
+LIMIT 50;
+
+SELECT 
+	c.northstar_id,
+	c.signup_created_at,
+	c.quantity,
+	c.submission_created_at,
+	c.submission_updated_at
+FROM quasar.campaign_activity c 
+WHERE c.campaign_run_id = 8026
+AND c.post_id <> -1
+ORDER BY c.northstar_id, c.signup_created_at DESC 
+LIMIT 400;
+
+SELECT min(u.created_at) FROM quasar.users u ; 
+SELECT * FROM quasar.member_event_log LIMIT 100;
+
+SELECT 
+u.source,
+count(*) 
+FROM quasar.users u 
+WHERE u.created_at >= '2017-04-01' AND u.created_at < '2017-05-01' 
+GROUP BY u.source;
+
+SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%gun%'; 
+SELECT count(*) FROM quasar.campaign_activity;
+
+SELECT northstar_id, signup_id, post_id, quantity, submission_created_at, submission_updated_at
+FROM quasar.campaign_activity 
+WHERE  submission_created_at IS NOT NULL 
+AND post_id <> -1
+AND submission_updated_at > '2018-01-26'
+ORDER BY northstar_id, signup_id, submission_created_at
+	
