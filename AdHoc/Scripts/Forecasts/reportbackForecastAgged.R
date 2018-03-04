@@ -3,37 +3,37 @@ source('config/mySQLConfig.R')
 library(data.table)
 library(scales)
 library(googlesheets)
-first=F
+first=T
 
 # Get 2018 Forecasts ------------------------------------------------------
 
-rbSheetKey <- 
-  gs_ls() %>% 
-  filter(grepl('CJS',sheet_title)) %>% 
-  select(sheet_key) %>% 
-  as.character()
-
-rbWB <- 
-  gs_key(rbSheetKey)
-
-sheetNames <- 
-  gs_key(rbSheetKey) %>% 
-  gs_ws_ls() 
-
-rbSheet <-  rbWB %>% gs_read(sheetNames[3])
-
-procSheet <- 
-  rbSheet %>% 
-  select(Month, Campaign, Source, Traffic, `Total Reportbacks`) %>% 
-  do(na.locf(.)) %>% 
-  rename(Reportbacks = `Total Reportbacks`) %>% 
-  filter(grepl('DS.TurboVote.org',Campaign)) %>% 
-  mutate(
-    Traffic = as.numeric(gsub(',','',Traffic)),
-    Reportbacks = as.numeric(gsub(',','',Reportbacks))
-  )
-
-rb2018Addition <- (sum(procSheet$Reportbacks) * 4) / 365
+# rbSheetKey <- 
+#   gs_ls() %>% 
+#   filter(grepl('CJS',sheet_title)) %>% 
+#   select(sheet_key) %>% 
+#   as.character()
+# 
+# rbWB <- 
+#   gs_key(rbSheetKey)
+# 
+# sheetNames <- 
+#   gs_key(rbSheetKey) %>% 
+#   gs_ws_ls() 
+# 
+# rbSheet <-  rbWB %>% gs_read(sheetNames[3])
+# 
+# procSheet <- 
+#   rbSheet %>% 
+#   select(Month, Campaign, Source, Traffic, `Total Reportbacks`) %>% 
+#   do(na.locf(.)) %>% 
+#   rename(Reportbacks = `Total Reportbacks`) %>% 
+#   filter(grepl('DS.TurboVote.org',Campaign)) %>% 
+#   mutate(
+#     Traffic = as.numeric(gsub(',','',Traffic)),
+#     Reportbacks = as.numeric(gsub(',','',Reportbacks))
+#   )
+# 
+# rb2018Addition <- (sum(procSheet$Reportbacks) * 4) / 365
 
 # Get Additional Reportbacks ----------------------------------------------
 
@@ -83,13 +83,55 @@ rbs <-
   bind_rows(addRows) %>% 
   mutate(
     year = year(date),
+    month = month(date),
+    quarter = quarter(date),
     dayOfYear = yday(date)
   )
+
+rbMonthMakeup <- 
+  rbs %>% 
+  group_by(year, month) %>% 
+  summarise(t=sum(reportbacks, na.rm=T)) %>% 
+  mutate(p=t/sum(t)) %>% 
+  filter(!year %in% c(2014,2018,2019)) %>% 
+  group_by(month) %>% 
+  mutate(
+    monthMean = mean(p)
+  ) %>% ungroup() %>% 
+  mutate(
+    quarter = 
+      case_when(month %in% 1:3 ~ 1,
+                month %in% 4:6 ~ 2, 
+                month %in% 7:9 ~ 3, 
+                TRUE ~ 4)
+  ) %>% 
+  group_by(quarter) %>% 
+  mutate(
+    quarterMean = mean(p)
+  )
+
+ggplot(rbMonthMakeup, aes(x=as.factor(month), y=p, fill=as.factor(year))) +
+  geom_bar(stat='identity', position='dodge') +
+  geom_line(aes(y=monthMean, group=year), linetype='dotted', size=.3) +
+  geom_point(aes(y=monthMean, group=year)) +
+  geom_point(aes(y=quarterMean, group=year), shape=3) + 
+  geom_hline(yintercept = 1/12) + 
+  annotate("text", x=1/12, y=1/12, vjust = -1, hjust=-.1, size=2.2, 
+           label = "Even Distribution Mark") +
+  scale_fill_brewer(palette='Set2') + 
+  scale_y_continuous(breaks=pretty_breaks(10)) + 
+  guides(fill=guide_legend(title="Year")) +
+  labs(title='Reportback Distribution Within Year', x='Month', y='Proportion') +
+  theme(plot.title=element_text(hjust=.5))
 
 if (first==T) {
   
   rbMod <- lm(
     reportbacks ~ year + dayOfYear + year*dayOfYear,
+    data=filter(rbs, !is.na(reportbacks))
+  )  
+  rbModMon <- lm(
+    reportbacks ~ year + dayOfYear + year*dayOfYear + as.factor(month),
     data=filter(rbs, !is.na(reportbacks))
   )
   
@@ -98,18 +140,19 @@ if (first==T) {
 }
 
 rbs$expectRBs <- round(predict(rbMod, rbs, type='response'))
+rbs$expectRBs.Mon <- round(predict(rbModMon, rbs, type='response'))
 
 rbs %<>%
   mutate(
     expectRBs = ifelse( (date >= '2018-01-01' & date < '2018-11-07') | 
                           (date >= '2020-01-01' & date < '2020-11-07'), 
                         round(expectRBs), expectRBs),
-    # expectRBs_add = ifelse( (date >= '2018-01-01' & date < '2018-11-07') | 
-    #                     (date >= '2020-01-01' & date < '2020-11-07'), 
-    #                    round(expectRBs + rb2018Addition), expectRBs),
+    expectRBs.Mon = ifelse( (date >= '2018-01-01' & date < '2018-11-07') | 
+                          (date >= '2020-01-01' & date < '2020-11-07'), 
+                        round(expectRBs.Mon), expectRBs.Mon),
     runningTotal = ifelse(!is.na(reportbacks), cumsum(reportbacks), NA),
-    expectRunTotal = cumsum(expectRBs)#,
-    # expectRunTotal_all = cumsum(expectRBs_add)
+    expectRunTotal = cumsum(expectRBs),
+    expectRunTotal.Mon = cumsum(expectRBs.Mon)
   )
 
 q1s <- as.Date(c('2018-03-31','2019-03-31','2020-03-31'))
@@ -121,27 +164,6 @@ datesOfInterest <-
   filter(date %in% c(q2018)) %>% 
   data.table()
 
-p <- 
-  ggplot(rbs, aes(x=date)) + 
-  geom_line(aes(y=expectRunTotal)) + 
-  geom_line(aes(y=runningTotal), color='red') + 
-  geom_vline(xintercept = q1s, linetype='dotted') + 
-  scale_x_date(breaks=pretty_breaks(20)) + 
-  scale_y_continuous(breaks=c(datesOfInterest$expectRunTotal, seq(0, 1100000, 125000))) + 
-  labs(x='Day of Year', y='Reportbacks', title='Reportback Expectations Over Time') + 
-  theme(plot.title=element_text(hjust=0.5))
-  
-for (i in 1:length(datesOfInterest$date)) {
-  p <- p + 
-    geom_segment(
-      x=-15, 
-      xend=datesOfInterest[i,date],
-      y=datesOfInterest[i,expectRunTotal],
-      yend=datesOfInterest[i,expectRunTotal], 
-      linetype='dotted', size=.25
-    )
-}
-
 # Year over Year ----------------------------------------------------------
 
 yoy <- 
@@ -149,7 +171,8 @@ yoy <-
   group_by(year) %>% 
   mutate(
     yearRunningTotal = cumsum(reportbacks),
-    expectedYearRunningTotal = cumsum(expectRBs)
+    expectedYearRunningTotal = cumsum(expectRBs),
+    expectedYearRunningTotal.Mon = cumsum(expectRBs.Mon)
   ) %>% 
   filter(year(date)!=2019)
 
@@ -168,7 +191,9 @@ ticks <- c(qVals$expectedYearRunningTotal,
 p <-
   ggplot(yoy, aes(x=dayOfYear, y=yearRunningTotal, group=year)) + 
   geom_line(aes(color=as.factor(year)), size=.5) +
-  geom_line(aes(y=expectedYearRunningTotal, color=as.factor(year)), 
+  geom_line(aes(y=expectedYearRunningTotal), 
+            linetype='dotted', size=.75) + 
+  geom_line(aes(y=expectedYearRunningTotal.Mon, color=as.factor(year)), 
             linetype='dashed', size=.75) + 
   labs(x='Day of Year', y='Reportbacks', 
        title='Reportbacks Over Time Per Year', colour='Year') + 
@@ -189,3 +214,26 @@ for (i in 1:length(qVals)) {
     linetype='dotted', size=.25
   )
 } 
+
+# All in One --------------------------------------------------------------
+
+p <- 
+  ggplot(rbs, aes(x=date)) + 
+  geom_line(aes(y=expectRunTotal)) + 
+  geom_line(aes(y=runningTotal), color='red') + 
+  geom_vline(xintercept = q1s, linetype='dotted') + 
+  scale_x_date(breaks=pretty_breaks(20)) + 
+  scale_y_continuous(breaks=c(datesOfInterest$expectRunTotal, seq(0, 1100000, 125000))) + 
+  labs(x='Day of Year', y='Reportbacks', title='Reportback Expectations Over Time') + 
+  theme(plot.title=element_text(hjust=0.5))
+
+for (i in 1:length(datesOfInterest$date)) {
+  p <- p + 
+    geom_segment(
+      x=-15, 
+      xend=datesOfInterest[i,date],
+      y=datesOfInterest[i,expectRunTotal],
+      yend=datesOfInterest[i,expectRunTotal], 
+      linetype='dotted', size=.25
+    )
+}

@@ -45,7 +45,7 @@ qres <- runQuery(q, 'mysql') %>% data.table()
 #   data.table()
 
 mel <- 
-  mel[
+  qres[
   order(nsid, ts)
   ][
     ts > as.Date('2014-01-01') & 
@@ -75,15 +75,22 @@ melMon <-
     by=.(yearMonth, first_action)
   ]
 
-melMon <- dcast(melMon, yearMonth ~ first_action, value.var = 'distinctNS')
+melMon <- 
+  read_csv('Data/MAM_Forecast_Breakdown_03022018.csv') %>% 
+  setNames(c('yearMonth','return_user','distinctNS')) %>% 
+  filter(yearMonth != '2017-04') %>% 
+  mutate(
+    new_user = ifelse(return_user=='Yes', 0, 1)
+  ) 
+
+melMon <- dcast(melMon, yearMonth ~ new_user, value.var = 'distinctNS')
 names(melMon) <- c('yearMonth','Repeat', 'New')
 
-melMon[,
-  ':='(
+melMon %<>%
+  mutate(
     year=as.numeric(substr(yearMonth,1,4)),
     month=as.numeric(substr(yearMonth,6,7))
   )
-]
 
 melMonCast <-
   melMon %>% 
@@ -92,12 +99,15 @@ melMonCast <-
     total = Repeat + New,
     dateYearMonth = as.Date(paste0(yearMonth, '-01'))
     ) %>% 
-  filter(dateYearMonth >= '2016-06-01' & yearMonth != '2018-02') %>% 
+  filter(dateYearMonth >= '2016-05-01' & yearMonth != '2018-03') %>% 
   mutate(yearMonth.n = as.numeric(as.factor(yearMonth)))
 
-newMod <- lm(New ~ yearMonth.n, melMonCast)
-repeatMod <- lm(Repeat ~ yearMonth.n, melMonCast)
-totalMod <- lm(total ~ yearMonth.n, melMonCast)
+newMod <- lm(New ~ yearMonth.n + I(month%in%c(1,2,3)) + I(month%in%c(4,5,6)) + 
+               I(month%in%c(7,8,9)) + I(month%in%c(10,11,12)),melMonCast)
+repeatMod <- lm(Repeat ~ year + I(month%in%c(1,2,3)) + I(month%in%c(4,5,6)) + 
+                  I(month%in%c(7,8,9)) + I(month%in%c(10,11,12)), melMonCast)
+totalMod <- lm(total ~ year + I(month%in%c(1,2,3)) + I(month%in%c(4,5,6)) + 
+                 I(month%in%c(7,8,9)) + I(month%in%c(10,11,12)), melMonCast)
 
 addRows <- 
   expand.grid(
@@ -108,34 +118,40 @@ addRows <-
     dateYearMonth = as.Date(paste0(year,'-' ,month,'-01'), '%Y-%m-%d'),
     yearMonth = substr(dateYearMonth, 1, 7)
   ) %>% 
-  filter(yearMonth != '2018-01' & dateYearMonth <= '2019-06-01')
+  filter(dateYearMonth > max(melMonCast$dateYearMonth) & 
+           dateYearMonth <= '2018-12-01')
 
 melMonCast %<>%
   bind_rows(addRows) %>% 
   arrange(yearMonth) %>% 
   mutate(yearMonth.n = as.numeric(as.factor(yearMonth)))
 
-melMonCast %<>%
-  filter(yearMonth != '2017-04')
-
 melMonCast$eNew <- round(predict(newMod, melMonCast, type='response'))
 melMonCast$eRepeat <- round(predict(repeatMod, melMonCast, type='response'))
 melMonCast$eTotal <- round(predict(totalMod, melMonCast, type='response'))
 
-rowNeeded <- 
-  melMonCast %>% 
-  filter(!is.na(total)) %>% 
-  filter(yearMonth.n==max(yearMonth.n)) %>% 
-  select(yearMonth.n) %>% as.numeric()
+# rowNeeded <- 
+#   melMonCast %>% 
+#   filter(!is.na(total)) %>% 
+#   filter(yearMonth.n==max(yearMonth.n)) %>% 
+#   select(yearMonth.n) %>% as.numeric()
 
 melMonCast %<>% 
   mutate(
-    eNew = ifelse(
-      is.na(New),
-      as.numeric(melMonCast[rowNeeded,'eNew']) + tidy(repeatMod)$estimate[2]*(yearMonth.n-rowNeeded),
-      eNew),
-    eTotal = eNew + eRepeat
-    )
+    eNew = ifelse(is.na(New), NA, eNew)
+  ) %>% data.table()
+
+fillMiss <- function(dat) {
+  for (i in 1:nrow(dat)) {
+    if(is.na(dat[i,eNew])==T) {
+      lastVal <- dat[i-1,eNew]
+      dat[i,eNew := lastVal + eRepeat-dat[i-1,eRepeat]]
+    }
+  }
+  return(dat)
+}
+melMonCast <- fillMiss(melMonCast)
+melMonCast %<>% mutate(eTotal = eNew + eRepeat)
 
 NR <- 
   melMonCast %>% 
@@ -150,9 +166,7 @@ NR <-
   dcast(dateYearMonth + Group ~ Type, value.var='value')
 
 
-eoys <- as.Date(
-  c('2018-04-01','2018-07-01','2018-10-01',
-    '2019-01-01','2019-06-01'))
+eoys <- as.Date(c('2018-04-01','2018-07-01','2018-10-01','2019-01-01'))
 
 eoyVals <-
   melMonCast %>% 
@@ -192,3 +206,52 @@ for (i in 1:length(eoyVals$dateYearMonth)) {
 }
 
 api_create(ggplotly(p), filename = "test_plot")
+
+
+
+# Activity Share ----------------------------------------------------------
+
+melMon <- 
+  read_csv('Data/MAM_Forecast_Breakdown_03022018.csv') %>% 
+  setNames(c('yearMonth','return_user','distinctNS')) %>% 
+  filter(!yearMonth %in% c('2015-12','2017-04') & !grepl('2018', yearMonth)) %>% 
+  mutate(
+    new_user = ifelse(return_user=='Yes', 0, 1),
+    date = as.Date(paste0(yearMonth, '-01'), format='%Y-%m-%d'),
+    year = year(date),
+    month = month(date)
+  ) %>% 
+  group_by(year, month) %>% 
+  summarise(
+    t = sum(distinctNS)
+  ) %>% 
+  mutate(p=t/sum(t)) %>% 
+  group_by(month) %>%
+  mutate(
+    monthMean = mean(p)
+  ) %>% ungroup() %>% 
+  mutate(
+    quarter = 
+      case_when(month %in% 1:3 ~ 1,
+                month %in% 4:6 ~ 2, 
+                month %in% 7:9 ~ 3, 
+                TRUE ~ 4)
+  ) %>% 
+  group_by(quarter) %>% 
+  mutate(
+    quarterMean = mean(p)
+  )
+
+ggplot(melMon, aes(x=as.factor(month), y=p, fill=as.factor(year))) +
+  geom_bar(stat='identity', position='dodge') +
+  geom_line(aes(y=monthMean, group=year), linetype='dotted', size=.3) +
+  geom_point(aes(y=monthMean, group=year)) +
+  # geom_point(aes(y=quarterMean, group=year), shape=3) + 
+  geom_hline(yintercept = 1/12) + 
+  annotate("text", x=1/12, y=1/12, vjust = -1, hjust=-.1, size=2.2, 
+           label = "Even Distribution Mark") +
+  scale_fill_brewer(palette='Set2') + 
+  scale_y_continuous(breaks=pretty_breaks(10)) + 
+  guides(fill=guide_legend(title="Year")) +
+  labs(title='Active Member Distribution Within Year', x='Month', y='Proportion') +
+  theme(plot.title=element_text(hjust=.5))
