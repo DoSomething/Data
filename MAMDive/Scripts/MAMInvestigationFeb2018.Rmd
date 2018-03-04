@@ -12,14 +12,14 @@ output: html_notebook
 library(scales)
 
 mm <- 
-  read_csv('~/Downloads/MAM_breakdown.csv') %>% 
+  read_csv('../Data/MAM_breakdown.csv') %>% 
   setNames(c('month','return_user','niche','count')) %>% 
   filter(month != '2017-04') %>% 
   mutate(
     niche = ifelse(niche=='Yes', 'Niche', 'Non-Niche')
     ) 
 act <- 
-  read_csv('~/Downloads/action_breakdown.csv') %>% 
+  read_csv('../Data/action_breakdown.csv') %>% 
   setNames(c('month', 'action_type', 'niche', 'count')) %>% 
   mutate(
     niche = ifelse(niche=='Yes', 'Niche', 'Non-Niche'),
@@ -33,7 +33,7 @@ act <-
     position = 1-cumsum(prop) + (.5*prop)
     )
 act.N <- 
-  read_csv('~/Downloads/action_breakdown.csv') %>% 
+  read_csv('../Data/action_breakdown.csv') %>% 
   setNames(c('month', 'action_type', 'niche', 'count')) %>% 
   mutate(niche = ifelse(niche=='Yes', 'Niche', 'Non-Niche')) %>% 
   filter(month != '2017-04') %>% 
@@ -127,5 +127,55 @@ ggplot(act, aes(x=month, y=prop, fill=reorder(action_type, prop))) +
   theme(plot.title=element_text(hjust=.5)) +
   guides(fill=guide_legend(title="Action Type")) +
   scale_fill_brewer(palette="Set2")
+```
+
+* Active member distribution over years shows a mixed pattern for summer months
+```{r echo=FALSE, warning=FALSE, message=FALSE,fig.width=16, fig.height=6.5}
+
+melMon <- 
+  read_csv('../Data/MAM_Forecast_Breakdown_03022018.csv') %>% 
+  setNames(c('yearMonth','return_user','distinctNS')) %>% 
+  filter(!yearMonth %in% c('2015-12','2017-04') & !grepl('2018', yearMonth)) %>% 
+  mutate(
+    new_user = ifelse(return_user=='Yes', 0, 1),
+    date = as.Date(paste0(yearMonth, '-01'), format='%Y-%m-%d'),
+    year = year(date),
+    month = month(date)
+  ) %>% 
+  group_by(year, month) %>% 
+  summarise(
+    t = sum(distinctNS)
+  ) %>% 
+  mutate(p=t/sum(t)) %>% 
+  group_by(month) %>%
+  mutate(
+    monthMean = mean(p)
+  ) %>% ungroup() %>% 
+  mutate(
+    quarter = 
+      case_when(month %in% 1:3 ~ 1,
+                month %in% 4:6 ~ 2, 
+                month %in% 7:9 ~ 3, 
+                TRUE ~ 4)
+  ) %>% 
+  group_by(quarter) %>% 
+  mutate(
+    quarterMean = mean(p)
+  )
+
+ggplot(melMon, aes(x=as.factor(month), y=p, fill=as.factor(year))) +
+  geom_bar(stat='identity', position='dodge') +
+  geom_line(aes(y=monthMean, group=year), linetype='dotted', size=.3) +
+  geom_point(aes(y=monthMean, group=year)) +
+  # geom_point(aes(y=quarterMean, group=year), shape=3) + 
+  geom_hline(yintercept = 1/12) + 
+  annotate("text", x=1/12, y=1/12, vjust = -1, hjust=-.1, size=2.2, 
+           label = "Even Distribution Mark") +
+  scale_fill_brewer(palette='Set2') + 
+  scale_y_continuous(breaks=pretty_breaks(10)) + 
+  guides(fill=guide_legend(title="Year")) +
+  labs(title='Active Member Distribution Within Year', x='Month', y='Proportion') +
+  theme(plot.title=element_text(hjust=.5))
+
 ```
 
