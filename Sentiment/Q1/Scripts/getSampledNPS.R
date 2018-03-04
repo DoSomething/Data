@@ -1,5 +1,6 @@
 source('config/init.R')
 source('config/customFunctions.R')
+source('config/mySQLConfig.R')
 library(httr)
 library(jsonlite)
 tfkey <- Sys.getenv('TYPEFORM_KEY')
