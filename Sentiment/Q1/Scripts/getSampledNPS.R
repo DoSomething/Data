@@ -82,6 +82,7 @@ pop <- getPopBreakdown()
 # nps.Reg <- getNPS(as.numeric(regOut$nps),10)
 # nps.Niche <- getNPS(as.numeric(nicheOut$nps),10)
 
+
 scores <- numeric()
 for (i in 1:10000) {
   samp <-
