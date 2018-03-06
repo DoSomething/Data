@@ -8,8 +8,7 @@ getData <- function(path) {
     read_csv(path) %>% 
     filter(
       !grepl('thing.org', email) & 
-        !grepl('testing', hostname) & 
-        !is.na(`referral-code`)
+        !grepl('testing', hostname) 
     ) 
   
   for (i in 1:length(names(vr))) {
