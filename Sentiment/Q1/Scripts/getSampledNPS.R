@@ -74,13 +74,14 @@ nicheOut <- getOutput(nicheq1Key, tfkey) %>% mutate(group='niche')
 
 pop <- getPopBreakdown()
 
-all <-
-  bind_rows(smsOut, regOut, nicheOut) %>%
-  left_join(pop)
+# all <-
+#   bind_rows(smsOut, regOut, nicheOut) %>%
+#   left_join(pop)
 
-nps.SMS <- getNPS(as.numeric(smsOut$nps),10)
-nps.Reg <- getNPS(as.numeric(regOut$nps),10)
-nps.Niche <- getNPS(as.numeric(nicheOut$nps),10)
+# nps.SMS <- getNPS(as.numeric(smsOut$nps),10)
+# nps.Reg <- getNPS(as.numeric(regOut$nps),10)
+# nps.Niche <- getNPS(as.numeric(nicheOut$nps),10)
+
 
 scores <- numeric()
 for (i in 1:10000) {
