@@ -8,7 +8,7 @@ output: html_notebook
 	* The drop in active membership is a consequence of a broad decrease in activity
 	*  Primary causes appear to be a combination of seasonality, fewer niche account creations, and general decrease in activity by returning members
 
-```{r warning=FALSE, echo=FALSE}
+```{r warning=FALSE, echo=FALSE, message=FALSE}
 library(scales)
 
 mm <- 
@@ -177,5 +177,27 @@ ggplot(melMon, aes(x=as.factor(month), y=p, fill=as.factor(year))) +
   labs(title='Active Member Distribution Within Year', x='Month', y='Proportion') +
   theme(plot.title=element_text(hjust=.5))
 
+```
+
+* Looking at active members per day, we see a strong influence of outliers
+* This suggests forecasting active members should include an anomoly detection component
+* Can Campaigns/Messaging help contextualize these big outlier days? 
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=6.5}
+da <-
+  read_csv('../Data/daily_active_members.csv') %>%
+  setNames(c('date','users')) %>%
+  filter(!is.na(users) & date != '2017-04-06') %>% 
+  mutate(
+    DayOfWeek = factor(weekdays(date),
+                       levels=c('Monday','Tuesday','Wednesday','Thursday',
+                                'Friday','Saturday','Sunday'))
+  )
+
+ggplot(da, aes(x=date, y=users, colour=DayOfWeek)) + 
+  geom_point() + 
+  scale_x_date(breaks=pretty_breaks(16)) +
+  theme(plot.title=element_text(hjust=.5)) + 
+  scale_colour_brewer(palette='YlGnBu') +
+  ggtitle('Users Per Day Over Time')
 ```
 
