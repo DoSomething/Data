@@ -72,7 +72,7 @@ smsOut <- getOutput(smsq1Key, tfkey) %>% mutate(group='sms_only')
 regOut <- getOutput(regularq1Key, tfkey) %>% mutate(group='other')
 nicheOut <- getOutput(nicheq1Key, tfkey) %>% mutate(group='niche')
 
-pop <- getPopBreakdown()
+# pop <- getPopBreakdown()
 
 # all <-
 #   bind_rows(smsOut, regOut, nicheOut) %>%
