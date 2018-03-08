@@ -131,6 +131,8 @@ prepData <- function(...) {
   d <- getData(...)
   refParsed <- processReferralColumn(d)
   
+  ## Person can come back after initiated and be pending again
+  ## So latest updated at is not the best source for current status
   vr <- 
     d %>% 
     left_join(refParsed) %>% 
@@ -147,13 +149,63 @@ prepData <- function(...) {
   nsrDat <- getQuasarAttributes(nsids)
   
   vr %<>%
-    left_join(nsrDat)
+    left_join(nsrDat) %>% 
+    mutate(
+      ds_vr_status = 
+        case_when(
+          voter_registration_status == 'initiated' | 
+            (voter_registration_status == 'registered' & 
+            voter_registration_method == 'online') ~ 'registration',
+          voter_registration_status %in% c('unknown','pending') | 
+            is.na(voter_registration_status) ~ 'uncertain',
+            voter_registration_status %in% c('ineligible','not-required') ~ 'ineligible',
+            voter_registration_status == 'registered' ~ 'confirmed',
+          TRUE ~ ''
+        )
+    )
   
   return(vr)
 }
 
-vr <- prepData(path='Data/testing-dosomething.turbovote.org-2018-03-06.csv')
+vr <- 
+  prepData(path='Data/testing-dosomething.turbovote.org-2018-03-06.csv')
 
 # Analysis ----------------------------------------------------------------
 
+uSource <- 
+  vr %>% 
+  filter(!is.na(user_source)) %>% 
+  group_by(ds_vr_status, user_source) %>% 
+  summarise(count=n()) %>% 
+  mutate(p=count/sum(count))  %>% 
+  melt(value.var='p') %>% as.tibble()
 
+Source <- 
+  vr %>% 
+  filter(!is.na(source)) %>% 
+  group_by(ds_vr_status, source) %>% 
+  summarise(count=n()) %>% 
+  mutate(p=count/sum(count))  %>% 
+  melt(value.var='p') %>% as.tibble()
+
+detSource <- 
+  vr %>% 
+  filter(!is.na(source_details) & source_details!='') %>% 
+  group_by(ds_vr_status, source_details) %>% 
+  summarise(count=n()) %>% 
+  mutate(p=count/sum(count))  %>% 
+  melt(value.var='p') %>% as.tibble()
+
+camp <- 
+  vr %>% 
+  filter(!is.na(signups)) %>% 
+  group_by(ds_vr_status) %>% 
+  summarise(
+    Signups = mean(signups),
+    Reportbacks = mean(reportbacks)
+    ) %>% 
+  melt(value.var='meanRBs') %>% as.tibble()
+
+dens <- 
+  vr %>% 
+  filter(signups < quantile(signups, .95, na.rm=T))
