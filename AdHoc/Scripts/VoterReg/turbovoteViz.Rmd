@@ -1,0 +1,45 @@
+---
+title: ""
+output: html_notebook
+---
+#### Northstar Source
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+library(scales)
+ggplot(uSource, aes(x=ds_vr_status, y=value, fill=user_source)) +
+  geom_bar(stat='identity', position='stack') +
+  geom_text(position=position_stack(vjust = 0.5), aes(label=round(value, 2.5)), size=3) +
+  labs(y='') +
+  facet_wrap(~variable, scales='free') +
+  scale_fill_brewer(palette = 'Set2') +
+  scale_y_continuous(breaks=pretty_breaks(10))
+```
+#### Referral Source
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+ggplot(Source, aes(x=ds_vr_status, y=value, fill=source)) +
+  geom_bar(stat='identity', position='stack') +
+  geom_text(position=position_stack(vjust = 0.5), aes(label=round(value, 2.5)), size=3) +
+  facet_wrap(~variable, scales='free') +
+  labs(y='') +
+  scale_y_continuous(breaks=pretty_breaks(10)) +
+  scale_fill_brewer(palette = 'Set2')
+```
+#### Source Details
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+ggplot(detSource, aes(x=ds_vr_status, y=value, fill=source_details)) +
+  geom_bar(stat='identity', position='stack') +
+  labs(y='') +
+  geom_text(position=position_stack(vjust = 0.5), aes(label=round(value, 2.5)), size=3) +
+  scale_y_continuous(breaks=pretty_breaks(10)) +
+  facet_wrap(~variable, scales='free') 
+```
+#### Signups & Reportbacks
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+ggplot(camp, aes(x=variable, y=value, fill=ds_vr_status)) +
+  geom_bar(stat='identity', position='dodge') +
+  labs(y='',x='') +
+  facet_wrap(~variable, scales='free') +
+  geom_text(position=position_dodge(width=.9), aes(label=round(value, 2.5)), size=3) +
+  scale_y_continuous(breaks=pretty_breaks(10)) +
+  scale_fill_brewer(palette = 'Set2')
+```
+
