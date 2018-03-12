@@ -28,7 +28,8 @@ newDays <-
   mutate(timestamp = as.POSIXct(timestamp))
 
 use %<>% 
-  bind_rows(newDays)
+  bind_rows(newDays) %>% 
+  mutate(growth=output-lag(output))
 
 use$p.output <- predict(countMod, use, type='response')
 
@@ -38,3 +39,12 @@ ggplot(use, aes(x=timestamp)) +
   ggtitle('Engaged Member Growth') +
   scale_x_datetime(breaks=pretty_breaks(10)) + 
   theme(plot.title=element_text(hjust=0.5))
+
+growthMod <- lm(growth ~ timestamp, use)
+use$p.growth <- predict(growthMod, use, type='response')
+
+ggplot(use, aes(x=timestamp, y=growth)) +
+  geom_line() + geom_line(aes(y=p.growth), linetype='dotdash') + 
+  geom_smooth() +
+  scale_y_continuous(breaks=pretty_breaks(10)) +
+  scale_x_datetime(breaks=pretty_breaks(10))
