@@ -513,5 +513,35 @@ FROM quasar.campaign_activity
 WHERE  submission_created_at IS NOT NULL 
 AND post_id <> -1
 AND submission_updated_at > '2018-01-26'
-ORDER BY northstar_id, signup_id, submission_created_at
+ORDER BY northstar_id, signup_id, submission_created_at;
+
+SELECT count(*) 
+FROM campaign_activity c 
+WHERE c.campaign_run_id=8022 AND c.signup_created_at < '2018-03-01';
+
+SELECT * FROM quasar.users u WHERE u.northstar_id = '55bd910f469c64ee15935a02';
+
+SELECT 
+	u.birthdate
+FROM quasar.campaign_activity c
+INNER JOIN quasar.users u ON c.northstar_id = u.northstar_id
+WHERE c.campaign_run_id IN (7060,7944)
 	
+;
+
+
+SELECT 
+	camp_count.dte,
+	count(DISTINCT camp_count.northstar_id)
+FROM 
+	(SELECT 
+		c.northstar_id,
+		date(c.signup_created_at) AS dte,
+		count(*)
+	FROM campaign_activity c
+	GROUP BY c.northstar_id, c.signup_id, date(c.signup_created_at)
+	HAVING count(*) > 1
+	LIMIT 1000
+	) camp_count
+GROUP BY camp_count.dte
+;
