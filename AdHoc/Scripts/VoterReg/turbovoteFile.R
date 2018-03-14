@@ -82,8 +82,13 @@ processReferralColumn <- function(dat) {
           ),
       source = case_when(
         source_details %in% c('twitter','facebook') ~ 'social',
-        source_details == '11_facts' ~ 'web',
+        source_details == '11_facts' | source == 'dosomething' ~ 'web',
+        is.na(source) ~ '',
         TRUE ~ source
+      ),
+      source_details = case_when(
+        is.na(source_details) ~ '',
+        TRUE ~ source_details
       )
     ) %>% 
     select(-A,-B,-C,-D,-E)
@@ -168,33 +173,47 @@ prepData <- function(...) {
 }
 
 vr <- 
-  prepData(path='Data/testing-dosomething.turbovote.org-2018-03-06.csv')
+  prepData(path='Data/testing-dosomething.turbovote.org-dosomething.turbovote.org-2018-03-14.csv')
 
 # Analysis ----------------------------------------------------------------
+library(reshape2)
 
-uSource <- 
-  vr %>% 
-  filter(!is.na(user_source)) %>% 
-  group_by(ds_vr_status, user_source) %>% 
-  summarise(count=n()) %>% 
-  mutate(p=count/sum(count))  %>% 
-  melt(value.var='p') %>% as.tibble()
+npPivot <- function(pivot) {
+  
+  pivot <- enquo(pivot)
+  out <- 
+    vr %>% 
+    filter(!is.na(!!pivot) & (!!pivot)!='') %>% 
+    group_by(ds_vr_status, !!pivot) %>% 
+    summarise(Count=n()) %>% 
+    mutate(Proportion=Count/sum(Count))  %>% 
+    melt(value.var='Proportion') %>% as.tibble() %>% 
+    mutate(
+      label = case_when(
+        variable=='Count' ~ as.character(value),
+        TRUE ~ paste0(round(value*100,1),'%')
+      )
+    )
+  return(out)
+}
 
-Source <- 
-  vr %>% 
-  filter(!is.na(source)) %>% 
-  group_by(ds_vr_status, source) %>% 
-  summarise(count=n()) %>% 
-  mutate(p=count/sum(count))  %>% 
-  melt(value.var='p') %>% as.tibble()
+uSource <- npPivot(user_source)
+Source <- npPivot(source)
+detSource <- npPivot(source_details)
 
-detSource <- 
+sourceStep <- 
   vr %>% 
-  filter(!is.na(source_details) & source_details!='') %>% 
-  group_by(ds_vr_status, source_details) %>% 
-  summarise(count=n()) %>% 
-  mutate(p=count/sum(count))  %>% 
-  melt(value.var='p') %>% as.tibble()
+  filter(source != '') %>% 
+  group_by(ds_vr_status, source, source_details) %>% 
+  summarise(Count=n()) %>% 
+  mutate(Proportion=Count/sum(Count)) %>% 
+  melt(value.var='Proportion') %>% as.tibble() %>% 
+  mutate(
+    label = case_when(
+      variable=='Count' ~ as.character(value),
+      TRUE ~ paste0(round(value*100,1),'%')
+    )
+  )
 
 camp <- 
   vr %>% 
