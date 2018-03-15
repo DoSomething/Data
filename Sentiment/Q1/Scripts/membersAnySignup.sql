@@ -17,6 +17,7 @@ FROM
 	GROUP BY u.northstar_id) su_break
 GROUP BY su_break.niche, su_break.sms_only, su_break.has_signup
 ;
+
 /*
 SELECT
 	su_break.niche,

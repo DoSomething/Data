@@ -21,3 +21,4 @@ su <-
   mutate(
     p = n / sum(n)
   )
+
