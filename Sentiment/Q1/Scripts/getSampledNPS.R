@@ -82,12 +82,28 @@ nps.SMS <- getNPS(as.numeric(smsOut$nps),10)
 nps.Reg <- getNPS(as.numeric(regOut$nps),10)
 nps.Niche <- getNPS(as.numeric(nicheOut$nps),10)
 
+w <- tibble(
+  group=c('sms_only','niche','other'),
+  surv=c(.32,.2,.48),
+  pop=c(0.3646112,0.2387366,0.396652),
+  weight=c(1.13941,1.193683,0.826358333)
+)
+
+all %<>%
+  left_join(w)
+
+getNPS(all$nps, 10)
+
+weighted.mean(all$nps, all$weight)
+
+surv <- svydesign(ids = ~1, data = all, weights = all$weight)
+svymean(~nps, surv)
 
 scores <- numeric()
 for (i in 1:10000) {
   samp <-
     all %>%
-    sample_n(nrow(.), weight = p, replace = T)
+    sample_n(nrow(.), weight = weight, replace = T)
   score <- getNPS(samp$nps,10)
   scores <- c(scores, score)
 }
