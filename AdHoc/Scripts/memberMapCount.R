@@ -37,11 +37,21 @@ us <-
 pctMissing.dob <- sum(is.na(us$age)) / nrow(us)
 pctMissing.loc <- 1 - nrow(us)/nrow(qres)
 
-cityList <- c('Boston', 'New York', 'Baltimore', 'Orlando', 'Detroit',
-              'Saint Louis', 'Springfield', 'New Orleans', 'Dallas', 'Honolulu',
-              'Des Moines', 'Denver', 'Phoenix', 'Los Angeles', 'Portland')
+cityList <- c(
+  'Boston', 'New York', 'Baltimore', 'Orlando', 'Detroit',
+  'Saint Louis', 'Springfield', 'New Orleans', 'Dallas', 'Honolulu',
+  'Des Moines', 'Denver', 'Phoenix', 'Los Angeles', 'Portland'
+  )
 top20 <- 
   us %>% 
+  mutate(
+    city = case_when(
+      city == 'Grand Prairie' ~ 'Dallas',
+      city == 'Brooklyn' ~ 'New York',
+      city == 'Alpharetta' ~ 'Atlanta',
+      TRUE ~ city
+    )
+  ) %>% 
   group_by(city) %>% 
   summarise(
     verfiedMembers = n(),
@@ -51,16 +61,19 @@ top20 <-
   ) %>% 
   arrange(-verfiedMembers) %>% 
   filter(city %in% cityList)
-
+saveCSV(top20, desktop=T)
 
 usa <- get_map(location = 'USA', zoom=4)
 
 ggmap(usa, extent = "device") + 
-  geom_density2d(data = us, 
-                 aes(x = longitude, y = latitude), size = 0.6) + 
-  stat_density2d(data = us, 
-                 aes(x = longitude, y = latitude, fill = ..level.., alpha = ..level..), size = 0.03, 
-                 bins = 16, geom = "polygon") + 
+  geom_density2d(
+    data = us, 
+    aes(x = longitude, y = latitude), size = 0.6) + 
+  stat_density2d(
+    data = us, 
+    aes(x = longitude, y = latitude, fill = ..level.., 
+        alpha = ..level..), size = 0.03, 
+    bins = 16, geom = "polygon") + 
   scale_fill_gradient(low = "green", high = "red") + 
   scale_alpha(range = c(0, 1), guide = FALSE) +
   theme(legend.position="none")
