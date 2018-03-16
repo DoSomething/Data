@@ -4,6 +4,7 @@ source('config/init.R')
 source('config/mySQLConfig.R')
 library(zipcode)
 library(ggmap)
+library(eeptools)
 
 data("zipcode")
 
@@ -18,25 +19,39 @@ WHERE u.customer_io_subscription_status = 'subscribed'
 "
 
 qres <- runQuery(q, 'mysql')
-
+age <- function(dob, age.day = today(), units = "years", floor = TRUE) {
+  calc.age = interval(dob, age.day) / duration(num = 1, units = units)
+  if (floor) return(as.integer(floor(calc.age)))
+  return(calc.age)
+}
 us <- 
   qres %>% 
   mutate(
-    zip = substr(zipcode, 1, 5)
+    zip = substr(zipcode, 1, 5),
+    birthdate = as.Date(substr(birthdate, 1, 10)),
+    age = age(birthdate),
+    age18.25 = ifelse(age >= 18 & age <= 25, T, F)
   ) %>% 
   inner_join(zipcode)
 
+pctMissing.dob <- sum(is.na(us$age)) / nrow(us)
+pctMissing.loc <- 1 - nrow(us)/nrow(qres)
+
+cityList <- c('Boston', 'New York', 'Baltimore', 'Orlando', 'Detroit',
+              'Saint Louis', 'Springfield', 'New Orleans', 'Dallas', 'Honolulu',
+              'Des Moines', 'Denver', 'Phoenix', 'Los Angeles', 'Portland')
 top20 <- 
   us %>% 
   group_by(city) %>% 
   summarise(
-    Count = n()
+    verfiedMembers = n(),
+    expectMembers = applyPctChange(n(), pctMissing),
+    verfied18.25 = sum(age18.25, na.rm=T),
+    expect18.25 = applyPctChange(sum(age18.25, na.rm=T), pctMissing.dob)
   ) %>% 
-  arrange(-Count) 
+  arrange(-verfiedMembers) %>% 
+  filter(city %in% cityList)
 
-samp <- 
-  us %>% 
-  sample_frac(.2)
 
 usa <- get_map(location = 'USA', zoom=4)
 
