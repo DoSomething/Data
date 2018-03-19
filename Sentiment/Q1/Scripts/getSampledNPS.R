@@ -17,7 +17,7 @@ getPopBreakdown <- function() {
             WHERE (u.sms_status = 'active' OR
             u.customer_io_subscription_status = 'subscribed')
             AND u.email NOT like '%dosomething.org%'"
-  )
+  )}
 
   qres <- runQuery(q, which = 'mysql')
 
