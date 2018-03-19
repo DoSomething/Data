@@ -88,6 +88,7 @@ processReferralColumn <- function(dat) {
       ),
       source_details = case_when(
         is.na(source_details) ~ '',
+        source == 'web' & source_details == '' ~ paste0('campaign_',campaignRunId),
         TRUE ~ source_details
       )
     ) %>% 
