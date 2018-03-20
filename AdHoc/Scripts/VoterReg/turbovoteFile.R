@@ -6,13 +6,13 @@ source('config/pgConnect.R')
 getData <- function(path) {
   
   vr <- 
-    read_csv(path) %>% 
+    suppressWarnings(suppressMessages(read_csv(path))) %>% 
     filter(
       !grepl('thing.org', email) & 
         !grepl('testing', hostname) &
         !grepl('@dosom', email) &
         !grepl('Baloney', `last-name`) &
-        `created-at` >=  '2018-01-26'
+        !grepl('turbovote', email)
     ) 
   
   for (i in 1:length(names(vr))) {
@@ -86,7 +86,7 @@ processReferralColumn <- function(dat) {
       source = case_when(
         source_details %in% c('twitter','facebook') ~ 'social',
         source_details == '11_facts' | source == 'dosomething' ~ 'web',
-        is.na(source) ~ '',
+        is.na(source) ~ 'no_attribution',
         TRUE ~ source
       ),
       source_details = case_when(
@@ -164,7 +164,7 @@ addFields <- function(dat) {
           cut(
             as.Date(created_at), 
             breaks=
-              seq.Date(as.Date('2018-01-26'),as.Date('2018-03-19'),by = '7 days')
+              seq.Date(as.Date('2018-02-06'),as.Date('2019-01-01'),by = '7 days')
             ) %>% as.character()
       )
     )
@@ -203,10 +203,10 @@ prepData <- function(...) {
 vr <- 
   prepData(path='Data/testing-dosomething.turbovote.org-dosomething.turbovote.org-2018-03-14.csv')
 
-
 # Analysis ----------------------------------------------------------------
 library(reshape2)
 
+##For Visuals
 npPivot <- function(pivot) {
   
   pivot <- enquo(pivot)
@@ -257,3 +257,30 @@ camp <-
 dens <- 
   vr %>% 
   filter(signups < quantile(signups, .95, na.rm=T))
+
+## For Pacing Doc
+
+all <- 
+  vr %>% 
+  group_by(week) %>% 
+  summarise(
+    tot_vot_reg = sum(grepl('register', ds_vr_status)),
+    rbs = sum(reportback),
+    complete_form = sum(grepl('form', ds_vr_status)),
+    complete_online = sum(grepl('OVR', ds_vr_status)),
+    self_report = length(which(ds_vr_status=='confirmed'))
+  )
+
+bySource <- 
+  vr %>% 
+  group_by(week, source) %>% 
+  summarise(
+    tot_vot_reg = sum(grepl('register', ds_vr_status)),
+    rbs = sum(reportback),
+    complete_form = sum(grepl('form', ds_vr_status)),
+    complete_online = sum(grepl('OVR', ds_vr_status)),
+    self_report = length(which(ds_vr_status=='confirmed'))
+  ) %>% 
+  melt(value.var = 
+         c('tot_vot_reg','rbs','complete_form','complete_online','self_report')) %>% 
+  dcast(week ~ source + variable, value.var='value')
