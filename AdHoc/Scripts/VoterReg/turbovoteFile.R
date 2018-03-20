@@ -4,12 +4,15 @@ source('config/pgConnect.R')
 
 # Data prep ---------------------------------------------------------------
 getData <- function(path) {
+  
   vr <- 
     read_csv(path) %>% 
     filter(
       !grepl('thing.org', email) & 
         !grepl('testing', hostname) &
-        !grepl('@dosom', email)
+        !grepl('@dosom', email) &
+        !grepl('Baloney', `last-name`) &
+        `created-at` >=  '2018-01-26'
     ) 
   
   for (i in 1:length(names(vr))) {
@@ -133,6 +136,40 @@ getQuasarAttributes <- function(queryObjects) {
     )
 }
 
+addFields <- function(dat) {
+    dat %<>%
+    mutate(
+      ds_vr_status = 
+        case_when(
+          voter_registration_status == 'initiated' ~ 
+            'register-form', 
+          voter_registration_status == 'registered' & voter_registration_method == 'online' ~ 
+            'register-OVR',
+          voter_registration_status %in% c('unknown','pending') | is.na(voter_registration_status) ~ 
+            'uncertain',
+            voter_registration_status %in% c('ineligible','not-required') ~ 
+            'ineligible',
+            voter_registration_status == 'registered' ~ 
+            'confirmed',
+          TRUE ~ ''
+        ),
+      reportback = ifelse(
+        ds_vr_status %in% 
+          c('confirmed','registration-form','registration-OVR'), T, F
+      ),
+      month = month(created_at),
+      week = case_when(
+        created_at < '2018-02-06' ~ as.character('2018-01-26'),
+        TRUE ~ 
+          cut(
+            as.Date(created_at), 
+            breaks=
+              seq.Date(as.Date('2018-01-26'),as.Date('2018-03-19'),by = '7 days')
+            ) %>% as.character()
+      )
+    )
+}
+
 prepData <- function(...) {
   d <- getData(...)
   refParsed <- processReferralColumn(d)
@@ -155,30 +192,17 @@ prepData <- function(...) {
   nsrDat <- getQuasarAttributes(nsids)
   
   vr %<>%
-    left_join(nsrDat) %>% 
-    mutate(
-      ds_vr_status = 
-        case_when(
-          voter_registration_status == 'initiated' ~ 'registration-form', 
-            (voter_registration_status == 'registered' & 
-            voter_registration_method == 'online') ~ 'registration-OVR',
-          voter_registration_status %in% c('unknown','pending') | 
-            is.na(voter_registration_status) ~ 'uncertain',
-            voter_registration_status %in% c('ineligible','not-required') ~ 'ineligible',
-            voter_registration_status == 'registered' ~ 'confirmed'
-        ),
-      reportback = ifelse(
-        ds_vr_status %in% 
-          c('confirmed','registration-form','registration-OVR'), T, F
-      ),
-      month = month(created_at)
-    )
+    left_join(nsrDat)
+  
+  vr <- addFields(vr)
   
   return(vr)
+  
 }
 
 vr <- 
   prepData(path='Data/testing-dosomething.turbovote.org-dosomething.turbovote.org-2018-03-14.csv')
+
 
 # Analysis ----------------------------------------------------------------
 library(reshape2)
