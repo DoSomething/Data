@@ -22,9 +22,10 @@ getResults <- function(surveyKey, tfkey) {
 }
 
 getOutput <- function(surveyKey, tfkey) {
+  browser()
   res <- getResults(surveyKey, tfkey)
   questions <- as.tibble(res$questions)
-  answers <- as.tibble(cbind(res$responses$hidden, res$responses$answers))
+  answers <- as.tibble(cbind(res$responses$hidden, res$responses$answers),res$responses$metadata$date_submit)
   return(answers)
 }
 
@@ -47,17 +48,23 @@ source <- "phoenix-next"
 
 query <- glue_sql(
   "SELECT
-    c.northstar_id,
-    c.signup_id
+    u.northstar_id,
+    count(*) AS campaigns
   FROM quasar.users u
   LEFT JOIN quasar.campaign_activity c ON u.northstar_id = c.northstar_id
-  WHERE c.northstar_id IN ({northstars*})
-  AND u.source = {source}",
+  WHERE u.northstar_id IN ({northstars*})
+  GROUP BY u.northstar_id",
   northstars = nsids,
-  source = source,
   .con = con
 )
 
-qres <- runQuery(q,'mysql')
+qres <-
+  runQuery(query,'mysql') %>%
+  mutate(
+    any_signup = case_when(
+      campaigns > 0 ~ T,
+      TRUE ~ F
+    )
+  )
 
 
