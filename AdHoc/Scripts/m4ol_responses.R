@@ -27,5 +27,12 @@ fo <-
     broadcastId = trimws(gsub("\\:","",stripStrings(broadcastId, strings))),
     topic = stripStrings(topic, strings)
   ) %>% 
-  filter(!duplicated(nsid))
+  filter(!duplicated(nsid)) %>% 
+  select(nsid, topic)
 
+forxlsx <- split(fo, fo$topic)
+
+for (i in 1:length(forxlsx)) {
+  temp <- forxlsx[[i]] %>% select(nsid)
+  write.csv(temp,paste0('~/Desktop/',names(forxlsx[i]),'.csv'),row.names = F, na='.')
+}
