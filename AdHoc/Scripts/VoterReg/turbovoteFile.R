@@ -264,22 +264,22 @@ all <-
   vr %>% 
   group_by(week) %>% 
   summarise(
-    tot_vot_reg = sum(grepl('register', ds_vr_status)),
+    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
     rbs = sum(reportback),
-    complete_form = sum(grepl('form', ds_vr_status)),
-    complete_online = sum(grepl('OVR', ds_vr_status)),
-    self_report = length(which(ds_vr_status=='confirmed'))
+    complete_form = grepl('form', ds_vr_status) %>% sum(),
+    complete_online = grepl('OVR', ds_vr_status) %>% sum(),
+    self_report = sum(ds_vr_status=='confirmed')
   )
 
 bySource <- 
   vr %>% 
   group_by(week, source) %>% 
   summarise(
-    tot_vot_reg = sum(grepl('register', ds_vr_status)),
+    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
     rbs = sum(reportback),
-    complete_form = sum(grepl('form', ds_vr_status)),
-    complete_online = sum(grepl('OVR', ds_vr_status)),
-    self_report = length(which(ds_vr_status=='confirmed'))
+    complete_form = grepl('form', ds_vr_status) %>% sum(),
+    complete_online = grepl('OVR', ds_vr_status) %>% sum(),
+    self_report = sum(ds_vr_status=='confirmed')
   ) %>% 
   melt(value.var = 
          c('tot_vot_reg','rbs','complete_form','complete_online','self_report')) %>% 
