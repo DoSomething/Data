@@ -159,15 +159,19 @@ prepData <- function(...) {
     mutate(
       ds_vr_status = 
         case_when(
-          voter_registration_status == 'initiated' | 
+          voter_registration_status == 'initiated' ~ 'registration-form', 
             (voter_registration_status == 'registered' & 
-            voter_registration_method == 'online') ~ 'registration',
+            voter_registration_method == 'online') ~ 'registration-OVR',
           voter_registration_status %in% c('unknown','pending') | 
             is.na(voter_registration_status) ~ 'uncertain',
             voter_registration_status %in% c('ineligible','not-required') ~ 'ineligible',
-            voter_registration_status == 'registered' ~ 'confirmed',
-          TRUE ~ ''
-        )
+            voter_registration_status == 'registered' ~ 'confirmed'
+        ),
+      reportback = ifelse(
+        ds_vr_status %in% 
+          c('confirmed','registration-form','registration-OVR'), T, F
+      ),
+      month = month(created_at)
     )
   
   return(vr)
