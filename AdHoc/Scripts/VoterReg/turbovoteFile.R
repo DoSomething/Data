@@ -4,12 +4,15 @@ source('config/pgConnect.R')
 
 # Data prep ---------------------------------------------------------------
 getData <- function(path) {
+  
   vr <- 
-    read_csv(path) %>% 
+    suppressWarnings(suppressMessages(read_csv(path))) %>% 
     filter(
       !grepl('thing.org', email) & 
         !grepl('testing', hostname) &
-        !grepl('@dosom', email)
+        !grepl('@dosom', email) &
+        !grepl('Baloney', `last-name`) &
+        !grepl('turbovote', email)
     ) 
   
   for (i in 1:length(names(vr))) {
@@ -83,7 +86,7 @@ processReferralColumn <- function(dat) {
       source = case_when(
         source_details %in% c('twitter','facebook') ~ 'social',
         source_details == '11_facts' | source == 'dosomething' ~ 'web',
-        is.na(source) ~ '',
+        is.na(source) ~ 'no_attribution',
         TRUE ~ source
       ),
       source_details = case_when(
@@ -133,6 +136,40 @@ getQuasarAttributes <- function(queryObjects) {
     )
 }
 
+addFields <- function(dat) {
+    dat %<>%
+    mutate(
+      ds_vr_status = 
+        case_when(
+          voter_registration_status == 'initiated' ~ 
+            'register-form', 
+          voter_registration_status == 'registered' & voter_registration_method == 'online' ~ 
+            'register-OVR',
+          voter_registration_status %in% c('unknown','pending') | is.na(voter_registration_status) ~ 
+            'uncertain',
+            voter_registration_status %in% c('ineligible','not-required') ~ 
+            'ineligible',
+            voter_registration_status == 'registered' ~ 
+            'confirmed',
+          TRUE ~ ''
+        ),
+      reportback = ifelse(
+        ds_vr_status %in% 
+          c('confirmed','register-form','register-OVR'), T, F
+      ),
+      month = month(created_at),
+      week = case_when(
+        created_at < '2018-02-06' ~ as.character('2018-01-26'),
+        TRUE ~ 
+          cut(
+            as.Date(created_at), 
+            breaks=
+              seq.Date(as.Date('2018-02-06'),as.Date('2019-01-01'),by = '7 days')
+            ) %>% as.character()
+      )
+    )
+}
+
 prepData <- function(...) {
   d <- getData(...)
   refParsed <- processReferralColumn(d)
@@ -141,44 +178,41 @@ prepData <- function(...) {
   ## So latest updated at is not the best source for current status
   vr <- 
     d %>% 
-    left_join(refParsed) %>% 
-    group_by(nsid) %>% 
-    filter(updated_at == max(updated_at) | nsid=='') %>% 
+    left_join(refParsed) #%>% 
+    group_by(nsid) %>%
+    filter(updated_at == max(updated_at) | nsid=='') %>%
     ungroup()
-  
-  nsids <- 
-    vr %>% 
+
+  nsids <-
+    vr %>%
     filter(nsid != '') %$%
-    nsid %>% 
+    nsid %>%
     prepQueryObjects()
-  
+
   nsrDat <- getQuasarAttributes(nsids)
-  
+
   vr %<>%
-    left_join(nsrDat) %>% 
-    mutate(
-      ds_vr_status = 
-        case_when(
-          voter_registration_status == 'initiated' | 
-            (voter_registration_status == 'registered' & 
-            voter_registration_method == 'online') ~ 'registration',
-          voter_registration_status %in% c('unknown','pending') | 
-            is.na(voter_registration_status) ~ 'uncertain',
-            voter_registration_status %in% c('ineligible','not-required') ~ 'ineligible',
-            voter_registration_status == 'registered' ~ 'confirmed',
-          TRUE ~ ''
-        )
-    )
+    left_join(nsrDat)
+  
+  vr <- addFields(vr)
   
   return(vr)
+  
 }
 
 vr <- 
-  prepData(path='Data/testing-dosomething.turbovote.org-dosomething.turbovote.org-2018-03-14.csv')
-
+  prepData(
+    path='Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-2018-03-19.csv'
+    )
+dupes <- 
+  vr %>% 
+  filter((duplicated(nsid) | duplicated(nsid, fromLast=T))&nsid!='') %>% 
+  arrange(nsid)
+saveCSV(dupes, desktop = T)
 # Analysis ----------------------------------------------------------------
 library(reshape2)
 
+##For Visuals
 npPivot <- function(pivot) {
   
   pivot <- enquo(pivot)
@@ -229,3 +263,30 @@ camp <-
 dens <- 
   vr %>% 
   filter(signups < quantile(signups, .95, na.rm=T))
+
+## For Pacing Doc
+
+all <- 
+  vr %>% 
+  group_by(week) %>% 
+  summarise(
+    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
+    rbs = sum(reportback),
+    complete_form = grepl('form', ds_vr_status) %>% sum(),
+    complete_online = grepl('OVR', ds_vr_status) %>% sum(),
+    self_report = sum(ds_vr_status=='confirmed')
+  )
+
+bySource <- 
+  vr %>% 
+  group_by(week, source) %>% 
+  summarise(
+    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
+    rbs = sum(reportback),
+    complete_form = grepl('form', ds_vr_status) %>% sum(),
+    complete_online = grepl('OVR', ds_vr_status) %>% sum(),
+    self_report = sum(ds_vr_status=='confirmed')
+  ) %>% 
+  melt(value.var = 
+         c('tot_vot_reg','rbs','complete_form','complete_online','self_report')) %>% 
+  dcast(week ~ source + variable, value.var='value')
