@@ -155,7 +155,7 @@ addFields <- function(dat) {
         ),
       reportback = ifelse(
         ds_vr_status %in% 
-          c('confirmed','registration-form','registration-OVR'), T, F
+          c('confirmed','register-form','register-OVR'), T, F
       ),
       month = month(created_at),
       week = case_when(
@@ -178,19 +178,19 @@ prepData <- function(...) {
   ## So latest updated at is not the best source for current status
   vr <- 
     d %>% 
-    left_join(refParsed) %>% 
-    group_by(nsid) %>% 
-    filter(updated_at == max(updated_at) | nsid=='') %>% 
+    left_join(refParsed) #%>% 
+    group_by(nsid) %>%
+    filter(updated_at == max(updated_at) | nsid=='') %>%
     ungroup()
-  
-  nsids <- 
-    vr %>% 
+
+  nsids <-
+    vr %>%
     filter(nsid != '') %$%
-    nsid %>% 
+    nsid %>%
     prepQueryObjects()
-  
+
   nsrDat <- getQuasarAttributes(nsids)
-  
+
   vr %<>%
     left_join(nsrDat)
   
@@ -201,8 +201,14 @@ prepData <- function(...) {
 }
 
 vr <- 
-  prepData(path='Data/testing-dosomething.turbovote.org-dosomething.turbovote.org-2018-03-14.csv')
-
+  prepData(
+    path='Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-2018-03-19.csv'
+    )
+dupes <- 
+  vr %>% 
+  filter((duplicated(nsid) | duplicated(nsid, fromLast=T))&nsid!='') %>% 
+  arrange(nsid)
+saveCSV(dupes, desktop = T)
 # Analysis ----------------------------------------------------------------
 library(reshape2)
 
