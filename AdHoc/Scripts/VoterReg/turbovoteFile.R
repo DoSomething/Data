@@ -26,11 +26,12 @@ getData <- function(path) {
 }
 
 processReferralColumn <- function(dat) {
+  
   maxSep <- max(as.numeric(names(table(str_count(dat$referral_code, ',')))))+1
   parsedSep <- 
     dat %>% 
     select(id, referral_code) %>% 
-    separate(referral_code, LETTERS[1:maxSep], ',') %>% 
+    separate(referral_code, LETTERS[1:maxSep], ',',remove = F ) %>% 
     mutate(
       nsid = 
         case_when(
@@ -66,10 +67,8 @@ processReferralColumn <- function(dat) {
           TRUE ~ ''
         ),
       campaignRunId = sapply(strsplit(campaignRunId, '\\:'), "[", 2),
-      campaignRunId = ifelse(is.na(campaignId), '8022',
-                             ifelse(campaignId=='8017','8022',campaignRunId)),
-      campaignId = ifelse(is.na(campaignRunId), '8017',
-                          ifelse(campaignRunId=='8022','8017',campaignId)),
+      campaignId = ifelse(is.na(campaignRunId) & is.na(campaignId), '8017', 
+                          ifelse(is.na(campaignId) & campaignRunId=='8022', '8017', campaignId)),
       source = 
         case_when(
           grepl('source:', B) ~ B,
@@ -94,8 +93,8 @@ processReferralColumn <- function(dat) {
         source == 'web' & source_details == '' ~ paste0('campaign_',campaignRunId),
         TRUE ~ source_details
       )
-    ) %>% 
-    select(-A,-B,-C,-D,-E)
+    ) #%>% 
+    # select(-A,-B,-C,-D,-E)
   return(parsedSep)
 }
 
@@ -179,20 +178,20 @@ prepData <- function(...) {
   vr <- 
     d %>% 
     left_join(refParsed) #%>% 
-    group_by(nsid) %>%
-    filter(updated_at == max(updated_at) | nsid=='') %>%
-    ungroup()
+    # group_by(nsid) %>%
+    # filter(updated_at == max(updated_at) | nsid=='') %>%
+    # ungroup()
 
-  nsids <-
-    vr %>%
-    filter(nsid != '') %$%
-    nsid %>%
-    prepQueryObjects()
-
-  nsrDat <- getQuasarAttributes(nsids)
-
-  vr %<>%
-    left_join(nsrDat)
+  # nsids <-
+  #   vr %>%
+  #   filter(nsid != '') %$%
+  #   nsid %>%
+  #   prepQueryObjects()
+  # 
+  # nsrDat <- getQuasarAttributes(nsids)
+  # 
+  # vr %<>%
+  #   left_join(nsrDat)
   
   vr <- addFields(vr)
   
@@ -285,8 +284,18 @@ bySource <-
     rbs = sum(reportback),
     complete_form = grepl('form', ds_vr_status) %>% sum(),
     complete_online = grepl('OVR', ds_vr_status) %>% sum(),
-    self_report = sum(ds_vr_status=='confirmed')
+    self_report = sum(ds_vr_status=='confirmed') 
   ) %>% 
   melt(value.var = 
          c('tot_vot_reg','rbs','complete_form','complete_online','self_report')) %>% 
   dcast(week ~ source + variable, value.var='value')
+
+## For Asterisks Doc
+
+vr %>% 
+  group_by(month, campaignId) %>% 
+  summarise(
+    rbs = sum(reportback),
+    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
+    self_report = sum(ds_vr_status=='confirmed')
+  )
