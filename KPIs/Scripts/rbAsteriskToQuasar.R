@@ -80,7 +80,8 @@ process.2018 <- function(sheet) {
     rename(date = X1,
            rbs = `Total # of Rbs Not in Looker (Verified, trackable to UID)`,
            calls = `# of Unique Phone Calls (Completed)`,
-           voter_registrations = `# of Voter Reportbacks`,
+           voter_registrations = `Completed Voter Registrations`,
+           self_reported_registrations = `Self-Reported Voter Registrations`,
            social = `# of Social Shares (Verified, tracked to NSID)`,
            social_count = `Social shares as reportbacks?`,
            other = `# of Verified Additional Actions (Multiple photos of different actions in one campaign)`,
@@ -93,7 +94,8 @@ process.2018 <- function(sheet) {
       date = na.locf(date),
       social = as.numeric(ifelse(social_count=='y', social, 0))
     ) %>%
-    select(date, rbs, calls, voter_registrations, social, campaign, other, campaign_run_id) %>%
+    select(date, rbs, calls, voter_registrations, self_reported_registrations,
+           social, campaign, other, campaign_run_id) %>%
     filter(!is.na(campaign_run_id)) %>%
     mutate(
       rbs = as.numeric(gsub("[^0-9]", "",rbs)),
@@ -128,7 +130,9 @@ combineOutputs <- function(sheet2017, sheet2018) {
   rbMon <-
     sheet2017 %>%
     bind_rows(sheet2018) %>%
-    arrange(date)
+    arrange(date) %>%
+    mutate_at(.vars = vars(-date,-campaign),
+              .funs = funs(ifelse(is.na(.), 0, .)))
 
   return(rbMon)
 }
