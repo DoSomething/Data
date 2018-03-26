@@ -84,7 +84,7 @@ process.2018 <- function(sheet) {
            self_reported_registrations = `Self-Reported Voter Registrations`,
            social = `# of Social Shares (Verified, tracked to NSID)`,
            social_count = `Social shares as reportbacks?`,
-           other = `# of Verified Additional Actions (Multiple photos of different actions in one campaign)`,
+           other = `# of Verified Additional Actions (Multiple photos of different actions in one campaign; bone marrow registrants; etc)`,
            campaign_run_id = `Campaign Run ID`
     ) %>%
     mutate(
