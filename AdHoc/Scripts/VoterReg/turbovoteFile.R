@@ -1,7 +1,7 @@
 source('config/init.R')
 source('config/mySQLConfig.R')
 source('config/pgConnect.R')
-
+today <- Sys.Date()
 # Data prep ---------------------------------------------------------------
 getData <- function(path) {
   
@@ -31,7 +31,7 @@ processReferralColumn <- function(dat) {
   parsedSep <- 
     dat %>% 
     select(id, referral_code) %>% 
-    separate(referral_code, LETTERS[1:maxSep], ',',remove = F ) %>% 
+    separate(referral_code, LETTERS[1:maxSep], ',',remove = T) %>% 
     mutate(
       nsid = 
         case_when(
@@ -177,21 +177,21 @@ prepData <- function(...) {
   ## So latest updated at is not the best source for current status
   vr <- 
     d %>% 
-    left_join(refParsed) #%>% 
-    # group_by(nsid) %>%
-    # filter(updated_at == max(updated_at) | nsid=='') %>%
-    # ungroup()
+    left_join(refParsed) %>% 
+    group_by(nsid) %>%
+    filter(updated_at == max(updated_at) | nsid=='') %>%
+    ungroup()
 
-  # nsids <-
-  #   vr %>%
-  #   filter(nsid != '') %$%
-  #   nsid %>%
-  #   prepQueryObjects()
-  # 
-  # nsrDat <- getQuasarAttributes(nsids)
-  # 
-  # vr %<>%
-  #   left_join(nsrDat)
+  nsids <-
+    vr %>%
+    filter(nsid != '') %$%
+    nsid %>%
+    prepQueryObjects()
+  
+  nsrDat <- getQuasarAttributes(nsids)
+  
+  vr %<>%
+    left_join(nsrDat)
   
   vr <- addFields(vr)
   
@@ -199,15 +199,18 @@ prepData <- function(...) {
   
 }
 
+vfile <- 'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
+
 vr <- 
   prepData(
-    path='Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-2018-03-19.csv'
+    path=paste0(vfile,today,'.csv')
     )
-dupes <- 
-  vr %>% 
-  filter((duplicated(nsid) | duplicated(nsid, fromLast=T))&nsid!='') %>% 
-  arrange(nsid)
-saveCSV(dupes, desktop = T)
+
+# dupes <- 
+#   vr %>% 
+#   filter((duplicated(nsid) | duplicated(nsid, fromLast=T))&nsid!='') %>% 
+#   arrange(nsid)
+
 # Analysis ----------------------------------------------------------------
 library(reshape2)
 
@@ -287,15 +290,37 @@ bySource <-
     self_report = sum(ds_vr_status=='confirmed') 
   ) %>% 
   melt(value.var = 
-         c('tot_vot_reg','rbs','complete_form','complete_online','self_report')) %>% 
-  dcast(week ~ source + variable, value.var='value')
+         c('tot_vot_reg','rbs','complete_form',
+           'complete_online','self_report')) %>% 
+  dcast(week ~ source + variable, value.var='value') %>% 
+  replace(is.na(.), 0) %>% 
+  select(week, starts_with('web'), starts_with('email'), starts_with('sms'),
+         starts_with('social'),starts_with('part'), starts_with('no_attr'))
 
 ## For Asterisks Doc
 
-vr %>% 
+aster <- 
+  vr %>% 
   group_by(month, campaignId) %>% 
   summarise(
     rbs = sum(reportback),
     tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
     self_report = sum(ds_vr_status=='confirmed')
   )
+
+library(openxlsx)
+
+wb <- createWorkbook()
+
+addWorksheet(wb, 'AllSources')
+writeData(wb, 'AllSources', all, rowNames=F)
+addWorksheet(wb, 'bySource')
+writeData(wb, 'bySource', bySource, rowNames=F)
+addWorksheet(wb, 'RBAsterisk')
+writeData(wb, 'RBAsterisk', aster, rowNames=F)
+
+saveWorkbook(
+  wb, 
+  paste0('Data/Turbovote/output_',Sys.Date(),'.xlsx'), 
+  overwrite = TRUE
+)
