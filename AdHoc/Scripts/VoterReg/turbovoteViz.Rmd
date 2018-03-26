@@ -7,8 +7,8 @@ output: html_notebook
 library(scales)
 sumIf <- function(x) {
   val <- ifelse(sum(x)>1, sum(x), NA)
-  # val <- sum(which(x>=1))
 }
+leg <- 'Confirmed: Self-Reported (RB); Unknown: Dropped Off; Register-form: Completed Form; Register-OVR: Completed Online'
 ggplot(uSource, aes(x=ds_vr_status, y=value, fill=reorder(user_source, value))) +
   geom_bar(stat='identity', position='stack') +
   geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
@@ -17,7 +17,7 @@ ggplot(uSource, aes(x=ds_vr_status, y=value, fill=reorder(user_source, value))) 
   scale_fill_brewer(palette = 'Set2') +
   scale_y_continuous(breaks=pretty_breaks(10)) + 
   labs(
-    x='Confirmed: Self-Reported (RB, Not Registration), Unknown: Dropped Off, Registration: Completed Form, Ineligible: Ineligible',
+    x=leg,
     y='',
     title='Counts and Proportions of Form Status split by User Source'
     ) +
@@ -35,7 +35,7 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
   scale_y_continuous(breaks=pretty_breaks(10)) +
   scale_fill_brewer(palette = 'Set2') + 
   labs(
-    x='Confirmed: Self-Reported (RB, Not Registration), Unknown: Dropped Off, Registration: Completed Form, Ineligible: Ineligible',
+    x=leg,
     y='',
     title='Counts and Proportions of Form Status split by Source'
     ) +
@@ -58,7 +58,8 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
 #   theme(plot.title = element_text(hjust=.5)) + 
 #   guides(fill=guide_legend(title='Source Details'))
 ```
-```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=15, fig.height=9}
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=24}
+library(gridExtra)
 ss <- split(sourceStep, f=sourceStep$source)
 p1 <- ggplot(ss$email, aes(x=ds_vr_status, y=value, fill=reorder(source_details, value))) +
   geom_bar(stat='identity', position='stack') +
@@ -75,9 +76,9 @@ p3 <- p1 %+% ss$social %+% ggtitle('Social')
 p4 <- p1 %+% ss$web %+% ggtitle('Web')
 p1 <- p1 %+% ss$email %+% ggtitle('Email')
 grid.arrange(
-  p1,p2,p3,p4, 
+  p1,p2,p3,p4,ncol=1,
   top='Counts and Proportions of Form Status split by Source and Details',
-  bottom='Confirmed: Self-Reported (RB, Not Registration), Unknown: Dropped Off, Registration: Completed Form, Ineligible: Ineligible'
+  bottom=leg
   )
 
 ```
@@ -92,7 +93,7 @@ ggplot(camp, aes(x=variable, y=value, fill=reorder(ds_vr_status, -value))) +
   scale_y_continuous(breaks=pretty_breaks(10)) +
   scale_fill_brewer(palette = 'Set2') + 
   labs(
-    x='Confirmed: Self-Reported (RB, Not Registration), Unknown: Dropped Off, Registration: Completed Form, Ineligible: Ineligible',
+    x=leg,
     y='',
     title='Average Number of Reportbacks and Signups by Form Status'
     ) +
