@@ -229,16 +229,85 @@ qres<-qres %>%
 #Merge with NPS Sentiment survey
 merged<-merge(x=all, y=qres, by ="northstar_id", all=TRUE)
 
-#Create variable to identify "bad niche" (unactiviated Niche members) - should be 82 members
-merged<-merged%>%
-  mutate(
-    bad_niche=ifelse(survey =='niche' & Niche_activated==0 & total_rbs==0 & total_signups<=1,1,0)
-  )
+#Create variable to identify "bad niche" (unactivated Niche members) - should be 82 members
+# merged<-merged%>%
+#   mutate(
+#     bad_niche=ifelse(survey =='niche' & Niche_activated==0 & total_rbs==0 & total_signups<=1,1,0)
+#   )
+#
+# #Check code for 'Bad Niche' are only in Niche
+# CrossTable(merged$survey, merged$bad_niche, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+#
+# write.csv(merged, file = "Bad Niche.csv")
 
-#Check code for 'Bad Niche' are only in Niche
-CrossTable(merged$survey, merged$bad_niche, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-write.csv(merged, file = "Bad Niche.csv")
+#Identify "Engaged" Niche users (Q1 definition).
+# b<-prepQueryObjects(previouslyUsedNSIDs$northstar_id)
+# q_niche_q4<- paste0("
+#                     SELECT
+#                     distinct a.northstar_id
+#                     , a.created_at
+#                     , a.event_name
+#                     , a.timestamp
+#                     FROM (
+#                     -- web activation
+#                     SELECT
+#                     u.northstar_id AS 'northstar_id'
+#                     , u.created_at AS 'created_at'
+#                     , 'activated' AS 'event_name'
+#                     , l.last_logged_in AS 'timestamp'
+#                     FROM
+#                     quasar.users u
+#                     LEFT JOIN
+#                     quasar.users_log l
+#                     ON
+#                     l.northstar_id = u.northstar_id
+#                     WHERE
+#                     u.source = 'niche'
+#                     AND l.last_logged_in <> '0000-00-00 00:00:00'
+#                     AND l.last_logged_in <> '1970-01-01 00:00:00'
+#                     GROUP BY
+#                     u.northstar_id
+#                     HAVING
+#                     min(l.last_logged_in) > u.created_at
+#                     UNION ALL
+#                     -- sms signups
+#                     SELECT
+#                     u.northstar_id AS 'northstar_id'
+#                     , u.created_at AS 'created_at'
+#                     , 'sms_signup' AS 'event_name'
+#                     , MAX(signup_created_at) AS 'timestamp'
+#                     FROM
+#                     quasar.users u
+#                     LEFT JOIN
+#                     quasar.campaign_activity c
+#                     ON
+#                     c.northstar_id = u.northstar_id
+#                     LEFT JOIN
+#                     quasar.users_log l
+#                     ON
+#                     l.northstar_id = u.northstar_id
+#                     WHERE
+#                     u.source = 'niche'
+#                     GROUP BY
+#                     u.northstar_id
+#                     HAVING
+#                     count(distinct c.signup_id) > 1
+#                     AND min(l.last_logged_in) <= u.created_at
+#                     ) AS a
+#                     WHERE a.northstar_id IN", b,
+#                     "GROUP BY
+#                     a.northstar_id")
+#
+# qres_Q4_engagedniche <- runQuery(q_niche_q4, which = 'mysql')
+#
+# #merge Engaged Niche data with data.
+# #Merge with NPS Sentiment survey
+# merged_Q4_all<-merge(x=all, y=qres_Q4_engagedniche, by ="northstar_id", all=TRUE)
+#
+# merged_Q4_all<-merged_Q4_all %>%
+#   mutate(
+#     Niche_engaged = ifelse(event_name=='activated' | event_name=='sms_signup',1,0
+#     ))
 
 
 
@@ -942,3 +1011,26 @@ write.csv(merged, file = "Merged.csv")
 #Check there aren't duplicates (members who answered survey more than once)
 duplicate<-merged%>%
   filter(!duplicated(northstar_id))
+
+#Set survey weights so they match DS membership reg source %
+merged_Q4_all<-all %>%
+  mutate(
+    weight=
+      case_when(
+        survey=='niche' ~ 0.99473583,
+        survey=='sms' ~ 0.82866182,
+        survey=='Nonniche' ~ 1.239375)
+  )
+
+#set weights
+merged_Q4_all.w<-svydesign(id = ~1, data = all, weights = merged_Q4_all$weight)
+
+#Weighted Reg Source
+prop.table(svytable(~survey, design=merged_Q4_all.w))
+#Unweighted Reg Source (original survey respondents)
+prop.table(table(merged_Q4_all$survey))
+
+#unweighted NPS
+prop.table(table(merged_Q4_all$nps_cat))
+#weighted NPS
+prop.table(svytable(~nps_cat, design=merged_Q4_all.w))
