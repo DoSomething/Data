@@ -126,4 +126,6 @@ WHERE to_timestamp(ts/1000) > '2017-12-30'
 LIMIT 100;
 
 SELECT * FROM phoenix_next_events WHERE to_timestamp(ts/1000) > '2017-12-30';
-SELECT * FROM public.campaign_info_postgres i WHERE i.campaign_node_id_title LIKE '%mascot%'
+SELECT * FROM public.campaign_info_postgres i WHERE i.campaign_node_id_title LIKE '%mascot%';
+
+
