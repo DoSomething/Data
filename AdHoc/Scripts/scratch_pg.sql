@@ -129,3 +129,14 @@ SELECT * FROM phoenix_next_events WHERE to_timestamp(ts/1000) > '2017-12-30';
 SELECT * FROM public.campaign_info_postgres i WHERE i.campaign_node_id_title LIKE '%mascot%';
 
 
+<<<<<<< HEAD
+=======
+SELECT DISTINCT e.event_type FROM cio.customer_event e ;
+SELECT * FROM northstar.users LIMIT 100;
+SELECT 
+	substring(u.created_at::varchar,1,7),
+	count(*)
+FROM northstar.users u
+GROUP BY substring(u.created_at::varchar,1,7)
+ORDER BY substring(u.created_at::varchar,1,7);
+>>>>>>> master
