@@ -1,4 +1,5 @@
-CREATE TEMPORARY TABLE info_test AS (
+DROP MATERIALIZED VIEW IF EXISTS campaign_info;
+CREATE MATERIALIZED VIEW campaign_info AS (
 SELECT
       c.field_campaigns_target_id as campaign_node_id,
       n2.title as campaign_node_id_title,
@@ -51,4 +52,3 @@ FROM dosomething.field_data_field_campaigns c
  WHERE c.bundle = 'campaign_run'
  GROUP BY 1,2,3,4,5,6,7,8,9,10,11
  ORDER BY c.field_campaigns_target_id, fdfrd.field_run_date_value);
- SELECT * FROM info_test
