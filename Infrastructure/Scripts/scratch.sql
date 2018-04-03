@@ -337,4 +337,12 @@ FROM
 	ORDER BY u.created_at) u_ord
 WHERE u_ord.pos = 6000000
 ;
-SELECT * FROM playpen.legacy_reportbacks
+
+SELECT count(*) 
+FROM cio.event_log e 
+WHERE e.northstar_id = '592f76eba0bfad17c42ab36e' 
+AND JSON_EXTRACT(e.`data`, "$.event_type") = 'customer_unsubscribed';
+
+SELECT DISTINCT JSON_EXTRACT(e.`data`, "$.event_type") 
+FROM (SELECT * FROM cio.event_log et LIMIT 10000) e;
+
