@@ -1,5 +1,5 @@
-DROP MATERIALIZED VIEW IF EXISTS campaign_info_test;
-CREATE MATERIALIZED VIEW campaign_info_test AS (
+DROP MATERIALIZED VIEW IF EXISTS campaign_info;
+CREATE MATERIALIZED VIEW campaign_info AS (
 SELECT
       c.field_campaigns_target_id as campaign_node_id,
       n2.title as campaign_node_id_title,
