@@ -1,0 +1,328 @@
+source('config/init.R')
+source('config/mySQLConfig.R')
+source('config/pgConnect.R')
+today <- Sys.Date()
+# Data prep ---------------------------------------------------------------
+getData <- function(path) {
+
+  vr <-
+    suppressWarnings(suppressMessages(read_csv(path))) %>%
+    filter(
+      !grepl('thing.org', email) &
+        !grepl('testing', hostname) &
+        !grepl('@dosom', email) &
+        !grepl('Baloney', `last-name`) &
+        !grepl('turbovote', email)
+    )
+
+  for (i in 1:length(names(vr))) {
+    if(grepl('-', names(vr)[i])) {
+      names(vr)[i] <- gsub('-','_',names(vr)[i])
+    } else if(grepl(' ', names(vr)[i])) {
+      names(vr)[i] <- gsub(' ','_',names(vr)[i])
+    }
+  }
+  return(vr)
+}
+
+processReferralColumn <- function(dat) {
+
+  maxSep <- max(as.numeric(names(table(str_count(dat$referral_code, ',')))))+1
+  parsedSep <-
+    dat %>%
+    select(id, referral_code) %>%
+    separate(referral_code, LETTERS[1:maxSep], ',',remove = T) %>%
+    mutate(
+      nsid =
+        case_when(
+          substr(A, 1, 4)=='user' ~ substr(A, 6, nchar(A)),
+          TRUE ~ ''
+        ),
+      source_details =
+        case_when(
+          grepl('11_facts',A) ~ '11_facts',
+          grepl('face',A) ~ 'facebook',
+          grepl('sms',A) ~ 'sms',
+          grepl('twitter',A) ~ 'twitter',
+          !substr(A, 1, 4) %in% c('user','camp') ~ A,
+          grepl('source_details:', D) ~ D,
+          grepl('source_details:', E) ~ E,
+          TRUE ~ ''
+        ),
+      source_details = gsub('source_details:', '', source_details),
+      campaignId =
+        case_when(
+          grepl('campaignID',A) ~ A,
+          grepl('campaignid', tolower(B)) ~ B,
+          grepl('campaign:', D) ~ D,
+          grepl('campaignID:', D) ~ D,
+          TRUE ~ ''
+        ),
+      campaignId = sapply(strsplit(campaignId, '\\:'), "[", 2),
+      campaignRunId =
+        case_when(
+          grepl('campaignrun', tolower(C)) ~ C,
+          grepl('campaign:', tolower(B)) ~ B,
+          grepl('campaignrun', tolower(B)) ~ B,
+          TRUE ~ ''
+        ),
+      campaignRunId = sapply(strsplit(campaignRunId, '\\:'), "[", 2),
+      campaignId = ifelse(is.na(campaignRunId) & is.na(campaignId), '8017',
+                          ifelse(is.na(campaignId) & campaignRunId=='8022', '8017', campaignId)),
+      source =
+        case_when(
+          grepl('source:', B) ~ B,
+          grepl('source:', C) ~ C,
+          grepl('source:', D) ~ D,
+          TRUE ~ ''
+        ),
+      source = sapply(strsplit(source, '\\:'), "[", 2),
+      content =
+        case_when(
+          grepl('content', E) ~ gsub('utm_content:','',E),
+          TRUE ~ ''
+          ),
+      source = case_when(
+        source_details %in% c('twitter','facebook') ~ 'social',
+        source_details == '11_facts' | source == 'dosomething' ~ 'web',
+        is.na(source) ~ 'no_attribution',
+        TRUE ~ source
+      ),
+      source_details = case_when(
+        is.na(source_details) ~ '',
+        source == 'web' & source_details == '' ~ paste0('campaign_',campaignRunId),
+        TRUE ~ source_details
+      )
+    ) #%>%
+    # select(-A,-B,-C,-D,-E)
+  return(parsedSep)
+}
+
+getQuasarAttributes <- function(queryObjects) {
+  q <- paste0(
+    "SELECT
+      u.northstar_id AS nsid,
+      u.created_at AS ds_registration_date,
+      u.source AS user_source,
+      CASE WHEN u.customer_io_subscription_status = 'subscribed' OR
+        u.sms_status = 'active' THEN 1 ELSE 0 END AS active_member,
+      c.signup_id,
+      c.campaign_run_id,
+      max(CASE WHEN c.post_id <> -1 THEN 1 ELSE 0 END) as reportedback
+    FROM quasar.users u
+    LEFT JOIN quasar.campaign_activity c ON c.northstar_id = u.northstar_id
+    WHERE u.northstar_id IN ",queryObjects,"
+    GROUP BY u.northstar_id, c.signup_id
+    "
+  )
+
+  nsrDat <-
+    runQuery(q, 'mysql') %>%
+    group_by(nsid) %>%
+    summarise(
+      ds_registration_date = max(ds_registration_date),
+      user_source = max(user_source),
+      signups = n(),
+      reportbacks = sum(reportedback)
+    ) %>%
+    mutate(
+      user_source =
+        case_when(
+          user_source == 'niche' ~ 'niche',
+          user_source == 'sms' ~ 'sms',
+          TRUE ~ 'web'
+        )
+    )
+}
+
+addFields <- function(dat) {
+    dat %<>%
+    mutate(
+      ds_vr_status =
+        case_when(
+          voter_registration_status == 'initiated' ~
+            'register-form',
+          voter_registration_status == 'registered' & voter_registration_method == 'online' ~
+            'register-OVR',
+          voter_registration_status %in% c('unknown','pending') | is.na(voter_registration_status) ~
+            'uncertain',
+            voter_registration_status %in% c('ineligible','not-required') ~
+            'ineligible',
+            voter_registration_status == 'registered' ~
+            'confirmed',
+          TRUE ~ ''
+        ),
+      reportback = ifelse(
+        ds_vr_status %in%
+          c('confirmed','register-form','register-OVR'), T, F
+      ),
+      month = month(created_at),
+      week = case_when(
+        created_at < '2018-02-06' ~ as.character('2018-01-26'),
+        TRUE ~
+          cut(
+            as.Date(created_at),
+            breaks=
+              seq.Date(as.Date('2018-02-06'),as.Date('2019-01-01'),by = '7 days')
+            ) %>% as.character()
+      )
+    )
+}
+
+prepData <- function(...) {
+  d <- getData(...)
+  refParsed <- processReferralColumn(d)
+
+  ## Person can come back after initiated and be pending again
+  ## So latest updated at is not the best source for current status
+  vr <-
+    d %>%
+    left_join(refParsed) %>%
+    group_by(nsid) %>%
+    filter(updated_at == max(updated_at) | nsid=='') %>%
+    ungroup()
+
+  nsids <-
+    vr %>%
+    filter(nsid != '') %$%
+    nsid %>%
+    prepQueryObjects()
+
+  nsrDat <- getQuasarAttributes(nsids)
+
+  vr %<>%
+    left_join(nsrDat)
+
+  vr <- addFields(vr)
+
+  return(vr)
+
+}
+
+vfile <- 'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
+
+vr <-
+  prepData(
+    path=paste0(vfile,today,'.csv')
+    )
+
+# dupes <-
+#   vr %>%
+#   filter((duplicated(nsid) | duplicated(nsid, fromLast=T))&nsid!='') %>%
+#   arrange(nsid)
+
+# Analysis ----------------------------------------------------------------
+library(reshape2)
+
+##For Visuals
+npPivot <- function(pivot) {
+
+  pivot <- enquo(pivot)
+  out <-
+    vr %>%
+    filter(!is.na(!!pivot) & (!!pivot)!='') %>%
+    group_by(ds_vr_status, !!pivot) %>%
+    summarise(Count=n()) %>%
+    mutate(Proportion=Count/sum(Count))  %>%
+    melt(value.var='Proportion') %>% as.tibble() %>%
+    mutate(
+      label = case_when(
+        variable=='Count' ~ as.character(value),
+        TRUE ~ paste0(round(value*100,1),'%')
+      )
+    )
+  return(out)
+}
+
+uSource <- npPivot(user_source)
+Source <- npPivot(source)
+detSource <- npPivot(source_details)
+
+sourceStep <-
+  vr %>%
+  filter(source != '') %>%
+  group_by(ds_vr_status, source, source_details) %>%
+  summarise(Count=n()) %>%
+  mutate(Proportion=Count/sum(Count)) %>%
+  melt(value.var='Proportion') %>% as.tibble() %>%
+  mutate(
+    label = case_when(
+      variable=='Count' ~ as.character(value),
+      TRUE ~ paste0(round(value*100,1),'%')
+    )
+  )
+
+camp <-
+  vr %>%
+  filter(!is.na(signups)) %>%
+  group_by(ds_vr_status) %>%
+  summarise(
+    Signups = mean(signups),
+    Reportbacks = mean(reportbacks)
+    ) %>%
+  melt(value.var='meanRBs') %>% as.tibble()
+
+dens <-
+  vr %>%
+  filter(signups < quantile(signups, .95, na.rm=T))
+
+## For Pacing Doc
+
+all <-
+  vr %>%
+  group_by(week) %>%
+  summarise(
+    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
+    rbs = sum(reportback),
+    complete_form = grepl('form', ds_vr_status) %>% sum(),
+    complete_online = grepl('OVR', ds_vr_status) %>% sum(),
+    self_report = sum(ds_vr_status=='confirmed')
+  )
+
+bySource <-
+  vr %>%
+  group_by(week, source) %>%
+  summarise(
+    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
+    rbs = sum(reportback),
+    complete_form = grepl('form', ds_vr_status) %>% sum(),
+    complete_online = grepl('OVR', ds_vr_status) %>% sum(),
+    self_report = sum(ds_vr_status=='confirmed')
+  ) %>%
+  melt(value.var =
+         c('tot_vot_reg','rbs','complete_form',
+           'complete_online','self_report')) %>%
+  dcast(week ~ source + variable, value.var='value') %>%
+  replace(is.na(.), 0) %>%
+  select(week, starts_with('web'), starts_with('email'), starts_with('sms'),
+         starts_with('social'),starts_with('part'), starts_with('no_attr'))
+
+## For Asterisks Doc
+
+aster <-
+  vr %>%
+  group_by(month, campaignId) %>%
+  summarise(
+    rbs = sum(reportback),
+    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
+    self_report = sum(ds_vr_status=='confirmed')
+  )
+
+library(openxlsx)
+
+wb <- createWorkbook()
+
+addWorksheet(wb, 'rawData')
+writeData(wb, 'rawData', vr, rowNames = F)
+addWorksheet(wb, 'AllSources')
+writeData(wb, 'AllSources', all, rowNames=F)
+addWorksheet(wb, 'bySource')
+writeData(wb, 'bySource', bySource, rowNames=F)
+addWorksheet(wb, 'RBAsterisk')
+writeData(wb, 'RBAsterisk', aster, rowNames=F)
+
+saveWorkbook(
+  wb,
+  paste0('Data/Turbovote/output_',Sys.Date(),'.xlsx'),
+  overwrite = TRUE
+)

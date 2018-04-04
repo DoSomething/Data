@@ -1,0 +1,103 @@
+---
+title: ""
+output: html_notebook
+---
+#### Northstar Source
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+library(scales)
+sumIf <- function(x) {
+  val <- ifelse(sum(x)>1, sum(x), NA)
+}
+leg <- 'Confirmed: Self-Reported (RB); Unknown: Dropped Off; Register-form: Completed Form; Register-OVR: Completed Online'
+ggplot(uSource, aes(x=ds_vr_status, y=value, fill=reorder(user_source, value))) +
+  geom_bar(stat='identity', position='stack') +
+  geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
+  stat_summary(fun.y = sumIf, aes(label = ..y.., group = ds_vr_status), geom = "text", vjust=-.2) +
+  facet_wrap(~variable, scales='free') +
+  scale_fill_brewer(palette = 'Set2') +
+  scale_y_continuous(breaks=pretty_breaks(10)) + 
+  labs(
+    x=leg,
+    y='',
+    title='Counts and Proportions of Form Status split by User Source'
+    ) +
+  theme(plot.title = element_text(hjust=.5)) + 
+  guides(fill=guide_legend(title='User Source'))
+```
+#### Referral Source
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
+  geom_bar(stat='identity', position='stack') +
+  geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
+  stat_summary(fun.y = sumIf, aes(label = ..y.., group = ds_vr_status), geom = "text", vjust=-.2) +
+  facet_wrap(~variable, scales='free') +
+  labs(y='') +
+  scale_y_continuous(breaks=pretty_breaks(10)) +
+  scale_fill_brewer(palette = 'Set2') + 
+  labs(
+    x=leg,
+    y='',
+    title='Counts and Proportions of Form Status split by Source'
+    ) +
+  theme(plot.title = element_text(hjust=.5)) + 
+  guides(fill=guide_legend(title='Source'))
+```
+#### Source Details
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+# ggplot(detSource.t, aes(x=ds_vr_status, y=value, fill=source_details)) +
+#   geom_bar(stat='identity', position='stack') +
+#   labs(y='') +
+#   geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
+#   scale_y_continuous(breaks=pretty_breaks(10)) +
+#   facet_wrap(~variable, scales='free')  + 
+#   labs(
+#     x='Confirmed: Self-Reported (RB, Not Registration), Unknown: Dropped Off, Registration: Completed Form, Ineligible: Ineligible',
+#     y='',
+#     title='Counts and Proportions of Form Status split by Source Details'
+#     ) +
+#   theme(plot.title = element_text(hjust=.5)) + 
+#   guides(fill=guide_legend(title='Source Details'))
+```
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=24}
+library(gridExtra)
+ss <- split(sourceStep, f=sourceStep$source)
+p1 <- ggplot(ss$email, aes(x=ds_vr_status, y=value, fill=reorder(source_details, value))) +
+  geom_bar(stat='identity', position='stack') +
+  geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
+  stat_summary(fun.y = sumIf, aes(label = ..y.., group = ds_vr_status), geom = "text", vjust=-.2) +
+  scale_y_continuous(breaks=pretty_breaks(10)) +
+  # scale_fill_brewer(palette = 'Set3') +
+  facet_wrap(~variable, scales='free')  + 
+  labs(x='',y='') +
+  theme(plot.title = element_text(hjust=.5)) + 
+  guides(fill=guide_legend(title='Source Details'))
+p2 <- p1 %+% ss$sms %+% ggtitle('SMS')
+p3 <- p1 %+% ss$social %+% ggtitle('Social')
+p4 <- p1 %+% ss$web %+% ggtitle('Web')
+p1 <- p1 %+% ss$email %+% ggtitle('Email')
+grid.arrange(
+  p1,p2,p3,p4,ncol=1,
+  top='Counts and Proportions of Form Status split by Source and Details',
+  bottom=leg
+  )
+
+```
+
+
+#### Signups & Reportbacks
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+ggplot(camp, aes(x=variable, y=value, fill=reorder(ds_vr_status, -value))) +
+  geom_bar(stat='identity', position='dodge') +
+  facet_wrap(~variable, scales='free') +
+  geom_text(position=position_dodge(width=.9), aes(label=round(value, 2.5)), size=3, vjust=-.2) +
+  scale_y_continuous(breaks=pretty_breaks(10)) +
+  scale_fill_brewer(palette = 'Set2') + 
+  labs(
+    x=leg,
+    y='',
+    title='Average Number of Reportbacks and Signups by Form Status'
+    ) +
+  theme(plot.title = element_text(hjust=.5)) + 
+  guides(fill=guide_legend(title='Status'))
+```
+
