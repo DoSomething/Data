@@ -1,10 +1,10 @@
 nDaysInMonth <- function(date) {
   m <- format(date, format="%m")
-  
+
   while (format(date, format="%m") == m) {
     date <- date + 1
   }
-  
+
   return(as.integer(format(date - 1, format="%d")))
 }
 
@@ -31,8 +31,8 @@ saveCSV <- function(dat, desktop = F) {
   datName <- deparse(substitute(dat))
   if (desktop == T) {
     write.csv(
-      dat, 
-      row.names = F, 
+      dat,
+      row.names = F,
       na = '.',
       file = paste0(
         '~/Desktop/',datName,'_', gsub("[[:punct:]]|\\ ", "", Sys.time()),'.csv'
@@ -40,14 +40,14 @@ saveCSV <- function(dat, desktop = F) {
       )
   } else {
     write.csv(
-      dat, 
-      row.names = F, 
+      dat,
+      row.names = F,
       na = '.',
       file = paste0(
         getwd(),'/',datName,'_', gsub("[[:punct:]]|\\ ", "", Sys.time()),'.csv'
         )
       )
-    
+
   }
 }
 
@@ -65,27 +65,29 @@ runQuery <- function(query, which=c('pg','mysql')) {
   require(RPostgreSQL)
   source('config/mySQLConfig.R')
   source('config/pgConnect.R')
-  
+
   if(grepl('.sql', query)) {
-    
+
     q <- getQuery(query)
-    
+
   } else {
-    
+
     q <- query
-    
+
   }
-  
+
   if (which=='mysql') {
     connection <- quasarConnect()
+    out <- tbl_df(dbGetQuery(connection, q))
+    lapply(dbListConnections(dbDriver( drv = "MySQL")), dbDisconnect)
   } else {
     connection <- pgConnect()
+    out <- tbl_df(dbGetQuery(connection, q))
+    dbDisconnect(connection)
   }
-  
-  out <- tbl_df(dbGetQuery(connection, q))
-  
+
   return(out)
-  
+
 }
 
 #####Save multiple data frame to tabs in spreadsheet#####
@@ -110,7 +112,7 @@ get_missing_matrix = function(dt, vintage_indicator, binwidth = NULL, rounding =
   dt_melt= data.table(melt(dt, id = (id_val)))
   tb = dt_melt[ , .SD[, list(pct_miss = sum(is.na(value))/.N)],
                 by = c('variable',vintage_indicator)]
-  return(tb)  
+  return(tb)
 }
 
 #####Rescale numeric feature to range between 0 and 1#####
@@ -118,7 +120,7 @@ scalerange <- function(x){(x-min(x, na.rm=T))/(max(x, na.rm=T)-min(x, na.rm=T))}
 
 #####Reduce levels of a factor using decision tree#####
 recat <- function(df, outcome, feature, compar=0.001) {
-  part_obj <- rpart(formula = paste0(outcome, '~', feature), data = df, control = list(cp = compar)) 
+  part_obj <- rpart(formula = paste0(outcome, '~', feature), data = df, control = list(cp = compar))
   frame <- data.frame(part_obj$csplit)
   if (length(frame)==0) stop("No meaningful difference between levels with respect to outcome. Consider increasing complexity parameter or removing feature")
   levels <- levels(df[[feature]])
@@ -143,7 +145,7 @@ get_mean_matrix = function(dt, vintage_indicator, binwidth = NULL, rounding = NU
   dt_melt = data.table(melt(dt, id = (id_val)))
   tb = dt_melt[ , .SD[, list(mean_value = mean(value, na.rm=T))],
                 by = c('variable',vintage_indicator)]
-  return(tb)  
+  return(tb)
 }
 
 #####Fill Null values with means#####
@@ -178,7 +180,7 @@ fillNAs = function(df) {
     }
   }
   return(as_tibble(df))
-} 
+}
 
 #####Convert character features to factors when levels are fewer than X#####
 char_to_fact = function(df, levels) {
@@ -197,15 +199,15 @@ char_to_fact = function(df, levels) {
 }
 
 ####Is X within 2 numbers####
-inInterval <- function(x, interval){ 
-  stopifnot(length(interval) == 2L) 
-  interval[1] <= x & x <= interval[2] 
-} 
+inInterval <- function(x, interval){
+  stopifnot(length(interval) == 2L)
+  interval[1] <= x & x <= interval[2]
+}
 
 ####Percent Change between Old and New Value####
 pctChange <- function(Old, New) {
   pctChange <- ifelse(is.na(Old) | is.na(New), NA,
-                      ifelse(Old == New, 0, 
+                      ifelse(Old == New, 0,
                              ifelse(Old < 0 & New < 0, ((New - Old) / Old) * -1,
                                     ifelse(Old <= 0 | New < 0, 0, (New - Old) / Old))))
   return(pctChange)
@@ -218,19 +220,19 @@ applyPctChange <- function(Value, percentChange) {
 }
 
 ####Nest preferred table call####
-mtable <- function (..., exclude = if (useNA == "no") c(NA, NaN), useNA = c("no", 
-                                                                            "ifany", "always"), dnn = list.names(...), deparse.level = 1) 
+mtable <- function (..., exclude = if (useNA == "no") c(NA, NaN), useNA = c("no",
+                                                                            "ifany", "always"), dnn = list.names(...), deparse.level = 1)
 {
   list.names <- function(...) {
     l <- as.list(substitute(list(...)))[-1L]
     nm <- names(l)
-    fixup <- if (is.null(nm)) 
+    fixup <- if (is.null(nm))
       seq_along(l)
     else nm == ""
-    dep <- vapply(l[fixup], function(x) switch(deparse.level + 
-                                                 1, "", if (is.symbol(x)) as.character(x) else "", 
+    dep <- vapply(l[fixup], function(x) switch(deparse.level +
+                                                 1, "", if (is.symbol(x)) as.character(x) else "",
                                                deparse(x, nlines = 1)[1L]), "")
-    if (is.null(nm)) 
+    if (is.null(nm))
       dep
     else {
       nm[fixup] <- dep
@@ -239,21 +241,21 @@ mtable <- function (..., exclude = if (useNA == "no") c(NA, NaN), useNA = c("no"
   }
   miss.use <- missing(useNA)
   miss.exc <- missing(exclude)
-  useNA <- if (miss.use && !miss.exc && !match(NA, exclude, 
-                                               nomatch = 0L)) 
+  useNA <- if (miss.use && !miss.exc && !match(NA, exclude,
+                                               nomatch = 0L))
     "ifany"
   else match.arg(useNA)
   doNA <- useNA != "no"
-  if (!miss.use && !miss.exc && doNA && match(NA, exclude, 
-                                              nomatch = 0L)) 
+  if (!miss.use && !miss.exc && doNA && match(NA, exclude,
+                                              nomatch = 0L))
     warning("'exclude' containing NA and 'useNA' != \"no\"' are a bit contradicting")
   args <- list(...)
-  if (!length(args)) 
+  if (!length(args))
     stop("nothing to tabulate")
   if (length(args) == 1L && is.list(args[[1L]])) {
     args <- args[[1L]]
-    if (length(dnn) != length(args)) 
-      dnn <- if (!is.null(argn <- names(args))) 
+    if (length(dnn) != length(args))
+      dnn <- if (!is.null(argn <- names(args)))
         argn
     else paste(dnn[1L], seq_along(args), sep = ".")
   }
@@ -263,12 +265,12 @@ mtable <- function (..., exclude = if (useNA == "no") c(NA, NaN), useNA = c("no"
   pd <- 1L
   dn <- NULL
   for (a in args) {
-    if (is.null(lens)) 
+    if (is.null(lens))
       lens <- length(a)
-    else if (length(a) != lens) 
+    else if (length(a) != lens)
       stop("all arguments must have the same length")
     fact.a <- is.factor(a)
-    if (doNA) 
+    if (doNA)
       aNA <- anyNA(a)
     if (!fact.a) {
       a0 <- a
@@ -284,35 +286,35 @@ mtable <- function (..., exclude = if (useNA == "no") c(NA, NaN), useNA = c("no"
           ll <- c(ll, NA)
           TRUE
         }
-        else if (!ifany && !anNAc) 
+        else if (!ifany && !anNAc)
           FALSE
         else TRUE
       }
       else FALSE
     }
-    if (add.na) 
+    if (add.na)
       a <- factor(a, levels = ll, exclude = NULL)
     else ll <- levels(a)
     a <- as.integer(a)
     if (fact.a && !miss.exc) {
-      ll <- ll[keep <- which(match(ll, exclude, nomatch = 0L) == 
+      ll <- ll[keep <- which(match(ll, exclude, nomatch = 0L) ==
                                0L)]
       a <- match(a, keep)
     }
     else if (!fact.a && add.na) {
       if (ifany && !aNA && add.ll) {
         ll <- ll[!is.na(ll)]
-        is.na(a) <- match(a0, c(exclude, NA), nomatch = 0L) > 
+        is.na(a) <- match(a0, c(exclude, NA), nomatch = 0L) >
           0L
       }
       else {
-        is.na(a) <- match(a0, exclude, nomatch = 0L) > 
+        is.na(a) <- match(a0, exclude, nomatch = 0L) >
           0L
       }
     }
     nl <- length(ll)
     dims <- c(dims, nl)
-    if (prod(dims) > .Machine$integer.max) 
+    if (prod(dims) > .Machine$integer.max)
       stop("attempt to make a table with >= 2^31 elements")
     dn <- c(dn, list(ll))
     bin <- bin + pd * (a - 1L)
@@ -320,7 +322,7 @@ mtable <- function (..., exclude = if (useNA == "no") c(NA, NaN), useNA = c("no"
   }
   names(dn) <- dnn
   bin <- bin[!is.na(bin)]
-  if (length(bin)) 
+  if (length(bin))
     bin <- bin + 1L
   y <- array(tabulate(bin, pd), dims, dimnames = dn)
   class(y) <- "table"
@@ -343,22 +345,22 @@ firstDayOfMonth <- function(x) {
 }
 
 reverseString <- function(x) {
-  x <- paste(rev(substring(x,1:nchar(x),1:nchar(x))),collapse="") 
+  x <- paste(rev(substring(x,1:nchar(x),1:nchar(x))),collapse="")
   return(x)
 }
 
 prepQueryObjects <- function(x) {
-  
+
   items <- as.character(x)
   out <- "("
-  
+
   for (i in 1:length(items)) {
-    temp <- paste0("'", items[i], "',")  
-    out <- paste0(out, temp)  
+    temp <- paste0("'", items[i], "',")
+    out <- paste0(out, temp)
   }
   out <- substr(out, 1, nchar(out)-1)
   out <- paste0(out, ')')
-  
+
   return(out)
 }
 
@@ -368,17 +370,17 @@ prepQueryObjects <- function(x) {
 #   month.subs <- substr(month.name, 1, 3)
 #   x = as.character(x)
 #   x = gsub("-", "/", x)
-#   x = gsub("[^0-9\\/\\-]", "", x) 
+#   x = gsub("[^0-9\\/\\-]", "", x)
 #   slashCount <- nchar(gsub("[^\\/]","",x))
 #   bigYFirst = ifelse(grepl('/', substr(x,1,4))==F, T, F)
 #   bigYLast = ifelse(grepl('/', substr(x,nchar(x)-3,nchar(x)))==F, T, F)
-#   x = 
+#   x =
 #     as.Date(
-#       ifelse(substr(x,1,3) %in% month.subs, as.Date(paste0('01-', substr(x, 1, 3), substr(x, 4, 6)), format='%d-%b-%y'), 
+#       ifelse(substr(x,1,3) %in% month.subs, as.Date(paste0('01-', substr(x, 1, 3), substr(x, 4, 6)), format='%d-%b-%y'),
 #              ifelse(nchar(gsub("[^\\/]", "", x))==2 & nchar(x)==7, as.Date(x, format='%m/%d/%y'),
 #                     ifelse(nchar(gsub("[^\\/]", "", x))==1 & nchar(x)==7, as.Date(paste0('01/', x), format='%d/%m/%Y'),
 #                            ifelse(nchar(x) %in% c(7), as.Date(x, format='%m/%d/%y'),
-#                                   ifelse(grepl('/', x), as.Date(x, format='%m/%d/%Y'), 
+#                                   ifelse(grepl('/', x), as.Date(x, format='%m/%d/%Y'),
 #                                          ifelse(grepl('-', x), as.Date(x, format='%m-%d-%Y'), NA)))))),
 #       origin='1970-01-01')
 #   return(x)
@@ -386,19 +388,19 @@ prepQueryObjects <- function(x) {
 
 cleanDOB <- function(x) {
   slashCount <- nchar(gsub("[^\\/]","",x))
-  out <- ifelse(slashCount == 1, 
-                as.Date(paste0('01/',x), '%d/%m/%Y'), 
+  out <- ifelse(slashCount == 1,
+                as.Date(paste0('01/',x), '%d/%m/%Y'),
                 as.Date(x, '%m/%d/%Y'))
   return(as.Date(out, origin='1970-01-01'))
 }
 
 cleanPhone <- function(Phone) {
-  
+
   Phone = as.numeric(gsub("[^0-9]", "", Phone))
   Phone = ifelse(
-    nchar(Phone) == 11 & 
-      substr(Phone, 1, 1)==1, 
-    substr(Phone, 2, nchar(Phone)), 
+    nchar(Phone) == 11 &
+      substr(Phone, 1, 1)==1,
+    substr(Phone, 2, nchar(Phone)),
     Phone
   )
   Phone = ifelse(nchar(Phone) > 10, substr(Phone, nchar(Phone) - 9 , nchar(Phone)), Phone)

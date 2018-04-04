@@ -78,11 +78,13 @@ runQuery <- function(query, which=c('pg','mysql')) {
   
   if (which=='mysql') {
     connection <- quasarConnect()
+    out <- tbl_df(dbGetQuery(connection, q))
+    lapply(dbListConnections(dbDriver( drv = "MySQL")), dbDisconnect)
   } else {
     connection <- pgConnect()
+    out <- tbl_df(dbGetQuery(connection, q))
+    dbDisconnect(connection)
   }
-  
-  out <- tbl_df(dbGetQuery(connection, q))
   
   return(out)
   

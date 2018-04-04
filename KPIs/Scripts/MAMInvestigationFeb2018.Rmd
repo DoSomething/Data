@@ -22,8 +22,7 @@ act <-
   read_csv('../Data/action_breakdown.csv') %>% 
   setNames(c('month', 'action_type', 'niche', 'count')) %>% 
   mutate(
-    niche = ifelse(niche=='Yes', 'Niche', 'Non-Niche'),
-    action_type = 
+    niche = ifelse(niche=='Yes', 'Niche', 'Non-Niche')
     ) %>% 
   filter(month != '2017-04') %>% 
   group_by(month, niche) %>% 

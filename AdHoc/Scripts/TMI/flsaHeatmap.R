@@ -1,3 +1,4 @@
+# https://trello.com/c/pN4RtacF/1238-tmi-flsa-data
 source('config/init.R')
 source('config/mySQLConfig.R')
 library(zipcode)

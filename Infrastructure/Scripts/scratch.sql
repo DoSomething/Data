@@ -3,42 +3,7 @@ FROM information_schema.columns c
 WHERE c.TABLE_SCHEMA='quasar'
 AND table_name='users';
 
-SELECT *
-FROM quasar.users u 
-INNER JOIN (
-	SELECT 
-		max(t.northstar_created_at_timestamp) AS max_created
-	FROM quasar.users t
-	) m ON m.max_created = u.northstar_created_at_timestamp;
-
-CREATE TEMPORARY TABLE IF NOT EXISTS max_user_created AS (
-	SELECT 
-		max(t.northstar_created_at_timestamp) AS max_created
-	FROM quasar.users t
-	);
-	
-SELECT * FROM quasar.users LIMIT 500;
-SELECT * FROM quasar.monitoring LIMIT 100;
-SELECT * FROM gladiator.competitions LIMIT 500;
-SELECT * FROM gladiator.competitions LIMIT 500;
-SELECT * FROM gladiator.users LIMIT 200;
-
-SHOW processlist
-;
-
-SELECT * FROM quasar.monitoring WHERE ;
-
-SELECT * FROM 
-	(SELECT 
-		c.signup_id,
-		max(CASE WHEN c.status = 'accepted' THEN 1 ELSE 0 end) AS any_accepted,
-		max(CASE WHEN c.status = 'rejected' THEN 1 ELSE 0 end) AS any_rejected
-	FROM quasar.campaign_activity c
-	GROUP BY c.signup_id) a
-WHERE a.any_accepted=1 AND a.any_rejected=1
-;
-
-SELECT * FROM quasar.monitoring;
+SHOW processlist;
 
 SELECT  	m.INDEX,
                m.query,  
@@ -52,8 +17,6 @@ SELECT  	m.INDEX,
                                FROM quasar.monitoring t1 
                                WHERE t1.query = 'user_distinct_user_count')
 ;
-
-SELECT * FROM campaign_activity LIMIT 500;
 
 SELECT 
 	count(DISTINCT c.signup_id) AS signups,
@@ -76,9 +39,6 @@ LEFT JOIN
 	) reportbacks ON reportbacks.signup_id = c.signup_id
 WHERE c.campaign_run_id IN (7439,7657,7663,7832,7908)
 GROUP BY c.campaign_run_id;
-
-SELECT * FROM campaign_activity LIMIT 500
-;
 
 	
 SELECT 
@@ -111,14 +71,6 @@ INNER JOIN
 ON unsub_2017.northstar_id = eversub.northstar_id
 ;
 
-SELECT 
- count(*)
-FROM quasar.users u 
-LEFT JOIN quasar.moco_profile_import ON m.moco_id = u.moco_commons_profile_id
-WHERE u.moco_current_status = 'active' 
-OR  u.customer_io_subscription_status = 'subscribed';
-
-SELECT * FROM quasar.campaign_activity c WHERE c.campaign_run_id=7931 LIMIT 200 ;
 
 SELECT 
 	count(*)
@@ -137,37 +89,6 @@ FROM
 #state.addr_state IS NULL 
 ; #Texas active verified 400,909 #Texas total verified 586,339 #No State 3,266,848 #Records 9,440,476
 
-SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%card%' LIMIT 50;
-SELECT * FROM quasar.campaign_activity m LIMIT 100;
-SELECT 
-	c.campaign_run_id,
-	date(c.signup_created_at) AS signup_date,
-	count(*) AS signups
-FROM quasar.campaign_activity c 
-WHERE c.campaign_run_id IN (7060, 7944)
-GROUP BY c.campaign_run_id
-ORDER BY c.campaign_run_id;
-
-SELECT * FROM  users_and_activities.mobile_master_lookup_lite LIMIT 50;
-SELECT count(*) FROM quasar.users u WHERE (u.moco_current_status = 'active' OR
-    u.customer_io_subscription_status = 'subscribed') LIMIT 100;
-SELECT * FROM quasar.users LIMIT 100;
-
-
-SELECT * FROM quasar.monitoring m WHERE m.`table` = 'quasar.campaign_activity' AND m.query = 'ca_table_count';
-SELECT * FROM quasar.campaign_activity c WHERE post_id <> -1 LIMIT 50; 
-
-SELECT 
-	u.addr_state AS state,
-	count(*),
-	count(*) + (count(*)*.474)
-FROM quasar.campaign_activity c
-LEFT JOIN quasar.users u ON c.northstar_id = u.northstar_id
-WHERE c.campaign_run_id=7931
-GROUP BY u.addr_state;
-
-SELECT * FROM users LIMIT 50;
-GROUP BY u.state;
 
 SELECT 
 	count(*) AS total_active,
@@ -210,23 +131,6 @@ LEFT JOIN quasar.moco_profile_import m ON m.moco_id = u.moco_commons_profile_id
 WHERE u.moco_commons_profile_id IS NOT NULL
 AND a.campaign_run_id = '7931';
 
-SELECT * FROM quasar.moco_profile_import i LIMIT 50;
-SELECT * FROM users_and_activities.mobile_users LIMIT 500;
-SELECT u.northstar_id, u.mobile FROM quasar.users u WHERE u.northstar_id in ('59aedc53a0bfad10f547bdc8','59e73793a0bfad7f9319cb1d');
-
-SELECT 
-	count(*) AS total_users,
-	sum(CASE WHEN sms_status='active' OR customer_io_subscription_status='subscribed' THEN 1 ELSE 0 END) active_members
-FROM quasar.users u 
-WHERE u.country='MX' LIMIT 600;
-
-SELECT 
-	u.country,
-	count(*) AS total_users,
-	sum(CASE WHEN sms_status='active' OR customer_io_subscription_status='subscribed' THEN 1 ELSE 0 END) active_members
-FROM quasar.users u 
-GROUP BY u.country;
-
 SELECT 
 	ca.`year`,
 	ca.campaign_run_id,
@@ -262,75 +166,6 @@ FROM
 	AND c.signup_created_at >= '2016-01-01'
 	GROUP BY c.signup_id) ca
 INNER JOIN quasar.campaign_activity camp ON camp.signup_id = ca.signup_id AND camp.submission_updated_at = ca.max_submission
-;
-SELECT 
-		c.signup_id,
-		c.post_id,
-		c.url,
-		max(c.submission_updated_at) AS max_submission
-	FROM quasar.users u
-	INNER JOIN quasar.campaign_activity c ON u.northstar_id=c.northstar_id
-	WHERE u.country='MX'
-	AND c.post_id <> -1 
-	AND c.signup_created_at >= '2016-01-01'
-	GROUP BY c.signup_id;
-	
-SELECT * FROM campaign_activity WHERE post_id IN (151680,127764,128127,133430,136269,141884);
-
-SELECT distinct log.source  FROM quasar.member_event_log log LIMIT 1000;
-SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%ride%' ;
-
-SELECT count(DISTINCT event_id)  FROM quasar.member_event_log LIMIT 50 = 29,545,434;
-
-SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%eye%' OR i.campaign_node_id_title LIKE '%regret%' LIMIT 10;
-SELECT * FROM quasar.campaign_activity WHERE campaign_run_id IN (7651,7979);
-
-SELECT 
-	u.northstar_id,
-	u.mobile, 
-	u.email,
-	u.first_name,
-	u.last_name,
-	u.birthdate,
-	COALESCE(NULLIF(u.addr_state,''), NULLIF(m.addr_state,''), NULLIF(m.loc_state, '')) AS addr_state
-FROM quasar.users u
-LEFT JOIN quasar.moco_profile_import m
-	ON m.moco_id = u.moco_commons_profile_id
-LIMIT 10;
-
-SELECT 
-	*
-FROM campaign_activity c
-WHERE c.campaign_run_id IN (7651, 7979);
-
-SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%ride%'LIMIT 100;
-
-DROP TABLE playpen.legacy_reportbacks;
-CREATE TABLE playpen.legacy_reportbacks (
-date DATE,
-rbs INT,
-calls INT,
-social INT,
-voter_registrations INT,
-other INT
-);
-LOAD DATA INFILE '/Users/shasan/Desktop/legacy_reportbacks_01_18_17.csv' INTO TABLE playpen.legacy_reportbacks;
-SELECT * FROM playpen.legacy_reportbacks;
-
-SELECT * FROM quasar.monitoring WHERE query = 'active_user_count' ORDER BY `timestamp` DESC;
-SELECT count(*) FROM quasar.users u  
-                WHERE u.customer_io_subscription_status = 'subscribed' 
-                OR u.sms_status = 'active';
-
-CREATE TABLE quasar.monitoring AS (
-	SELECT 
-		`output`, 
-		query, 
-		`table`, 
-		`timestamp`, 
-		STR_TO_DATE(`timestamp`, '%m-%d-%y %H:%i:%s') AS `timestamp`
-	FROM quasar.monitoring_
-)
 ;
 
 SELECT
@@ -378,10 +213,6 @@ LEFT JOIN
 ON u.northstar_id = rbs_7890.northstar_id
 LIMIT 200;
 
-select * FROM quasar.monitoring;
-DROP DATABASE playpen;
-SELECT * FROM quasar.monitoring WHERE query='active_user_count' ORDER BY `timestamp` DESC;
-
 ;WITH tblDifference AS
 (
     SELECT ROW_NUMBER() OVER(ORDER BY `timestamp`) AS RowNumber, columnOfNumbers 
@@ -394,8 +225,6 @@ FROM tblDifference cur
 LEFT OUTER JOIN tblDifference previous
 ON cur.RowNumber = previous.RowNumber + 1
 ;
-
-SELECT * FROM quasar.campaign_activity LIMIT 10;
 
 SELECT 
 	*
@@ -417,17 +246,6 @@ ON camp.northstar_id=userlog.northstar_id
 WHERE 
 c.northstar_id IN ('565e25c7469c64a8178b7cf5');
 
-SELECT 
-	count(*)
-FROM quasar.users u
-LEFT OUTER JOIN quasar.users_log l ON l.northstar_id = u.northstar_id;
-
-SELECT count(*)
-FROM quasar.users u
-INNER JOIN 
-	(SELECT DISTINCT l.northstar_id
-	FROM quasar.users_log l) ulog
-ON ulog.northstar_id = u.northstar_id;
 
 SELECT DISTINCT 
 	c.northstar_id,
@@ -447,15 +265,6 @@ INNER JOIN
 	GROUP BY m.northstar_id) mel
 ON mel.northstar_id = c.northstar_id
 LIMIT 500;
-
-SELECT * FROM quasar.member_event_log  LIMIT 50;
-
-ALTER TABLE quasar.member_event_log ADD INDEX (COLUMN_NAME);
-
-SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%mascot%' 
-;;
-
-
 
 SELECT 
 	winners.*,
@@ -483,35 +292,57 @@ FROM
 LEFT JOIN quasar.campaign_activity camps ON camps.northstar_id = winners.northstar_id
 LIMIT 50;
 
-SELECT 
-	c.northstar_id,
-	c.signup_created_at,
-	c.quantity,
-	c.submission_created_at,
-	c.submission_updated_at
-FROM quasar.campaign_activity c 
-WHERE c.campaign_run_id = 8026
-AND c.post_id <> -1
-ORDER BY c.northstar_id, c.signup_created_at DESC 
-LIMIT 400;
-
-SELECT min(u.created_at) FROM quasar.users u ; 
-SELECT * FROM quasar.member_event_log LIMIT 100;
 
 SELECT 
-u.source,
-count(*) 
-FROM quasar.users u 
-WHERE u.created_at >= '2017-04-01' AND u.created_at < '2017-05-01' 
-GROUP BY u.source;
+	camp_count.dte,
+	count(DISTINCT camp_count.northstar_id)
+FROM 
+	(SELECT 
+		c.northstar_id,
+		date(c.signup_created_at) AS dte,
+		count(*)
+	FROM campaign_activity c
+	GROUP BY c.northstar_id, c.signup_id, date(c.signup_created_at)
+	HAVING count(*) > 1
+	LIMIT 1000
+	) camp_count
+GROUP BY camp_count.dte
+;
 
-SELECT * FROM quasar.campaign_info i WHERE i.campaign_node_id_title LIKE '%gun%'; 
-SELECT count(*) FROM quasar.campaign_activity;
+SELECT 
+	count(*),
+	6000000-count(*)
+FROM quasar.users u
+WHERE u.customer_io_subscription_status = 'subscribed' 
+      OR u.sms_status = 'active';
 
-SELECT northstar_id, signup_id, post_id, quantity, submission_created_at, submission_updated_at
-FROM quasar.campaign_activity 
-WHERE  submission_created_at IS NOT NULL 
-AND post_id <> -1
-AND submission_updated_at > '2018-01-26'
-ORDER BY northstar_id, signup_id, submission_created_at
-	
+SET @rank=0;
+SELECT *
+FROM 
+	(SELECT 
+		@rank:=@rank+1 AS pos, 
+		u.northstar_id, 
+		u.created_at,
+		u.source,
+		u.email,
+		u.mobile,
+		u.first_name,
+		u.last_name,
+		u.addr_city,
+		u.addr_state,
+		u.country
+	FROM quasar.users u 
+	WHERE (u.customer_io_subscription_status = 'subscribed' 
+	      OR u.sms_status = 'active')
+	ORDER BY u.created_at) u_ord
+WHERE u_ord.pos = 6000000
+;
+
+SELECT count(*) 
+FROM cio.event_log e 
+WHERE e.northstar_id = '592f76eba0bfad17c42ab36e' 
+AND JSON_EXTRACT(e.`data`, "$.event_type") = 'customer_unsubscribed';
+
+SELECT DISTINCT JSON_EXTRACT(e.`data`, "$.event_type") 
+FROM (SELECT * FROM cio.event_log et LIMIT 10000) e;
+
