@@ -31,7 +31,7 @@ processReferralColumn <- function(dat) {
   parsedSep <-
     dat %>%
     select(id, referral_code) %>%
-    separate(referral_code, LETTERS[1:maxSep], ',',remove = T) %>%
+    separate(referral_code, LETTERS[1:maxSep], ',',remove = F) %>%
     mutate(
       nsid =
         case_when(
@@ -93,8 +93,8 @@ processReferralColumn <- function(dat) {
         source == 'web' & source_details == '' ~ paste0('campaign_',campaignRunId),
         TRUE ~ source_details
       )
-    ) #%>%
-    # select(-A,-B,-C,-D,-E)
+    ) %>%
+    select(-A,-B,-C,-D,-E)
   return(parsedSep)
 }
 
@@ -136,9 +136,9 @@ getQuasarAttributes <- function(queryObjects) {
 }
 
 addFields <- function(dat) {
-    dat %<>%
+  dat %<>%
     mutate(
-      ds_vr_status =
+      ds_vr_status.record =
         case_when(
           voter_registration_status == 'initiated' ~
             'register-form',
@@ -146,14 +146,14 @@ addFields <- function(dat) {
             'register-OVR',
           voter_registration_status %in% c('unknown','pending') | is.na(voter_registration_status) ~
             'uncertain',
-            voter_registration_status %in% c('ineligible','not-required') ~
+          voter_registration_status %in% c('ineligible','not-required') ~
             'ineligible',
-            voter_registration_status == 'registered' ~
+          voter_registration_status == 'registered' ~
             'confirmed',
           TRUE ~ ''
         ),
-      reportback = ifelse(
-        ds_vr_status %in%
+      reportback.record = ifelse(
+        ds_vr_status.record %in%
           c('confirmed','register-form','register-OVR'), T, F
       ),
       month = month(created_at),
@@ -164,22 +164,58 @@ addFields <- function(dat) {
             as.Date(created_at),
             breaks=
               seq.Date(as.Date('2018-02-06'),as.Date('2019-01-01'),by = '7 days')
-            ) %>% as.character()
+          ) %>% as.character()
       )
-    )
+    ) %>%
+    group_by(nsid) %>%
+    mutate(
+      ds_vr_status =
+        case_when(
+          nsid=='5a84b01ea0bfad5dc71768a2' ~ ds_vr_status.record,
+          max(ds_vr_status.record=='register-form')==1 ~ 'register-form',
+          max(ds_vr_status.record=='register-OVR')==1 ~ 'register-OVR',
+          max(ds_vr_status.record=='confirmed')==1 ~ 'confirmed',
+          max(ds_vr_status.record=='ineligible')==1 ~ 'ineligible',
+          max(ds_vr_status.record=='uncertain')==1 ~ 'uncertain',
+          TRUE ~ ''
+        ),
+      reportback =
+        ifelse(nsid=='5a84b01ea0bfad5dc71768a2', reportback.record,
+               ifelse(max(reportback.record==T), T, F)),
+      updated_at = max(updated_at),
+      created_at = min(created_at)
+    ) %>%
+    ungroup() %>%
+    select(-reportback.record, -ds_vr_status.record)
 }
 
 prepData <- function(...) {
   d <- getData(...)
   refParsed <- processReferralColumn(d)
 
-  ## Person can come back after initiated and be pending again
-  ## So latest updated at is not the best source for current status
   vr <-
     d %>%
-    left_join(refParsed) %>%
+    select(-referral_code) %>%
+    left_join(refParsed)
+
+  dupes <-
+    vr %>%
+    filter((duplicated(nsid) | duplicated(nsid, fromLast=T)) &
+             !(nsid %in% c('','null','5a84b01ea0bfad5dc71768a2'))) %>%
+    arrange(nsid, created_at, updated_at) %>%
+    mutate(
+      nsidInd = cumsum(nsid != lag(nsid, default=""))
+    ) %>%
     group_by(nsid) %>%
-    filter(updated_at == max(updated_at) | nsid=='') %>%
+    mutate(
+      recordCounter = 1:n()
+    )
+
+  vr <-
+    vr %>%
+    group_by(nsid) %>%
+    filter(updated_at == max(updated_at) |
+          (nsid %in% c('','null','5a84b01ea0bfad5dc71768a2'))) %>%
     ungroup()
 
   nsids <-
@@ -195,21 +231,25 @@ prepData <- function(...) {
 
   vr <- addFields(vr)
 
-  return(vr)
+  dupes <- addFields(dupes)
+
+  out <- list(vr, dupes)
+
+  return(out)
 
 }
 
 vfile <- 'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
 
-vr <-
-  prepData(
-    path=paste0(vfile,today,'.csv')
-    )
+out <- prepData(path=paste0(vfile,today,'.csv'))
 
-# dupes <-
-#   vr %>%
-#   filter((duplicated(nsid) | duplicated(nsid, fromLast=T))&nsid!='') %>%
-#   arrange(nsid)
+vr <- out[[1]]
+dupes <- out[[2]]
+
+powerUsers <-
+  dupes %>%
+  group_by(nsid) %>%
+  filter(max(recordCounter)>=5)
 
 # Analysis ----------------------------------------------------------------
 library(reshape2)
