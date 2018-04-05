@@ -249,7 +249,8 @@ dupes <- out[[2]]
 powerUsers <-
   dupes %>%
   group_by(nsid) %>%
-  filter(max(recordCounter)>=5)
+  filter(max(recordCounter)>=5) %>%
+  bind_rows(vr %>% filter(nsid=='5a84b01ea0bfad5dc71768a2'))
 
 # Analysis ----------------------------------------------------------------
 library(reshape2)
