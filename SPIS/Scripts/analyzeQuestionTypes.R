@@ -1,34 +1,36 @@
 source('Scripts/prepData.R')
+library(rlang)
 options(useFancyQuotes = F)
 
-likertMapping <- list(
-  quo(get(input.s) == 'Strongly Disagree' ~ 'Strongly Disagree'),
-  quo(get(input.s) == '2' ~ 'Disagree'),
-  quo(get(input.s) == '3' ~ 'Neutral'),
-  quo(get(input.s) == '4' ~ 'Agree'),
-  quo(get(input.s) == 'Strongly Agree' ~ 'Strongly Agree')
-)
+buildMapping <- function(replace, inCode, outCode) {
+  mapping <- exprs()
 
-likertLookupMaker <- function(input, mapping) {
+  for (i in 1:length(inCode)) {
+    mapping[[i]] <-
+      bquote(get(.(replace)) == .(inCode[i]) ~ .(outCode[i]))
+  }
+  return(mapping)
+}
+
+mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
+mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
+finCode <- c(-2,-1,0,1,2)
+
+lookupMaker <- function(input, mapFrom, mapTo, finCode) {
 
   input <- enquo(input)
   input.s <- paste0(input)[2]
   var_name <- quo_name(input)
 
+  mapping <- buildMapping(input.s, mapFrom, mapTo)
+  outcomeMapping <- buildMapping(input.s, mapFrom, finCode)
+
   lookupTable <-
     set %>%
-    mutate(!!var_name := case_when(!!!mapping)) %>%
     count(!!input) %>%
     mutate(
-      outcome =
-        case_when(
-          !!input == 'Strongly Disagree' ~ -2,
-          !!input == 'Disagree' ~ -1,
-          !!input == 'Neutral' ~ 0,
-          !!input == 'Agree' ~ 1,
-          !!input == 'Strongly Agree' ~ 2,
-          TRUE ~ NA_real_
-        )
+      recoded = case_when(!!!mapping),
+      outcome = case_when(!!!outcomeMapping)
     ) %>%
     select(-n)
 
@@ -36,4 +38,28 @@ likertLookupMaker <- function(input, mapping) {
 
 }
 
-likertLookupMaker(impact_attitudes.I_make_an_active_effort_to_understand_others_perspectives, mapping)
+lookupMaker(
+  impact_attitudes.I_make_an_active_effort_to_understand_others_perspectives,
+  mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
+  )
+
+analyzeStyleRank <- function(outcome, pivots, ...) {
+  browser()
+
+  outcome <- enquo(outcome)
+  pivots <- enquo(pivots)
+
+  outcomeLookup <- lookupMaker(!!outcome, ...)
+
+  forTree <-
+    set %>%
+    select(!!outcome, !!pivots) %>%
+    left_join(outcomeLookup)
+
+}
+
+analyzeStyleRank(
+  impact_attitudes.I_make_an_active_effort_to_understand_others_perspectives,
+  pivots = c(sex, fam_finances),
+  mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
+  )
