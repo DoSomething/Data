@@ -70,6 +70,6 @@ tree <-
     pivots = c(sex, fam_finances, age, Group),
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
-f <- as.formula(paste('outcome ~ sex + fam_finances + age'))
-part_obj <- rpart(formula = f, data = tree, control = list(cp = .01))
+f <- as.formula(paste('outcome ~ Group + fam_finances + age'))
+part_obj <- rpart(formula = f, data = tree %>% filter, control = list(cp = .01))
 rpart.plot(part_obj)

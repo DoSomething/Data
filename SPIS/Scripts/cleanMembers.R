@@ -82,7 +82,7 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
         quantile(Time_Taken_to_Complete_Seconds, .5) / 3
       )
 
-  analyticalSet <-
+  combine <-
     memberSet %>%
     bind_rows(genpopSet) %>%
     mutate(
@@ -93,6 +93,18 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
       Duplicate==F &
       (External_Reference!='test_response' | is.na(External_Reference)) &
       age(dob) >= 13 & age(dob) <= 25
+    )
+
+  raceVars <- set %>% select(starts_with('race')) %>% names()
+  racemap <-
+    list(
+      raceVars[1] == 'White' & raceVars[2:7]
+      )
+
+  analyticalSet <-
+    combine %>%
+    mutate(
+      race = case_when(!!!racemap)
     )
 
   return(analyticalSet)
