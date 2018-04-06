@@ -26,4 +26,11 @@ FROM
 		FROM member_event_log m
 		WHERE m.`timestamp` >= '2018-01-01' AND m.`timestamp` < '2018-04-01') mel
 	GROUP BY mel.action_month, mel.northstar_id) mel_tagged
-GROUP BY mel_tagged.source, mel_tagged.action_month
+GROUP BY mel_tagged.source, mel_tagged.action_month;
+
+SELECT 
+	month(m.`timestamp`) AS action_month,
+	count(DISTINCT northstar_id) AS unique_nsids
+FROM member_event_log m
+WHERE m.`timestamp` >= '2018-01-01' AND m.`timestamp` < '2018-04-01'
+GROUP BY month(m.`timestamp`)
