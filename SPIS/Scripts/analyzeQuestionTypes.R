@@ -1,5 +1,7 @@
 source('Scripts/prepData.R')
 library(rlang)
+library(rpart)
+library(rpart.plot)
 options(useFancyQuotes = F)
 
 buildMapping <- function(replace, inCode, outCode) {
@@ -39,7 +41,6 @@ lookupMaker <- function(input, mapFrom, mapTo, finCode) {
 }
 
 analyzeStyleRank <- function(outcome, pivots, ...) {
-  browser()
 
   outcome <- enquo(outcome)
   pivots <- enquo(pivots)
@@ -51,6 +52,7 @@ analyzeStyleRank <- function(outcome, pivots, ...) {
     select(!!outcome, !!pivots) %>%
     left_join(outcomeLookup)
 
+  return(forTree)
   ## Insert decision tree to select pivots
   ## Generate overall frequency overall average value
   ## Generate pivoted frequencies and avg values
@@ -62,8 +64,12 @@ mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
 mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
 finCode <- c(-2,-1,0,1,2)
 
-analyzeStyleRank(
-  impact_attitudes.I_make_an_active_effort_to_understand_others_perspectives,
-  pivots = c(sex, fam_finances),
-  mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
+tree <-
+  analyzeStyleRank(
+    impact_attitudes.I_make_an_active_effort_to_understand_others_perspectives,
+    pivots = c(sex, fam_finances, age, Group),
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
+f <- as.formula(paste('outcome ~ sex + fam_finances + age'))
+part_obj <- rpart(formula = f, data = tree, control = list(cp = .01))
+rpart.plot(part_obj)
