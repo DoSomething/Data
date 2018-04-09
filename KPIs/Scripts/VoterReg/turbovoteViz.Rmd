@@ -3,6 +3,7 @@ title: ""
 output: html_notebook
 ---
 #### Northstar Source
+* Web users disproportionately represent all those going through the flow 
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 library(scales)
 sumIf <- function(x) {
@@ -25,6 +26,7 @@ ggplot(uSource, aes(x=ds_vr_status, y=value, fill=reorder(user_source, value))) 
   guides(fill=guide_legend(title='User Source'))
 ```
 #### Referral Source
+* Unsurprisingly, web also makes up the bulk of referral sources
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
   geom_bar(stat='identity', position='stack') +
@@ -43,6 +45,16 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
   guides(fill=guide_legend(title='Source'))
 ```
 #### Source Details
+*Email*
+* The number of newsletters is really piling up. What is a better grouping for these source details?
+* Do we know how many people each of these newsletters went out to? This would help us identify which copy was the most effective
+*SMS*
+* This won't become useful until we find a way to add more source details
+*Social*
+* Generally isn't performing very well, but Facebook is doing better than the others. Is this because we've done more on facebook or because our efforts are smarter?
+*Web*
+* GTM and Hellobar are dominating 
+* Similar to email, is there a broader bucketing that could be useful here?
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 # ggplot(detSource.t, aes(x=ds_vr_status, y=value, fill=source_details)) +
 #   geom_bar(stat='identity', position='stack') +
@@ -85,6 +97,7 @@ grid.arrange(
 
 
 #### Signups & Reportbacks
+* The fact that online completers also have more reportbacks is very interesting. Could this mean that this is a cohort of people who is just generally more comfortable doing activities on the web and so are both more likely to submit photo reportbacks and submit forms online? Does this mean more people could be doing the process online than currently are? If so, how can we make it easier for people to know what they are can and can't do?
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(camp, aes(x=variable, y=value, fill=reorder(ds_vr_status, -value))) +
   geom_bar(stat='identity', position='dodge') +
