@@ -65,6 +65,32 @@ processSet <- function(path) {
   return(memberSet)
 }
 
+collapseRace <- function(dat) {
+
+  raceSet <- dat %>% select(Response_ID, starts_with('race'))
+  raceVars <- raceSet %>% names()
+
+  setRace <-
+    raceSet %>%
+    mutate_at(
+      .vars = vars(starts_with('race')),
+      .funs = funs(ifelse(is.na(.),0,1))
+    ) %>%
+    mutate(
+      Race = case_when(
+        rowSums(.)>1 ~ 'Multiracial',
+        get(raceVars[1]) == 1 & rowSums(.)==1 ~ 'White',
+        get(raceVars[2]) == 1 & rowSums(.)==1 ~ 'Hispanic/Latino',
+        get(raceVars[3]) == 1 & rowSums(.)==1 ~ 'Black',
+        get(raceVars[4]) == 1 & rowSums(.)==1 ~ 'Native American',
+        get(raceVars[5]) == 1 & rowSums(.)==1 ~ 'Asian',
+        get(raceVars[6]) == 1 & rowSums(.)==1 ~ 'Pacific Islander',
+        TRUE ~ 'Uncertain'
+      )
+    ) %>%
+    select(-starts_with('race.'))
+}
+
 createAnalyticalSet <- function(memberPath, genpopPath) {
 
   memberSet <-
@@ -95,19 +121,14 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
       age(dob) >= 13 & age(dob) <= 25
     )
 
-  raceVars <- set %>% select(starts_with('race')) %>% names()
-  racemap <-
-    list(
-      raceVars[1] == 'White' & raceVars[2:7]
-      )
+  raceMunge <- collapseRace(combine)
 
-  analyticalSet <-
+  combine <-
     combine %>%
-    mutate(
-      race = case_when(!!!racemap)
-    )
+    left_join(raceMunge) %>%
+    select(-starts_with('race'))
 
-  return(analyticalSet)
+  return(combine)
 
 }
 
