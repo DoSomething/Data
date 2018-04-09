@@ -9,3 +9,4 @@ WHERE e.northstarid_s IS NOT NULL
 		AND e.northstarid_s <> ''
 		AND to_timestamp(e.ts/1000) >= '2018-01-01'
 GROUP BY e.northstarid_s, e.session_id
+;

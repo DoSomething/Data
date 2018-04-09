@@ -1,9 +1,15 @@
 source('config/init.R')
 
+# ms <- 
+#   runQuery('Scripts/whatsGoodGTM_mysql.sql', 'mysql') %>% 
+#   mutate(
+#     activeMoreThan1 = ifelse(active_jan+active_feb+active_march > 1, 1, 0)
+  )
+
 ms <- 
-  runQuery('Scripts/whatsGoodGTM_mysql.sql', 'mysql') %>% 
+  read_csv('whatsgood_gtm_summary.csv') %>% 
   mutate(
-    activeMoreThan1 = ifelse(active_jan+active_feb+active_march+active_april > 1, 1, 0)
+    activeMoreThan1 = ifelse(active_jan+active_feb+active_march > 1, 1, 0)
   )
 
 pg <- runQuery('Scripts/whatsGoodGTM_pg.sql', 'pg')
