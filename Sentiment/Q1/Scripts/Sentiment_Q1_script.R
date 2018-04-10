@@ -5,6 +5,9 @@ library(gmodels)
 library(MASS)
 library(plyr)
 library(survey)
+library(data.table)
+library(ggpubr)
+
 
 source('config/init.R')
 source('config/mySQLConfig.R')
@@ -231,11 +234,6 @@ merged_Q1<-merge(x=all_Q1, y=qres_Q1, by ="northstar_id", all=TRUE)
 
 write.csv(merged_Q1_all, file = "all Q1 merged.csv")
 
-
-#NPS category for Unengaged
-CrossTable(merged_Q1_all$Niche_engaged, merged_Q1_all$nps_cat, prop.c=TRUE, prop.r=TRUE, prop.t=TRUE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-
 #Check code for 'Bad Niche' are only in Niche
 # CrossTable(merged$survey, merged$bad_niche, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
 #
@@ -307,6 +305,7 @@ merged_Q1_all<-merge(x=merged_Q1, y=qres_Q1_engagedniche, by ="northstar_id", al
 merged_Q1_all<-merged_Q1_all %>%
   mutate(
     Niche_engaged = ifelse(event_name=='activated' | event_name=='sms_signup',1,0),
+    Niche_unengaged = ifelse(survey=='niche' & is.na(Niche_engaged),1,0),
     weight=
       case_when(
         survey=='niche' ~ 1.19,
@@ -324,9 +323,19 @@ prop.table(svytable(~survey, design=merged_Q1_all.w))
 prop.table(table(merged_Q1_all$survey))
 
 #unweighted NPS
-prop.table(table(Weighted_Q1$nps_cat))
+prop.table(table(merged_Q1_all$nps_cat))
 #weighted NPS
 prop.table(svytable(~nps_cat, design=merged_Q1_all.w))
+
+#NPS category for Niche Engaged (n=76)
+CrossTable(merged_Q1_all$Niche_engaged, merged_Q1_all$nps_cat, prop.c=TRUE, prop.r=TRUE, prop.t=TRUE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+#NPS distribution for Niche Engaged
+CrossTable(merged_Q1_all$nps, merged_Q1_all$Niche_engaged, prop.c=TRUE, prop.r=TRUE, prop.t=TRUE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#NPS category for Niche Unengaged (n=60)
+CrossTable(merged_Q1_all$Niche_unengaged, merged_Q1_all$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+#NPS distribution for Niche Unengaged (n=60)
+CrossTable(merged_Q1_all$nps, merged_Q1_all$Niche_unengaged, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
 
 
 ###########################################################################
@@ -343,6 +352,7 @@ campaigns<- paste0("
         SELECT DISTINCT
           ca.northstar_id,
                       ca.signup_id,
+                      ca.signup_created_at,
                       ci.*
                       FROM quasar.campaign_activity ca
                       LEFT JOIN
@@ -356,10 +366,126 @@ campaigns<- paste0("
                       ON ca.campaign_run_id = ci.campaign_run_id
                       WHERE ca.northstar_id IN", a)
 #
-Q1_campaigns <-runQuery(action_types, which ='mysql') %>%
+Q1_campaigns <-runQuery(campaigns, which ='mysql') %>%
   mutate(
     campaign = gsub("[^[:alnum:]]", "", campaign)
   )
+
+#Only choose campaigns with 100+ signups
+Medium <-
+  c('MissinginHistory','ThanksaBillion', 'DoSomethingAboutGunViolence', 'RideSeek',
+    'GrabtheMic', 'RideSeek', 'FeedingBetterFutures')
+Low <- c('ShowerSongs','MirrorMessages','MyBigRegret','ThumbWars',
+        'TreatYoFriends', 'ThumbWars', 'TeamUpDreamUp', 'SaveTheMascots')
+
+topCamp <-
+  Q1_campaigns %>%
+  group_by(campaign) %>%
+  summarise(n = n()) %>%
+  arrange(-n) %>%
+  filter(campaign %in% c(Medium, Low))
+
+merged_Q1_all%<>%
+  mutate(
+    group =
+      case_when(survey=='niche' ~ 'niche',
+                survey=='sms' ~ 'sms_only',
+                survey=='Nonniche' ~ 'other', TRUE ~ ' ')
+  )
+
+#Remove Niche members
+merged_Q1_all_noniche<-merged_Q1_all%>%
+  filter(survey!=0)
+
+campaignList <- unique(topCamp$campaign)
+percentDidCampaign <- data.frame()
+for (i in 1:length(campaignList)) {
+  temp <- percentDid(campaignList[i], Q1_campaigns)
+  percentDidCampaign <- rbind(percentDidCampaign, temp)
+}
+
+uncastCombine <-
+  merged_Q1_all %>%
+  left_join(Q1_campaigns)
+npsCampaign <- data.frame()
+for (i in 1:length(campaignList)) {
+  # print(campaignList[i])
+  temp <- npsDidCampaign(uncastCombine, campaignList[i], 10)
+  npsCampaign <- rbind(npsCampaign, temp)
+}
+npsCampaign %>% arrange(-nps)
+castAction <-
+  merged_Q1_all %>%
+  left_join(
+    Q1_campaigns %>%
+      filter(campaign %in% topCamp$campaign) %>%
+      mutate(
+        campaign = gsub("[^[:alnum:]]", "", campaign)
+      ) %>%
+      dplyr::select(northstar_id, campaign) %>%
+      dcast(northstar_id ~ paste0('campaign_',campaign))
+  )%>%
+  mutate(
+    group =
+      case_when(survey=='niche' ~ 'niche',
+                survey=='sms' ~ 'sms_only',
+                survey=='Nonniche' ~ 'other', TRUE ~ ' ')
+  )
+
+nameList <- castAction %>% select(starts_with('campaign')) %>% colnames()
+campaignImpact <- data.table()
+p <- c()
+for (i in 1:length(nameList)) {
+  p[i] <- plotMod(nameList[i],castAction)
+  campaignImpact <- rbind(campaignImpact, data.table(campaign=nameList[i], impact=p[i]))
+}
+campaignImpact[,campaign:=gsub('campaign_','',campaign)]
+
+result <-
+  as.tibble(campaignImpact) %>%
+  left_join(percentDidCampaign) %>%
+  left_join(npsCampaign) %>%
+  arrange(-nps) %>%
+  mutate(
+    Barrier = ifelse(campaign %in% Medium, 'Medium',
+                     ifelse(campaign %in% Low, 'Low', 'Other'))
+  )
+result$campaign <- factor(result$campaign, levels = result$campaign[order(result$Barrier,-result$nps)])
+
+ggplot(result, aes(x=campaign, y=nps, fill=Barrier)) +
+  geom_bar(stat='identity', position='dodge') +
+  coord_flip() + geom_text(aes(label=nps), size=4) +
+  theme(text = element_text(size=14))
+
+nichePivot <-
+  result %>%
+  select(campaign, npsNiche, npsNonNiche, Barrier, countNiche, countNonNiche) %>%
+  melt(value.var=c('nps','npsNiche','npsNonNiche','countNiche','countNonNiche'),
+       value.name='nps', variable.names='Type')
+
+ggplot(nichePivot, aes(x=campaign, y=nps, fill=Barrier)) +
+  geom_bar(stat='identity', position='dodge') + coord_flip() +
+  geom_text(aes(label=nps), size=4) +
+  facet_wrap(~variable)
+
+nonnichePivot <-
+  result %>%
+  select(campaign, npsNonNiche, Barrier, countNonNiche) %>%
+  melt(value.var=c('nps','npsNonNiche','countNonNiche'),
+       value.name='nps', variable.names='Type')
+
+ggplot(nonnichePivot, aes(x=campaign, y=nps, fill=Barrier)) +
+  geom_bar(stat='identity', position='dodge') + coord_flip() +
+  geom_text(aes(label=nps), size=3) +
+  facet_wrap(~variable, scale = 'free_x')
+
+#NPS scores for members who signedup for Low campaigns vs. Medium campaigns (campaigns in top 9)
+aggFrame <-
+  rbind(
+    data.frame(Barrier='Low', nps=npsDidCampaign(uncastCombine, Low)),
+    data.frame(Barrier='Medium', nps=npsDidCampaign(uncastCombine, Medium))
+  )
+
 
 
 campaigns<-Q1_campaigns %>% group_by(Q1_campaigns$campaign) %>%
@@ -387,6 +513,226 @@ write.csv(campaigns, file = "Q1 campaigns.csv")
 cause_action_types_Q1<-merge(x=castAction, y=merged_Q1_all, by ="northstar_id", all=TRUE)
 
 
+
+###########################################################################
+###########################################################################
+
+##############LINKING MEMBER EVENT LOG TO SENTIMENT DATA ##################
+
+###########################################################################
+###########################################################################
+
+q_mel<- paste0("SELECT
+                  mel.northstar_id,
+                  mel.action_type,
+                  mel.source,
+                  MAX(mel.timestamp) as 'time',
+                  MAX(CASE WHEN DATE(mel.`timestamp`) < '2017-11-15' THEN 1 ELSE 0 END) as 'active_before_q1'
+                FROM quasar.member_event_log mel
+                 WHERE mel.timestamp < '2018-02-21' AND mel.northstar_id IN", a,
+                 "GROUP BY
+                 mel.northstar_id")
+
+qres_Q1_mel <- runQuery(q_mel, which = 'mysql')
+
+nps_mel<-merged_Q1_all%>%
+  select(northstar_id,survey, Niche_engaged, Niche_unengaged, nps, nps_cat, submit_date, reengage)
+
+mel_nps<-merge(x=qres_Q1_mel, y=nps_mel, by ="northstar_id", all=TRUE)
+
+mel_nps<-mel_nps%>%
+  mutate(
+  survey_submit = as.Date(paste0(submit_date,'%Y-%m-%d %H:%M:%S')),
+  last_active = as.Date(time, '%Y-%m-%d %H:%M:%S'),
+  time_to_survey = survey_submit - last_active)
+
+#Select relevant variables
+mel_nps<-mel_nps%>% select(northstar_id, survey, survey_submit, last_active, time_to_survey, nps, nps_cat, reengage)
+#Look at quantiles for # days before survey
+quantile(mel_nps$time_to_survey)
+mean(mel_nps$time_to_survey)
+#weighted
+svymean(~mel_nps$time_to_survey,merged_Q1_all.w)
+
+mel_nps_time<-mel_nps%>%
+  mutate(
+    time_cat=
+      case_when(time_to_survey < 15 ~ 'Last active within 14 days before survey',
+                time_to_survey >14 & time_to_survey <50 ~ 'Last active 15-49 days before survey',
+                time_to_survey >49 & time_to_survey <127 ~ 'Last active 50-126 days before survey',
+                time_to_survey >126 ~ 'Last active 127 days or more before survey'))
+
+# time last active x NPS category
+CrossTable(mel_nps_time$time_cat, mel_nps_time$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+CrossTable(mel_nps_time$time_cat, mel_nps_time$survey, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#NPS for SMS
+mel_nps_sms<-mel_nps_time%>%
+  filter(survey=='sms')
+CrossTable(mel_nps_sms$time_cat, mel_nps_sms$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#NPS for Nonniche
+mel_nps_nonniche<-mel_nps_time%>%
+  filter(survey=='Nonniche')
+CrossTable(mel_nps_nonniche$time_cat, mel_nps_nonniche$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#NPS for Niche
+mel_nps_niche<-mel_nps_time%>%
+  filter(survey=='niche')
+CrossTable(mel_nps_niche$time_cat, mel_nps_niche$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#NPS for Nonniche + Typical
+mel_nps_nosms<-mel_nps_time%>%
+  filter(survey=='Nonniche'| survey=='niche')
+
+quantile(mel_nps_nosms$time_to_survey)
+
+mel_nosms<-mel_nps_nosms%>%
+  mutate(
+    time_cat=
+      case_when(time_to_survey < 29 ~ 'Last active within 28 days before (4 wks)',
+                time_to_survey >=28 & time_to_survey <=84 ~ 'Last active 28-84 days before (12wks)',
+                time_to_survey >=85 & time_to_survey <=168 ~ 'Last active 85-168 days before survey (24 wks)',
+                time_to_survey >168 ~ 'Last active 168 days or more before (24+ wks)'))
+
+CrossTable(mel_nosms$time_cat, mel_nosms$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+CrossTable(mel_nosms$time_cat, mel_nosms$reengage, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+
+#NPS for Q4 Nonniche + Typical
+mel_nps_nosms_q4<-mel_nps_time_q4%>%
+  filter(survey=='Nonniche'| survey=='niche')
+
+quantile(mel_nps_nosms_q4$time_to_survey)
+
+mel_nosms_q4<-mel_nps_nosms_q4%>%
+  mutate(
+    time_cat=
+      case_when(time_to_survey < 29 ~ 'Last active within 28 days before (4 wks)',
+                time_to_survey >=28 & time_to_survey <=84 ~ 'Last active 28-84 days before (12wks)',
+                time_to_survey >=85 & time_to_survey <=168 ~ 'Last active 85-168 days before survey (24 wks)',
+                time_to_survey >168 ~ 'Last active 168 days or more before (24+ wks)'))
+
+CrossTable(mel_nosms_q4$time_cat, mel_nosms_q4$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+
+###########################################################################
+###########################################################################
+
+##############LINKING CAMPGAIGN SIGN UP DATE TO SENTIMENT DATA #############
+
+###########################################################################
+###########################################################################
+a_signup=prepQueryObjects(merged_Q1_all$northstar_id)
+yearAgo <- as.Date('2017-12-05') - 365
+q_signup <-
+  paste0("SELECT
+         c.northstar_id,
+         c.signup_id,
+        c.signup_source,
+         date(c.signup_created_at) AS signup_date
+         FROM quasar.campaign_activity c
+         WHERE c.signup_created_at < '2018-02-21' AND c.northstar_id IN",a_signup,"
+         AND c.signup_created_at >= '",yearAgo,"'"
+  )
+
+q_signup <- runQuery(q_signup, 'mysql')
+
+#Select most recent sign up date before survey
+lastSignup <-
+  q_signup %>%
+  mutate(signup_date = as.Date(signup_date)) %>%
+  group_by(northstar_id) %>%
+  summarise(last_signup = max(signup_date))
+
+nps_mel<-merged_Q1_all%>%
+  select(northstar_id,survey, Niche_engaged, Niche_unengaged, nps, nps_cat, submit_date)
+
+signup_nps<-merge(x=lastSignup, y=nps_mel, by ="northstar_id", all=TRUE)
+
+signup_nps<-signup_nps%>%
+  mutate(
+    survey_submit = as.Date(paste0(submit_date,'%Y-%m-%d %H:%M:%S')),
+    last_active = as.Date(last_signup, '%Y-%m-%d %H:%M:%S'),
+    time_to_survey = survey_submit - last_active)
+
+#Select relevant variables
+signup_nps<-signup_nps%>% select(northstar_id, survey, survey_submit, last_active, time_to_survey, nps, nps_cat)
+#Look at quantiles for # days before survey
+quantile(signup_nps$time_to_survey)
+
+signup_nps_time<-signup_nps%>%
+  mutate(
+    time_cat=
+      case_when(time_to_survey < 15 ~ 'Last active within 14 days before survey',
+                time_to_survey >14 & time_to_survey <51 ~ 'Last active 15-50 days before survey',
+                time_to_survey >50 & time_to_survey <129 ~ 'Last active 51-128 days before survey',
+                time_to_survey >128 ~ 'Last active 129 days or more before survey'))
+
+CrossTable(signup_nps_time$time_cat, signup_nps_time$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#NPS for SMS
+signup_nps_sms<-signup_nps_time%>%
+  filter(survey=='sms')
+CrossTable(signup_nps_sms$time_cat, signup_nps_sms$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#NPS for Nonniche
+signup_nps_nonniche<-signup_nps_time%>%
+  filter(survey=='Nonniche')
+CrossTable(signup_nps_nonniche$time_cat, signup_nps_nonniche$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#NPS for Niche
+signup_nps_niche<-signup_nps_time%>%
+  filter(survey=='niche')
+CrossTable(signup_nps_niche$time_cat, signup_nps_niche$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+
+
+###########################################################################
+###########################################################################
+
+##############LINKING C.IO EVENT LOG TO SENTIMENT DATA ##################
+
+###########################################################################
+###########################################################################
+
+q_cio<- paste0("SELECT ci.northstar_id,
+              sum(case when ci.event_id <> -1 then 1 else 0 end) as total_messages
+              FROM cio.event_log ci
+              WHERE ci.northstar_id IN", a,
+              "GROUP BY
+              ci.northstar_id")
+
+qres_Q1_cio <- runQuery(q_cio, which = 'mysql')
+
+#join cio data with data
+messages_cio<-merge(x=qres_Q1_cio, y=merged_Q1_all, by ="northstar_id", all=TRUE)
+
+messages_cio<-messages_cio%>%
+  mutate(messages=as.numeric(total_messages))
+
+mean(messages_cio$messages, na.rm=TRUE)
+quantile(messages_cio$messages, na.rm=TRUE)
+
+
+group_by(messages_cio, survey)%>%
+  summarise(
+    count = n(),
+    mean = mean(messages, na.rm=TRUE),
+    sd = sd(messages, na.rm=TRUE)
+  )
+
+group_by(messages_cio, nps_cat)%>%
+  summarise(
+    count = n(),
+    mean = mean(messages, na.rm=TRUE),
+    sd = sd(messages, na.rm=TRUE)
+  )
+
+ggboxplot(messages_cio, x = "nps_cat", y = "messages",
+          color = "group", palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+          order = c("ctrl", "trt1", "trt2"),
+          ylab = "Number of messages", xlab = "NPS group")
 
 ###########################################################################
 ###########################################################################
@@ -438,12 +784,7 @@ prop.table(svytable(~, design=merged_Q1_all.w))%>%round(2)
 important<-merged_Q1_all %>% group_by(merged_Q1_all$important) %>%
   summarise(count = n()) %>%
   mutate(
-    proportion = count/sum(count)
-  )
-
-important<-table(merged_Q1_all$important)
-important
-prop.table(important)
+    proportion = count/sum(count)  )
 
 
 ###########################################################################
@@ -492,7 +833,6 @@ prop.table(svytable(~impact, design=merged_Q1_all.w))%>%round(2)
 mean(merged_Q1_all$impact)
 svymean(~impact,merged_Q1_all.w)
 
-
 #Satisfaction - Community
 
 #Weighted vs. unweighted
@@ -512,6 +852,95 @@ prop.table(svytable(~scholarships, design=merged_Q1_all.w))%>%round(2)
 #Weighted vs. unweighted average score
 mean(merged_Q1_all$scholarships)
 svymean(~scholarships,merged_Q1_all.w)
+
+#####################################################################################################
+
+############################# IMPACT SATISFACTION PER CAMPIGN ################################
+
+#####################################################################################################
+
+#DoSomething About Gun Violence
+gunviolence<-castAction%>%
+  filter(campaign_DoSomethingAboutGunViolence>0)
+#Unweighted Mean
+mean(gunviolence$impact, na.rm=TRUE)
+#Weighted Impact Satisfaction scores
+gunviolence.w<-svydesign(id = ~1, data = gunviolence, weights = gunviolence$weight)
+svymean(~impact,gunviolence.w, na.rm=TRUE)
+
+#Missing in History
+MIH<-castAction%>%
+  filter(campaign_MissinginHistory>0)
+#Unweighted Mean
+mean(MIH$impact, na.rm=TRUE)
+#Weighted Impact Satisfaction scores
+MIH.w<-svydesign(id = ~1, data = MIH, weights = MIH$weight)
+svymean(~impact,MIH.w, na.rm=TRUE)
+
+#Thanks A Billion
+ThanksBillion<-castAction%>%
+  filter(campaign_ThanksaBillion>0)
+#Unweighted Mean
+mean(ThanksBillion$impact, na.rm=TRUE)
+#Weighted Impact Satisfaction scores
+ThanksBillion.w<-svydesign(id = ~1, data = ThanksBillion, weights = ThanksBillion$weight)
+svymean(~impact,ThanksBillion.w, na.rm=TRUE)
+
+#Ride and Seek
+RS<-castAction%>%
+  filter(campaign_RideSeek>0)
+#Unweighted Mean
+mean(RS$impact, na.rm=TRUE)
+#Weighted Impact Satisfaction scores
+RS.w<-svydesign(id = ~1, data = RS, weights = RS$weight)
+svymean(~impact,RS.w, na.rm=TRUE)
+
+#Shower Songs
+ShowerSongs<-castAction%>%
+  filter(campaign_ShowerSongs>0)
+#Unweighted Mean
+mean(ShowerSongs$impact, na.rm=TRUE)
+#Weighted Impact Satisfaction scores
+ShowerSongs.w<-svydesign(id = ~1, data = ShowerSongs, weights = ShowerSongs$weight)
+svymean(~impact,ShowerSongs.w, na.rm=TRUE)
+
+
+#My Big Regret
+BigRegret<-castAction%>%
+  filter(campaign_MyBigRegret>0)
+#Unweighted Mean
+mean(BigRegret$impact, na.rm=TRUE)
+#Weighted Impact Satisfaction scores
+BigRegret.w<-svydesign(id = ~1, data = BigRegret, weights = BigRegret$weight)
+svymean(~impact,BigRegret.w, na.rm=TRUE)
+
+#Thumb Wars
+ThumbWars<-castAction%>%
+  filter(campaign_ThumbWars>0)
+#Unweighted Mean
+mean(ThumbWars$impact, na.rm=TRUE)
+#Weighted Impact Satisfaction scores
+ThumbWars.w<-svydesign(id = ~1, data = ThumbWars, weights = ThumbWars$weight)
+svymean(~impact,ThumbWars.w, na.rm=TRUE)
+
+#Treat Yo Friends
+TreatFriends<-castAction%>%
+  filter(campaign_TreatYoFriends>0)
+#Unweighted Mean
+mean(TreatFriends$impact, na.rm=TRUE)
+#Weighted Impact Satisfaction scores
+TreatFriends.w<-svydesign(id = ~1, data = TreatFriends, weights = TreatFriends$weight)
+svymean(~impact,TreatFriends.w, na.rm=TRUE)
+
+#Mirror Messages
+MirrorMessages<-castAction%>%
+  filter(campaign_MirrorMessages>0)
+#Unweighted Mean
+mean(MirrorMessages$impact, na.rm=TRUE)
+#Weighted Impact Satisfaction scores
+MirrorMessages.w<-svydesign(id = ~1, data = MirrorMessages, weights = MirrorMessages$weight)
+svymean(~impact,MirrorMessages.w, na.rm=TRUE)
+
 
 ###########################################################################
 
@@ -648,6 +1077,45 @@ prop.table(svytable(~nps_cat+survey,design=merged_Q1_all.w))%>%round(2)
 #Re-engagement x survey
 CrossTable(merged_Q1_all$reengage, merged_Q1_all$survey, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
 
+campaigns_binary<-castAction%>%
+  mutate(
+    gunviolence=ifelse(campaign_DoSomethingAboutGunViolence>0,1,0),
+    missinghistory=ifelse(campaign_MissinginHistory>0,1,0),
+    mirrormessages=ifelse(campaign_MirrorMessages>0,1,0),
+    thanksabillion=ifelse(campaign_ThanksaBillion>0,1,0),
+    rideseek=ifelse(campaign_RideSeek>0,1,0),
+    showersongs=ifelse(campaign_ShowerSongs>0,1,0),
+    mybigregret=ifelse(campaign_MyBigRegret>0,1,0),
+    thumbwars=ifelse(campaign_ThumbWars>0,1,0),
+    treatyofriends=ifelse(campaign_TreatYoFriends>0,1,0)
+  )
+
+#Re-engagement x Gun Violence
+CrossTable(campaigns_binary$reengage, campaigns_binary$campaign_DoSomethingAboutGunViolence, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#Re-engagement x Mirror Messages
+CrossTable(campaigns_binary$reengage, campaigns_binary$mirrormessages, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#Re-engagement x Missing in History
+CrossTable(campaigns_binary$reengage, campaigns_binary$missinghistory, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#Re-engagement x Thanks A Billion
+CrossTable(campaigns_binary$reengage, campaigns_binary$thanksabillion, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#Re-engagement x Ride and Seek
+CrossTable(campaigns_binary$reengage, campaigns_binary$rideseek, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#Re-engagement x Shower Songs
+CrossTable(campaigns_binary$reengage, campaigns_binary$showersongs, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#Re-engagement x My Big Regret
+CrossTable(campaigns_binary$reengage, campaigns_binary$mybigregret, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#Re-engagement x Treat Yo Friends
+CrossTable(campaigns_binary$reengage, campaigns_binary$treatyofriends, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+#Re-engagement x Treat Yo Friends
+CrossTable(campaigns_binary$reengage, campaigns_binary$thumbwars, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
 
 
 ######################################
@@ -695,281 +1163,12 @@ CrossTable(merged$nps, merged$survey, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, p
 #DS value x survey segment
 CrossTable(merged$ds_value, merged$survey, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
 
-
-#######################################
-######### REGRESSION MODELS ##########
-#######################################
-
-##Regression models predicting NPS (1-10)
-#
-# #Function for
-# plotMod <- function(field, data) {
-#   require(scales)
-#   surveyMod.form = as.formula(paste0('nps ~ ',field,' + survey + ',field,':survey'))
-#   surveyMod <- lm(surveyMod.form, data)
-#
-#   fieldMod.form = as.formula(paste0('nps ~ ',field))
-#   fieldMod <- lm(fieldMod.form, data)
-#
-#   preds <-
-#     as.tibble(expand.grid(survey = c('Nonniche','sms','niche','full'),
-#                           predictor = seq(0,5,1))) %>%
-#     arrange(survey, predictor) %>%
-#     setNames(c('survey',field))
-#
-#   preds <- data.table(preds)
-#
-#   preds[survey!='full',predictions := predict(surveyMod, preds[survey!='full'], type='response')]
-#   preds[survey=='full',predictions := predict(fieldMod, preds[survey=='full'], type='response')]
-#
-#   ggplot(preds, aes(x=get(field), y=predictions, color=survey)) +
-#     geom_line() +
-#     scale_y_continuous(breaks=pretty_breaks(10)) +
-#     labs(y="Expected NPS", x=paste(field), title=paste0("Predicted NPS for ",field))
-#
-# }
-#
-# cause_action_types %>%
-#   dplyr::select(contains('_type_')) %>%
-#   colnames() -> fields
-#
-# for (i in 1:length(fields)) {
-#   p <- plotMod(fields[i], cause_action_types)
-#   print(p)
-# }
-#
-#
-# #
-# # #Donate Something as predictor
-# # donate_regression_interaction = as.formula('nps ~ action_type_DonateSomething + survey + action_type_DonateSomething:survey')
-# # model_donate <- lm(donate_regression_interaction, cause_action_types)
-# # tidy(model_donate)
-# #
-# # preds <-
-# #   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
-# #                         action_type_DonateSomething = seq(0,10,1))) %>%
-# #   arrange(survey, action_type_DonateSomething)
-# #
-# # preds$predictions <- predict(model_donate, preds, type='response')
-# # ggplot(preds, aes(x=action_type_DonateSomething, y=predictions, color=survey)) + geom_line()
-# #
-# # #Share Something
-# # share_regression_interaction = as.formula('nps ~ action_type_ShareSomething + survey + action_type_ShareSomething:survey')
-# # model_share <- lm(share_regression_interaction, cause_action_types)
-# # tidy(model_share)
-# #
-# # preds <-
-# #   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
-# #                         action_type_ShareSomething = seq(0,10,1))) %>%
-# #   arrange(survey, action_type_ShareSomething)
-# #
-# # preds$predictions <- predict(model_share, preds, type='response')
-# # ggplot(preds, aes(x=action_type_ShareSomething, y=predictions, color=survey)) + geom_line()
-# #
-# #
-# # # Face to Face
-# # face_regression_interaction = as.formula('nps ~ action_type_FacetoFace + survey + action_type_FacetoFace:survey')
-# # model_face <- lm(face_regression_interaction, cause_action_types)
-# # tidy(model_face)
-# #
-# # preds <-
-# #   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
-# #                         action_type_FacetoFace = seq(0,10,1))) %>%
-# #   arrange(survey, action_type_FacetoFace)
-# #
-# # preds$predictions <- predict(model_face, preds, type='response')
-# # ggplot(preds, aes(x=action_type_FacetoFace, y=predictions, color=survey)) + geom_line()
-# #
-# # # Host an Event
-# # host_regression_interaction = as.formula('nps ~ action_type_HostAnEvent + survey + action_type_HostAnEvent:survey')
-# # model_hostevent <- lm(host_regression_interaction, cause_action_types)
-# # tidy(model_hostevent)
-# #
-# # preds <-
-# #   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
-# #                         action_type_HostAnEvent = seq(0,10,1))) %>%
-# #   arrange(survey, action_type_HostAnEvent)
-# #
-# # preds$predictions <- predict(model_hostevent, preds, type='response')
-# # ggplot(preds, aes(x=action_type_HostAnEvent, y=predictions, color=survey)) + geom_line()
-# #
-# # # Improve a Space
-# # space_regression_interaction = as.formula('nps ~ action_type_ImproveaSpace + survey + action_type_ImproveaSpace:survey')
-# # model_space <- lm(space_regression_interaction, cause_action_types)
-# # tidy(model_space)
-# #
-# # preds <-
-# #   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
-# #                         action_type_ImproveaSpace = seq(0,10,1))) %>%
-# #   arrange(survey, action_type_ImproveaSpace)
-# #
-# # preds$predictions <- predict(model_space, preds, type='response')
-# # ggplot(preds, aes(x=action_type_ImproveaSpace, y=predictions, color=survey)) + geom_line()
-# #
-# # # Make Something
-# # make_regression_interaction = as.formula('nps ~ action_type_MakeSomething + survey + action_type_MakeSomething:survey')
-# # model_make <- lm(make_regression_interaction, cause_action_types)
-# # tidy(model_make)
-# #
-# # preds <-
-# #   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
-# #                         action_type_MakeSomething = seq(0,10,1))) %>%
-# #   arrange(survey, action_type_MakeSomething)
-# #
-# # preds$predictions <- predict(model_make, preds, type='response')
-# # ggplot(preds, aes(x=action_type_MakeSomething, y=predictions, color=survey)) + geom_line()
-# #
-# # # Start Something
-# # start_regression_interaction = as.formula('nps ~ action_type_StartSomething + survey + action_type_StartSomething:survey')
-# # model_start <- lm(start_regression_interaction, cause_action_types)
-# # tidy(model_start)
-# #
-# # preds <-
-# #   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
-# #                         action_type_StartSomething = seq(0,10,1))) %>%
-# #   arrange(survey, action_type_StartSomething)
-# #
-# # preds$predictions <- predict(model_start, preds, type='response')
-# ggplot(preds, aes(x=action_type_StartSomething, y=predictions, color=survey)) + geom_line()
-#
-# # Take a Stand
-# stand_regression_interaction = as.formula('nps ~ action_type_TakeaStand + survey + action_type_TakeaStand:survey')
-# model_stand <- lm(stand_regression_interaction, cause_action_types)
-# tidy(model_stand)
-#
-# preds <-
-#   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
-#                         action_type_TakeaStand = seq(0,10,1))) %>%
-#   arrange(survey, action_type_TakeaStand)
-#
-# preds$predictions <- predict(model_stand, preds, type='response')
-# ggplot(preds, aes(x=action_type_TakeaStand, y=predictions, color=survey)) + geom_line()
-#
-# #####CAUSES####
-#
-# # Animals
-# animals_regression_interaction = as.formula('nps ~ cause_type_Animals + survey + cause_type_Animals:survey')
-# model_animals <- lm(animals_regression_interaction, cause_action_types)
-# tidy(model_animals)
-#
-# preds <-
-#   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
-#                         cause_type_Animals = seq(0,10,1))) %>%
-#   arrange(survey, cause_type_Animals)
-#
-# preds$predictions <- predict(model_animals, preds, type='response')
-# ggplot(preds, aes(x=cause_type_Animals, y=predictions, color=survey)) + geom_line()
-#
-# # Bullying
-# bully_regression_interaction = as.formula('nps ~ cause_type_Bullying + survey + cause_type_Bullying:survey')
-# model_bully <- lm(bully_regression_interaction, cause_action_types)
-# tidy(model_bully)
-#
-# preds <-
-#   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
-#                         cause_type_Bullying = seq(0,10,1))) %>%
-#   arrange(survey, cause_type_Bullying)
-#
-# preds$predictions <- predict(model_bully, preds, type='response')
-# ggplot(preds, aes(x=cause_type_Bullying, y=predictions, color=survey)) + geom_line()
-#
-# # Disasters
-# disaster_regression_interaction = as.formula('nps ~ cause_type_Disasters + survey + cause_type_Disasters:survey')
-# model_disaster <- lm(disaster_regression_interaction, cause_action_types)
-# tidy(model_disaster)
-#
-# preds <-
-#   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
-#                         cause_type_Disasters = seq(0,10,1))) %>%
-#   arrange(survey, cause_type_Disasters)
-#
-# preds$predictions <- predict(model_disaster, preds, type='response')
-# ggplot(preds, aes(x=cause_type_Disasters, y=predictions, color=survey)) + geom_line()
-#
-#
-#
-#
-# # Education
-# education_regression_interaction = as.formula('nps ~ cause_type_Education + survey + cause_type_Education:survey')
-# model_education <- lm(education_regression_interaction, cause_action_types)
-# tidy(model_education)
-#
-# preds <-
-#   as.tibble(expand.grid(survey = c('Nonniche','sms','niche'),
-#                         cause_type_Education = seq(0,10,1))) %>%
-#   arrange(survey, cause_type_Education)
-#
-# preds$predictions <- predict(model_education, preds, type='response')
-# ggplot(preds, aes(x=cause_type_Education, y=predictions, color=survey)) + geom_line()
-#
-#
-# write.csv(cause_action_types, file = "Q4 causes and actions.csv")
-# save(model,file = '~/Desktop/model.rds')
-#
-#
-# plotMod('action_type_DonateSomething',cause_action_types)
-
-#
-#
-# causes_actions<-cause_action_types%>%
-#   dplyr::select(northstar_id,
-#                 action_type_DonateSomething,
-#                 action_type_FacetoFace,
-#                 action_type_HostAnEvent,
-#                 action_type_ImproveaSpace,
-#                 action_type_MakeSomething,
-#                 action_type_NA,
-#                 action_type_ShareSomething,
-#                 action_type_StartSomething,
-#                 action_type_TakeaStand,
-#                 cause_type_Animals,
-#                 cause_type_Bullying,
-#                 cause_type_Disasters,
-#                 cause_type_Discrimination,
-#                 cause_type_Education,
-#                 cause_type_Environment,
-#                 cause_type_Homelessness,
-#                 cause_type_MentalHealth,
-#                 cause_type_NA,
-#                 cause_type_PhysicalHealth,
-#                 cause_type_Poverty,
-#                 cause_type_Relationships,
-#                 cause_type_Sex,
-#                 cause_type_Violence,
-#                 nps,
-#                 nps_cat)%>%
-#         mutate(
-#               donate=ifelse(action_type_DonateSomething>0,1,0),
-#               face=ifelse(action_type_FacetoFace>0,1,0),
-#               host=ifelse(action_type_HostAnEvent>0,1,0),
-#               space=ifelse(action_type_ImproveaSpace>0,1,0),
-#               make=ifelse(action_type_MakeSomething>0,1,0),
-#               action_NA=ifelse(action_type_NA>0,1,0),
-#               share=ifelse(action_type_ShareSomething>0,1,0),
-#               start=ifelse(action_type_StartSomething>0,1,0),
-#               takestand=ifelse(action_type_TakeaStand>0,1,0),
-#               animals=ifelse(cause_type_Animals>0,1,0),
-#               bullying=ifelse(cause_type_Bullying>0,1,0),
-#               disasters=ifelse(cause_type_Disasters>0,1,0),
-#               discrimination=ifelse(cause_type_Discrimination>0,1,0),
-#               education=ifelse(cause_type_Education>0,1,0),
-#               environment=ifelse(cause_type_Environment>0,1,0),
-#               homeless=ifelse(cause_type_Homelessness>0,1,0),
-#               mentalhealth=ifelse(cause_type_MentalHealth>0,1,0),
-#               cause_NA=ifelse(cause_type_NA>0,1,0),
-#               health=ifelse(cause_type_PhysicalHealth>0,1,0),
-#               poverty=ifelse(cause_type_Poverty>0,1,0),
-#               relationships=ifelse(cause_type_Relationships>0,1,0),
-#               sex=ifelse(cause_type_Sex>0,1,0),
-#               violence=ifelse(cause_type_Violence>0,1,0)
-#                 )
-
 ############################################
 ####### LOGISTIC REGRESSION MODELS #########
 ############################################
 
 #create binary variables
-logisitic<-merged_Q1_all%>%
+logisitic<-castAction%>%
   mutate(
     community_rec=(ifelse(community==5,1,0)),
     causes_rec=(ifelse(causes==5,1,0)),
@@ -977,9 +1176,10 @@ logisitic<-merged_Q1_all%>%
     communication_rec=(ifelse(communication==5,1,0)),
     scholarships_rec=(ifelse(scholarships==5,1,0)),
     impact_rec=ifelse(impact==5,1,0),
+    gunviolence=ifelse(campaign_DoSomethingAboutGunViolence>0,1,0),
+    missinghistory=ifelse(campaign_MissinginHistory>0,1,0),
     promoter=ifelse(nps_cat=='Promoter',1,0)
   )
-
 
 #Logistic regression model - Outcome = being a promoter, predictors are satisfaction on touchpoints
 logreg_promoter <-glm(promoter~communication_rec + causes_rec + website_rec + scholarships_rec + community_rec +impact_rec,
@@ -992,10 +1192,25 @@ logreg_promoter <-glm(promoter~impact_rec,data=logisitic, family=binomial(link="
 summary(logreg_promoter)
 exp(coef(logreg_promoter))
 
+
+
+logreg_promoter <-glm(promoter~missinghistory,
+                      data=logisitic, family=binomial(link="logit"))
+
+summary(logreg_promoter)
+exp(coef(logreg_promoter))
+
 # Satisfaction
 regression_causes = as.formula('nps ~ causes')
 satisfaction_causes <- lm(regression_causes, cause_action_types)
 tidy(satisfaction_causes)
+
+
+############################################
+####### Sign-ups and RBs x NPS #########
+############################################
+
+CrossTable(merged_Q1_all$signups_cat, merged_Q1_all$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
 
 # #Actions
 # CrossTable(causes_actions$nps_cat, causes_actions$donate, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
