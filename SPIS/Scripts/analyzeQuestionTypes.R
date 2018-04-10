@@ -41,7 +41,7 @@ lookupMaker <- function(input, mapFrom, mapTo, finCode) {
 }
 
 rfPivotSelection <- function(tree, outcome, pivots) {
-  browser()
+
   require(caret)
   require(randomForest)
 
@@ -60,24 +60,6 @@ rfPivotSelection <- function(tree, outcome, pivots) {
 
   f <- as.formula(paste0('outcome ~ ',pivots.form,'+rand'))
 
-  # Grid <- expand.grid(mtry = 3)
-  #
-  # ctrl <- trainControl(
-  #   method="cv",
-  #   number=2,
-  #   savePredictions=TRUE
-  # )
-  #
-  # rf = train(
-  #   f,
-  #   data=tree,
-  #   method="rf",
-  #   tuneGrid=Grid,
-  #   importance=T,
-  #   trControl=ctrl,
-  #   metric="RMSE"
-  # )
-  #
   rf <- randomForest(f, data=tree, importance=T)
 
   Imp <- tibble(
