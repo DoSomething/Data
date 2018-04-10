@@ -68,7 +68,7 @@ processSet <- function(path) {
 collapseRace <- function(dat) {
 
   raceSet <- dat %>% select(Response_ID, starts_with('race'))
-  raceVars <- raceSet %>% names()
+  raceVars <- raceSet %>% select(starts_with('race')) %>% names()
 
   setRace <-
     raceSet %>%
@@ -77,18 +77,19 @@ collapseRace <- function(dat) {
       .funs = funs(ifelse(is.na(.),0,1))
     ) %>%
     mutate(
-      Race = case_when(
-        rowSums(.)>1 ~ 'Multiracial',
-        get(raceVars[1]) == 1 & rowSums(.)==1 ~ 'White',
-        get(raceVars[2]) == 1 & rowSums(.)==1 ~ 'Hispanic/Latino',
-        get(raceVars[3]) == 1 & rowSums(.)==1 ~ 'Black',
-        get(raceVars[4]) == 1 & rowSums(.)==1 ~ 'Native American',
-        get(raceVars[5]) == 1 & rowSums(.)==1 ~ 'Asian',
-        get(raceVars[6]) == 1 & rowSums(.)==1 ~ 'Pacific Islander',
+      ticks = rowSums(select(., contains("race."))),
+      race = case_when(
+        ticks > 1 ~ 'Multiracial',
+        get(raceVars[1])==1 & ticks==1 ~ 'White',
+        get(raceVars[2])==1 & ticks==1 ~ 'Hispanic/Latino',
+        get(raceVars[3])==1 & ticks==1 ~ 'Black',
+        get(raceVars[4])==1 & ticks==1 ~ 'Native American',
+        get(raceVars[5])==1 & ticks==1 ~ 'Asian',
+        get(raceVars[6])==1 & ticks==1 ~ 'Pacific Islander',
         TRUE ~ 'Uncertain'
       )
     ) %>%
-    select(-starts_with('race.'))
+    select(-starts_with('race.'), -ticks)
 }
 
 createAnalyticalSet <- function(memberPath, genpopPath) {
@@ -126,8 +127,8 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
 
   combine <-
     combine %>%
-    left_join(raceMunge) %>%
-    select(-starts_with('race')) %>%
+    left_join(raceMunge, by = 'Response_ID') %>%
+    select(-starts_with('race.')) %>%
     rename(
       political_party = polit_party,
       state = Region
