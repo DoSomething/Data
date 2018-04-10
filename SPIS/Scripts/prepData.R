@@ -132,6 +132,9 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
     rename(
       political_party = polit_party,
       state = Region
+    ) %>%
+    mutate(
+      state = case_when(is.na(state) ~ 'Missing', TRUE ~ state)
     )
 
   return(combine)

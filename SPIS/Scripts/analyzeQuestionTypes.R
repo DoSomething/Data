@@ -40,6 +40,66 @@ lookupMaker <- function(input, mapFrom, mapTo, finCode) {
 
 }
 
+rfPivotSelection <- function(tree, outcome, pivots) {
+  browser()
+  require(caret)
+  require(randomForest)
+
+  pivots.form <-
+    paste0(pivots[2]) %>%
+    substr(start = 3, stop = nchar(.)-1) %>%
+    gsub(', ', '+', .)
+  outcome <- paste0(outcome[2])
+
+  pivots <- unlist(strsplit(pivots.form, split="\\+"))
+
+  tree <-
+    tree %>%
+    mutate(rand = runif(nrow(.), 0, 1)) %>%
+    mutate_if(is.character, as.factor)
+
+  f <- as.formula(paste0('outcome ~ ',pivots.form,'+rand'))
+
+  # Grid <- expand.grid(mtry = 3)
+  #
+  # ctrl <- trainControl(
+  #   method="cv",
+  #   number=2,
+  #   savePredictions=TRUE
+  # )
+  #
+  # rf = train(
+  #   f,
+  #   data=tree,
+  #   method="rf",
+  #   tuneGrid=Grid,
+  #   importance=T,
+  #   trControl=ctrl,
+  #   metric="RMSE"
+  # )
+  #
+  rf <- randomForest(f, data=tree, importance=T)
+
+  Imp <- tibble(
+    var = row.names(varImp(rf)),
+    imp = varImp(rf,scale=T)$Overall
+  ) %>%
+    arrange(-imp)
+
+  cutoff <- Imp %>% filter(var=='rand') %>% select(imp) %>% as.numeric()*2
+  Imp %<>%
+    filter(imp > cutoff)
+
+  keyPivots <- c()
+  for (i in 1:length(pivots)) {
+    if (grepl(pivots[i], paste(Imp$var, collapse="|"))) {
+      keyPivots <- c(pivots[i], keyPivots)
+    }
+  }
+
+  return(keyPivots)
+}
+
 analyzeStyleRank <- function(outcome, pivots, ...) {
 
   outcome <- enquo(outcome)
@@ -47,13 +107,14 @@ analyzeStyleRank <- function(outcome, pivots, ...) {
 
   outcomeLookup <- lookupMaker(!!outcome, ...)
 
-  forTree <-
+  forRF <-
     set %>%
     select(!!outcome, !!pivots) %>%
     left_join(outcomeLookup)
 
-  return(forTree)
-  ## Insert decision tree to select pivots
+  importantPivots <- rfPivotSelection(forRF, outcome, pivots)
+
+  return(importantPivots)
   ## Generate overall frequency overall average value
   ## Generate pivoted frequencies and avg values
   ## Plot all of the above
@@ -64,12 +125,10 @@ mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
 mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
 finCode <- c(-2,-1,0,1,2)
 
-tree <-
+pivs <-
   analyzeStyleRank(
     impact_attitudes.I_make_an_active_effort_to_understand_others_perspectives,
-    pivots = c(sex, fam_finances, age, Group),
+    pivots = c(Group, sex, fam_finances, age, race, region,
+               political_party, political_view, attend_religious_services_freq),
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
-f <- as.formula(paste('outcome ~ Group + fam_finances + age'))
-part_obj <- rpart(formula = f, data = tree %>% filter, control = list(cp = .01))
-rpart.plot(part_obj)

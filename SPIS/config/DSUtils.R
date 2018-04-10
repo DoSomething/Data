@@ -120,6 +120,7 @@ scalerange <- function(x){(x-min(x, na.rm=T))/(max(x, na.rm=T)-min(x, na.rm=T))}
 
 #####Reduce levels of a factor using decision tree#####
 recat <- function(df, outcome, feature, compar=0.001) {
+  df[[feature]] <- as.factor(df[[feature]])
   part_obj <- rpart(formula = paste0(outcome, '~', feature), data = df, control = list(cp = compar))
   frame <- data.frame(part_obj$csplit)
   if (length(frame)==0) stop("No meaningful difference between levels with respect to outcome. Consider increasing complexity parameter or removing feature")
@@ -131,7 +132,7 @@ recat <- function(df, outcome, feature, compar=0.001) {
   unique_paths <- length(unique(frame$path))
   codes <- toupper(letters[1:unique_paths])
   levels(frame$path) <- codes
-  frame <- subset(frame, select = c(path,feature))
+  frame <- frame %>% select(path,feature)
   names(frame) <- c(paste0(feature,'_category'),feature)
   return(frame)
 }
