@@ -355,6 +355,58 @@ cause_action_types<-merge(x=castAction, y=merged, by ="northstar_id", all=TRUE)
 ###########################################################################
 ###########################################################################
 
+##############LINKING MEMBER EVENT LOG TO SENTIMENT DATA ##################
+
+###########################################################################
+###########################################################################
+a_q4<-prepQueryObjects(previouslyUsedNSIDs$northstar_id)
+q_mel_q4<- paste0("SELECT
+               mel.northstar_id,
+               mel.action_type,
+               mel.source,
+               MAX(mel.timestamp) as 'time',
+               MAX(CASE WHEN DATE(mel.`timestamp`) < '2017-12-01' THEN 1 ELSE 0 END) as 'active_before_survey'
+               FROM quasar.member_event_log mel
+               WHERE mel.timestamp < '2017-11-15' AND mel.northstar_id IN", a_q4,
+               "GROUP BY
+               mel.northstar_id")
+
+qres_Q4_mel <- runQuery(q_mel_q4, which = 'mysql')
+
+nps_mel_q4<-previouslyUsedNSIDs%>%
+  select(northstar_id,survey, nps, nps_cat, submit_date)
+
+mel_nps_q4<-merge(x=qres_Q4_mel, y=nps_mel_q4, by ="northstar_id", all=TRUE)
+
+mel_nps_q4<-mel_nps_q4%>%
+  mutate(
+    survey_submit = as.Date(paste0(submit_date,'%Y-%m-%d %H:%M:%S')),
+    last_active = as.Date(time, '%Y-%m-%d %H:%M:%S'),
+    time_to_survey = survey_submit - last_active)
+
+#Select relevant variables
+mel_nps_q4<-mel_nps_q4%>% select(northstar_id, survey, survey_submit, last_active, time_to_survey, nps, nps_cat)
+#Look at quantiles for # days before survey
+quantile(mel_nps_q4$time_to_survey)
+
+mel_nps_time_q4<-mel_nps_q4%>%
+  mutate(
+    time_cat=
+      case_when(time_to_survey < 15 ~ 'Last active within 14 days before survey',
+                time_to_survey >14 & time_to_survey <50 ~ 'Last active 15-49 days before survey',
+                time_to_survey >49 & time_to_survey <127 ~ 'Last active 50-126 days before survey',
+                time_to_survey >126 ~ 'Last active 127 days or more before survey'))
+
+CrossTable(mel_nps_time_q4$time_cat, mel_nps_time_q4$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+CrossTable(mel_nps_time_q4$time_cat, mel_nps_time_q4$survey, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+
+
+
+###########################################################################
+###########################################################################
+
 ######################### DESCRIPTIVE ANALYSES ############################
 
 ###########################################################################
