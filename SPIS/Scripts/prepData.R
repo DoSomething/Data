@@ -65,6 +65,32 @@ processSet <- function(path) {
   return(memberSet)
 }
 
+collapseRace <- function(dat) {
+
+  raceSet <- dat %>% select(Response_ID, starts_with('race'))
+  raceVars <- raceSet %>% names()
+
+  setRace <-
+    raceSet %>%
+    mutate_at(
+      .vars = vars(starts_with('race')),
+      .funs = funs(ifelse(is.na(.),0,1))
+    ) %>%
+    mutate(
+      Race = case_when(
+        rowSums(.)>1 ~ 'Multiracial',
+        get(raceVars[1]) == 1 & rowSums(.)==1 ~ 'White',
+        get(raceVars[2]) == 1 & rowSums(.)==1 ~ 'Hispanic/Latino',
+        get(raceVars[3]) == 1 & rowSums(.)==1 ~ 'Black',
+        get(raceVars[4]) == 1 & rowSums(.)==1 ~ 'Native American',
+        get(raceVars[5]) == 1 & rowSums(.)==1 ~ 'Asian',
+        get(raceVars[6]) == 1 & rowSums(.)==1 ~ 'Pacific Islander',
+        TRUE ~ 'Uncertain'
+      )
+    ) %>%
+    select(-starts_with('race.'))
+}
+
 createAnalyticalSet <- function(memberPath, genpopPath) {
 
   memberSet <-
@@ -80,22 +106,34 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
     filter(
       Time_Taken_to_Complete_Seconds >=
         quantile(Time_Taken_to_Complete_Seconds, .5) / 3
-      )
+    )
 
-  analyticalSet <-
+  combine <-
     memberSet %>%
     bind_rows(genpopSet) %>%
     mutate(
       dob = as.Date(dob, format='%m/%d/%y'),
       age = age(dob)
-      ) %>%
+    ) %>%
     filter(
       Duplicate==F &
-      (External_Reference!='test_response' | is.na(External_Reference)) &
-      age(dob) >= 13 & age(dob) <= 25
+        (External_Reference!='test_response' | is.na(External_Reference)) &
+        age(dob) >= 13 & age(dob) <= 25 &
+        Country_Code == 'US'
     )
 
-  return(analyticalSet)
+  raceMunge <- collapseRace(combine)
+
+  combine <-
+    combine %>%
+    left_join(raceMunge) %>%
+    select(-starts_with('race')) %>%
+    rename(
+      political_party = polit_party,
+      state = Region
+    )
+
+  return(combine)
 
 }
 
