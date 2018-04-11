@@ -91,6 +91,29 @@ rfPivotSelection <- function(tree, outcome, pivots) {
   }
 
   return(keyPivots)
+
+}
+
+getFrequencyPlot <- function(dat, toPlot, levels, title) {
+
+  toPlot <- enquo(toPlot)
+
+  dat %<>%
+    mutate(
+      plotVar = factor(!!toPlot, levels = levels)
+    )
+  labx <- mean(dat$outcome)
+  laby <- dat %>% count(outcome) %$% max(n)*.8
+  p <-
+    ggplot(dat, aes(x = outcome)) +
+    geom_bar(stat='count', width = .65) +
+    geom_vline(xintercept = mean(dat$outcome)) +
+    labs(title = paste(title[2])) +
+    scale_x_continuous(labels=levels) +
+    annotate("text", x=labx, y=laby, size=3, angle = 90, vjust=-1,
+             label = paste("Average = ", round(labx, 2)))
+
+  return(p)
 }
 
 analyzeStyleRank <- function(outcome, pivots, ...) {
@@ -100,23 +123,23 @@ analyzeStyleRank <- function(outcome, pivots, ...) {
 
   outcomeLookup <- lookupMaker(!!outcome, ...)
 
-  forRF <-
+  thisQuestionSet <-
     set %>%
     select(!!outcome, !!pivots) %>%
     left_join(outcomeLookup)
 
-  importantPivots <- rfPivotSelection(forRF, outcome, pivots)
+  # importantPivots <- rfPivotSelection(thisQuestionSet, outcome, pivots)
+  importantPivots <-
+    c("attend_religious_services_freq", "political_view","political_party",
+      "race", "age", "sex", "Group" )
 
-  return(importantPivots)
-  ## Generate overall frequency overall average value
+  freqPlot <- getFrequencyPlot(thisQuestionSet, recoded, mapTo, outcome)
+
+  return(freqPlot)
   ## Generate pivoted frequencies and avg values
   ## Plot all of the above
 
 }
-
-mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
-mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
-finCode <- c(-2,-1,0,1,2)
 
 pivs <-
   analyzeStyleRank(
@@ -125,3 +148,7 @@ pivs <-
                political_party, political_view, attend_religious_services_freq),
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
+mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
+mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
+finCode <- c(-2,-1,0,1,2)
+
