@@ -55,10 +55,13 @@ rfPivotSelection <- function(tree, outcome, pivots) {
 
   tree <-
     tree %>%
-    mutate(rand = runif(nrow(.), 0, 1)) %>%
+    mutate(
+      rand1 = runif(nrow(.), 0, 1),
+      rand2 = runif(nrow(.), 0, 1)
+      ) %>%
     mutate_if(is.character, as.factor)
 
-  f <- as.formula(paste0('outcome ~ ',pivots.form,'+rand'))
+  f <- as.formula(paste0('outcome ~ ',pivots.form,'+rand1+rand2'))
 
   rf <- randomForest(f, data=tree, importance=T)
 
@@ -68,15 +71,23 @@ rfPivotSelection <- function(tree, outcome, pivots) {
   ) %>%
     arrange(-imp)
 
-  cutoff <- Imp %>% filter(var=='rand') %>% select(imp) %>% as.numeric()*2
+  cut1 <- Imp %>% filter(var=='rand1') %$% imp*2
+  cut2 <- Imp %>% filter(var=='rand2') %$% imp*2
+
   Imp %<>%
-    filter(imp > cutoff)
+    filter(
+      imp > cut1 & imp > cut2 & imp > 4
+      )
 
   keyPivots <- c()
   for (i in 1:length(pivots)) {
+
     if (grepl(pivots[i], paste(Imp$var, collapse="|"))) {
+
       keyPivots <- c(pivots[i], keyPivots)
+
     }
+
   }
 
   return(keyPivots)
