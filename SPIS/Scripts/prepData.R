@@ -92,6 +92,66 @@ collapseRace <- function(dat) {
     select(-starts_with('race.'), -ticks)
 }
 
+refactorPivots <- function(dat) {
+  dat %<>%
+    mutate(
+      state = case_when(is.na(state) ~ 'Missing', TRUE ~ state),
+      political_party =
+        case_when(grepl('Other', political_party) ~ 'Other',
+                  TRUE ~ political_party),
+      attend_religious_services_freq =
+        gsub(' because', '', attend_religious_services_freq),
+      political_view =
+        factor(political_view,
+               levels = c('Very conservative', 'Conservative', 'Moderate',
+                          'Liberal', 'Very Liberal')),
+      grade_level = case_when(
+        grepl('vocati', grade_level) ~ 'Associate/Technical/Vocational',
+        grepl('not in school', grade_level) ~ 'Not in School',
+        TRUE ~ grade_level
+      ) %>%
+        gsub('college/university', 'college', .) %>%
+        factor(
+          .,
+          levels =
+            c('Middle school', 'High School', 'Associate/Technical/Vocational',
+              '2 year college (part-time)', '2 year college (full-time)',
+              '4 year college (part-time)', '4 year college (full-time)',
+              'Graduate school', 'Not in School', 'Other')
+        ),
+      parental_education = case_when(
+        grepl('Associate', parental_education) ~ 'Associate Degree',
+        grepl('Bachelor', parental_education) ~ 'Bachelors Degree',
+        grepl('doctorate', parental_education) ~ 'Graduate Degree',
+        grepl('High school', parental_education) ~ 'High School Diploma',
+        grepl('Some college', parental_education) ~ 'Some College',
+        grepl('Some high', parental_education) ~ 'Some High School',
+        TRUE ~ parental_education
+      ) %>%
+        factor(
+          .,
+          levels =
+            c('Some High School', 'High School Diploma', 'Some College',
+              'Associate Degree', 'Bachelors Degree', 'Graduate Degree',
+              "Don't know")
+        ),
+      attend_religious_services_freq =
+        factor(
+          attend_religious_services_freq,
+          levels =
+            c('Never, unaffiliated', 'Never, agnostic or atheist',
+              'Once every few years', 'Once per year', 'Several times per year',
+              'At least once per month', 'Weekly', 'Multiple times a week')
+        ),
+      political_party =
+        factor(
+          political_party,
+          levels =
+            c('Republican', 'Independent', 'Unaffiliated', 'Other', 'Democrat')
+        )
+    )
+}
+
 createAnalyticalSet <- function(memberPath, genpopPath) {
 
   memberSet <-
@@ -132,10 +192,9 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
     rename(
       political_party = polit_party,
       state = Region
-    ) %>%
-    mutate(
-      state = case_when(is.na(state) ~ 'Missing', TRUE ~ state)
     )
+
+  combine <-  refactorPivots(combine)
 
   return(combine)
 
