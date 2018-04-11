@@ -116,6 +116,51 @@ getFrequencyPlot <- function(dat, toPlot, levels, title) {
   return(p)
 }
 
+getPivotPlots <- function(dat, pivots, specialPivot=NULL) {
+  require(gridExtra)
+
+  myplots <- list()
+
+  for (i in 1:length(pivots)) {
+    if (!is.null(specialPivot)) {
+      thesePivots <- c(pivots[i],specialPivot)
+    } else {
+      thesePivots <- pivots[i]
+      }
+    avgVals <-
+      dat %>%
+      group_by_at(vars(one_of(thesePivots))) %>%
+      summarise(
+        avgVal = mean(outcome)
+      )
+
+    local({
+      i <- i
+      p <-
+        ggplot(avgVals) +
+        labs(x='', y='', title=pivots[i]) +
+        theme(
+          axis.text.x = element_text(angle = 30, hjust = 1),
+          legend.position="none"
+        )
+      if (!is.null(specialPivot)) {
+        p <- p +
+          geom_bar(
+            aes(x=get(pivots[i]), y=avgVal, fill=get(specialPivot)),
+            stat='identity', position='dodge')
+      } else {
+        p <- p + geom_bar(aes(x=get(pivots[i]), y=avgVal), stat='identity')
+      }
+      myplots[[i]] <<- p
+    })
+  }
+
+  outPlot <- arrangeGrob(grobs=myplots, ncol=3)
+
+  return(outPlot)
+
+}
+
 analyzeStyleRank <- function(outcome, pivots, ...) {
 
   outcome <- enquo(outcome)
@@ -130,22 +175,26 @@ analyzeStyleRank <- function(outcome, pivots, ...) {
 
   # importantPivots <- rfPivotSelection(thisQuestionSet, outcome, pivots)
   importantPivots <-
-    c("attend_religious_services_freq", "political_view","political_party",
-      "race", "age", "sex", "Group" )
+    c("attend_religious_services_freq", "political_view", "political_party",
+      "race", "age", "sex", "Group", "grade_level" )
 
   freqPlot <- getFrequencyPlot(thisQuestionSet, recoded, mapTo, outcome)
 
-  return(freqPlot)
-  ## Generate pivoted frequencies and avg values
-  ## Plot all of the above
+  pivPlot <- getPivotPlots(thisQuestionSet, importantPivots)
+  groupPivPlot <- getPivotPlots(thisQuestionSet, importantPivots, 'Group')
+
+  analysis <- list(freqPlot, pivPlot, groupPivPlot)
+
+  return(analysis)
 
 }
 
-pivs <-
+analysis <-
   analyzeStyleRank(
     impact_attitudes.I_make_an_active_effort_to_understand_others_perspectives,
-    pivots = c(Group, sex, fam_finances, age, race, region,
-               political_party, political_view, attend_religious_services_freq),
+    pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
+               political_party, political_view, attend_religious_services_freq,
+               grade_level),
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
