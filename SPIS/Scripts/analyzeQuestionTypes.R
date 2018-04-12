@@ -10,8 +10,17 @@ buildMapping <- function(replace, inCode, outCode) {
 
   for (i in 1:length(inCode)) {
 
-    mapping[[i]] <-
-      bquote(get(.(replace)) == .(inCode[i]) ~ .(outCode[i]))
+    if (!is.na(inCode[i])) {
+
+      mapping[[i]] <-
+        bquote(get(.(replace)) == .(inCode[i]) ~ .(outCode[i]))
+
+    } else {
+
+      mapping[[i]] <-
+        bquote(is.na(get(.(replace))) ~ .(outCode[i]))
+
+    }
 
   }
 
@@ -95,8 +104,10 @@ rfPivotSelection <- function(tree, outcome, pivots) {
 }
 
 getFrequencyPlot <- function(dat, toPlot, levels, title) {
-
+  browser()
   toPlot <- enquo(toPlot)
+
+  levels <- unique(levels)
 
   dat %<>%
     mutate(
@@ -189,15 +200,26 @@ analyzeStyleRank <- function(outcome, pivots, ...) {
 
 }
 
+# analysis <-
+#   analyzeStyleRank(
+#     impact_attitudes.I_make_an_active_effort_to_understand_others_perspectives,
+#     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
+#                political_party, political_view, attend_religious_services_freq,
+#                grade_level),
+#     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
+#   )
+# mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
+# mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
+# finCode <- c(-2,-1,0,1,2)
+
+mapFrom <- c("Don't know",NA,'Less than 10%','10-20%','More than 20%')
+mapTo <- c('Uncertain','Uncertain','Less than 10%','10-20%','More than 20%')
+finCode <- c(0,0,1,2,3)
 analysis <-
   analyzeStyleRank(
-    impact_attitudes.I_make_an_active_effort_to_understand_others_perspectives,
+    willing_to_pay_how_much_more_brand_good_values,
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
-mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
-mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
-finCode <- c(-2,-1,0,1,2)
-
