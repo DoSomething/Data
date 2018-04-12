@@ -203,10 +203,6 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
 }
 
-stylePickOne <- function(dat, outcome, pivots, ...) {
-
-  outcome <- enquo(outcome)
-  pivots <- enquo(pivots)
-
+styleSelectMultiple <- function(dat) {
 
 }

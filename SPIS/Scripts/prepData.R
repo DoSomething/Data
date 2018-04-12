@@ -65,6 +65,44 @@ processSet <- function(path) {
   return(memberSet)
 }
 
+recodeCheckAllApply <- function(dat) {
+
+  meetCriteria <- function(var) {
+
+    cnt <- set %>% count(!!sym(var))
+
+    vals <- cnt %>% nrow()
+    incNA <-  cnt %>% pull(!!sym(var)) %>% unique() %>% anyNA()
+
+    if (vals <=2 && incNA==T) {
+      return(TRUE)
+    } else {
+      return(FALSE)
+    }
+
+  }
+
+  recodeThese <- c()
+
+  for (j in 1:length(names(dat))) {
+    thisVar <- names(dat)[j]
+    if (meetCriteria(thisVar)==T) {
+      recodeThese <- c(thisVar, recodeThese)
+    }
+  }
+
+  dat %<>%
+    mutate_at(
+      .vars = vars(recodeThese),
+      .funs = funs(ifelse(is.na(.), 0, 1))
+      )
+
+  return(dat)
+
+}
+
+recodeCheckAllApply(set)
+
 collapseRace <- function(dat) {
 
   raceSet <- dat %>% select(Response_ID, starts_with('race'))
@@ -195,6 +233,7 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
     )
 
   combine <-  refactorPivots(combine)
+  combine <- recodeCheckAllApply(combine)
 
   return(combine)
 
