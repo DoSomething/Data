@@ -170,7 +170,7 @@ getPivotPlots <- function(dat, pivots, specialPivot=NULL) {
 }
 
 stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
-  browser()
+
   outcome <- enquo(outcome)
   pivots <- enquo(pivots)
 
@@ -181,10 +181,10 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
     select(!!outcome, !!pivots) %>%
     left_join(outcomeLookup)
 
-  # importantPivots <- rfPivotSelection(thisQuestionSet, outcome, pivots)
-  importantPivots <-
-    c("attend_religious_services_freq", "political_view", "political_party",
-      "race", "age", "sex", "Group", "grade_level" )
+  importantPivots <- rfPivotSelection(thisQuestionSet, outcome, pivots)
+  # importantPivots <-
+  #   c("attend_religious_services_freq", "political_view", "political_party",
+  #     "race", "age", "sex", "Group", "grade_level" )
 
   freqPlot <- getFrequencyPlot(thisQuestionSet, recoded, mapTo, outcome)
 
@@ -197,3 +197,10 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
 }
 
+stylePickOne <- function(dat, outcome, pivots, ...) {
+
+  outcome <- enquo(outcome)
+  pivots <- enquo(pivots)
+
+
+}
