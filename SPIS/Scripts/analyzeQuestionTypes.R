@@ -172,7 +172,7 @@ getPivotPlots <- function(dat, pivots, specialPivot=NULL) {
 
 }
 
-analyzeStyleRank <- function(outcome, pivots, ...) {
+stylePickOneOrdinal <- function(outcome, pivots, ...) {
 
   outcome <- enquo(outcome)
   pivots <- enquo(pivots)
