@@ -104,7 +104,7 @@ rfPivotSelection <- function(tree, outcome, pivots) {
 }
 
 getFrequencyPlot <- function(dat, toPlot, levels, title) {
-  browser()
+
   toPlot <- enquo(toPlot)
 
   levels <- unique(levels)
@@ -173,7 +173,7 @@ getPivotPlots <- function(dat, pivots, specialPivot=NULL) {
 }
 
 stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
-
+  browser()
   outcome <- enquo(outcome)
   pivots <- enquo(pivots)
 
@@ -212,12 +212,12 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 # mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
 # finCode <- c(-2,-1,0,1,2)
 
-mapFrom <- c("Don't know",NA,'Less than 10%','10-20%','More than 20%')
+mapFrom <- c("Don't know",'Less than 10%','10-20%','More than 20%')
 mapTo <- c('Uncertain','Uncertain','Less than 10%','10-20%','More than 20%')
-finCode <- c(0,0,1,2,3)
+finCode <- c(0,1,2,3)
 analysis <-
   stylePickOneOrdinal(
-    dat,
+    dat=set %>% filter(!is.na(willing_to_pay_how_much_more_brand_good_values)),
     willing_to_pay_how_much_more_brand_good_values,
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
