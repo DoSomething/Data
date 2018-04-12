@@ -101,8 +101,6 @@ recodeCheckAllApply <- function(dat) {
 
 }
 
-recodeCheckAllApply(set)
-
 collapseRace <- function(dat) {
 
   raceSet <- dat %>% select(Response_ID, starts_with('race'))
