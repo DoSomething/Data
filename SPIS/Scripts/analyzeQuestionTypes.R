@@ -67,13 +67,20 @@ rfPivotSelection <- function(tree, outcome, pivots) {
       ) %>%
     mutate_if(is.character, as.factor)
 
+  if (length(unique(tree$outcome)) < 3) {
+    tree$outcome <- as.factor(tree$outcome)
+  }
+
   f <- as.formula(paste0('outcome ~ ',pivots.form,'+rand1+rand2'))
 
   rf <- randomForest(f, data=tree, importance=T)
+  browser()
+  rfImportance <- varImp(rf,scale=T)
+  rfImportance <- setNames(rfImportance, 'Overall')
 
   Imp <- tibble(
-    var = row.names(varImp(rf)),
-    imp = varImp(rf,scale=T)$Overall
+    var = row.names(rfImportance),
+    imp = rfImportance$Overall
   ) %>%
     arrange(-imp)
 
@@ -103,7 +110,6 @@ rfPivotSelection <- function(tree, outcome, pivots) {
 getFrequencyPlot <- function(dat, toPlot, levels, title) {
 
   toPlot <- enquo(toPlot)
-
   levels <- unique(levels)
 
   dat %<>%
@@ -117,7 +123,7 @@ getFrequencyPlot <- function(dat, toPlot, levels, title) {
     geom_bar(stat='count', width = .65) +
     geom_vline(xintercept = mean(dat$outcome)) +
     labs(title = paste(title[2])) +
-    scale_x_continuous(labels=levels) +
+    scale_x_continuous(labels=levels, breaks=unique(dat$outcome)) +
     annotate("text", x=labx, y=laby, size=3, angle = 90, vjust=-1,
              label = paste("Average = ", round(labx, 2)))
 
