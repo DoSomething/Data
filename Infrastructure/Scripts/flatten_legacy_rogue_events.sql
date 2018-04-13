@@ -1,6 +1,6 @@
 --Signups
 SELECT 
-	e.id AS id,
+	e.eventable_id AS id,
 	(e.content::json)->>'northstar_id'::varchar AS nsid,
 	(e.content::json)->>'campaign_id'::varchar AS campaign_id,
 	(e.content::json)->>'campaign_run_id' AS campaign_run_id,
@@ -16,7 +16,7 @@ WHERE e.eventable_type ILIKE '%signup%';
 
 --Posts
 SELECT 
-	e.id,
+	e.eventable_id AS id,
 	(e.content::json)->>'signup_id'::varchar AS signup_id,
 	(e.content::json)->>'campaign_id'::varchar AS campaign_id,
 	(e.content::json)->>'campaign_run_id' AS campaign_run_id,
