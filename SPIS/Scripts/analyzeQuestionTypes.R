@@ -122,7 +122,7 @@ getFrequencyPlot <- function(dat, toPlot, levels, title) {
     geom_bar(stat='count', width = .65) +
     geom_vline(xintercept = mean(dat$outcome)) +
     labs(title = paste(title[2])) +
-    scale_x_continuous(labels=levels, breaks=unique(dat$outcome)) +
+    scale_x_continuous(labels=levels, breaks=sort(unique(dat$outcome))) +
     annotate("text", x=labx, y=laby, size=3, angle = 90, vjust=-1,
              label = paste("Average = ", round(labx, 2)))
 
@@ -179,7 +179,7 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
   outcome <- enquo(outcome)
   pivots <- enquo(pivots)
 
-  outcomeLookup <- lookupMaker(!!outcome, ...)
+  outcomeLookup <- lookupMaker(dat, !!outcome, ...)
 
   thisQuestionSet <-
     dat %>%
