@@ -171,7 +171,8 @@ addFields <- function(dat) {
     mutate(
       ds_vr_status =
         case_when(
-          nsid=='5a84b01ea0bfad5dc71768a2' ~ ds_vr_status.record,
+          # nsid=='5a84b01ea0bfad5dc71768a2' ~ ds_vr_status.record,
+          is.na(nsid) | nsid %in% c('','null') ~ ds_vr_status.record,
           max(ds_vr_status.record=='register-form')==1 ~ 'register-form',
           max(ds_vr_status.record=='register-OVR')==1 ~ 'register-OVR',
           max(ds_vr_status.record=='confirmed')==1 ~ 'confirmed',
@@ -180,8 +181,11 @@ addFields <- function(dat) {
           TRUE ~ ''
         ),
       reportback =
-        ifelse(nsid=='5a84b01ea0bfad5dc71768a2', reportback.record,
-               ifelse(max(reportback.record==T), T, F)),
+        # ifelse(nsid=='5a84b01ea0bfad5dc71768a2', reportback.record,
+        ifelse(is.na(nsid) | nsid %in% c('','null'), reportback.record,
+               ifelse(max(reportback.record==T), T, F))
+      # )
+  ,
       updated_at = max(updated_at),
       created_at = min(created_at)
     ) %>%
