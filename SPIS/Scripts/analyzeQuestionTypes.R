@@ -202,6 +202,9 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
 }
 
-styleSelectMultiple <- function(dat) {
+styleSelectMultiple <- function(dat, questionSuffix, pivots) {
+  browser()
+
+
 
 }
