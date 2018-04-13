@@ -274,17 +274,17 @@ percentDid <- function(thisCampaign, data) {
   return(out)
 }
 
-npsDidCampaign <- function(data, field, pivot) {
+npsDidCampaign <- function(data, field, cutoff) {
   # browser()
   filtered <-
     data %>%
     filter(!is.na(campaign) & campaign %in% field) %>%
     filter(!duplicated(northstar_id))
   niche <- filtered %>% filter(group=='niche')
-  npsNiche <- getNPS(niche$nps, 11)
+  npsNiche <- getNPS(niche$nps, cutoff)
   nonniche <- filtered %>% filter(group!='niche')
-  npsNonNiche <- getNPS(nonniche$nps, 11)
-  nps <- getNPS(filtered$nps, 11)
+  npsNonNiche <- getNPS(nonniche$nps, cutoff)
+  nps <- getNPS(filtered$nps, cutoff)
   if (length(field)==1) {
     frame <- data.frame(
       campaign=field, nps=nps,
