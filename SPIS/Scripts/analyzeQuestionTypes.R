@@ -1,5 +1,3 @@
-source('Scripts/prepData.R')
-
 buildMapping <- function(replace, inCode, outCode) {
 
   mapping <- exprs()
