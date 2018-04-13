@@ -186,9 +186,6 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
     left_join(outcomeLookup)
 
   importantPivots <- rfPivotSelection(thisQuestionSet, outcome, pivots)
-  # importantPivots <-
-  #   c("attend_religious_services_freq", "political_view", "political_party",
-  #     "race", "age", "sex", "Group", "grade_level" )
 
   freqPlot <- getFrequencyPlot(thisQuestionSet, recoded, mapTo, outcome)
 
@@ -201,9 +198,42 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
 }
 
+
+
 styleSelectMultiple <- function(dat, questionSuffix, pivots) {
-  browser()
+  require(reshape2)
+
+  pivots <- enquo(pivots)
+  thisQuestionSet <-
+    dat %>%
+    select(!!pivots) %>%
+    bind_cols(dat %>% select(starts_with(questionSuffix))) %>%
+    select(-ends_with('Other'), -ends_with('None_of_these'))
 
 
+  ovr <-
+    thisQuestionSet %>%
+    select(starts_with(questionSuffix)) %>%
+    summarise_all(mean) %>%
+    melt() %>%
+    mutate(
+      variable = str_replace_all(variable, questionSuffix, '')
+      )
+  # browser()
+  ovr.p <-
+    ggplot(ovr, aes(x=reorder(variable, -value), y=value)) +
+    geom_bar(stat='identity', fill='skyblue2') +
+    labs(x=paste0('Average # Ticked = ', round(sum(ovr$value), 3)),
+         title=questionSuffix,y='Percentage Ticked') +
+    theme(axis.text.x = element_text(angle = 25, hjust = 1))
+
+
+  return(ovr.p)
 
 }
+
+styleSelectMultiple(
+  set,
+  'which_issues_taken_action_12mo.',
+  pivots=c(Group, sex, fam_finances, age, race)
+)
