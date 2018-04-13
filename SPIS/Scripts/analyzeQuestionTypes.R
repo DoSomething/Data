@@ -105,7 +105,7 @@ rfPivotSelection <- function(tree, outcome, pivots) {
 }
 
 getFrequencyPlot <- function(dat, toPlot, levels, title) {
-
+  browser()
   toPlot <- enquo(toPlot)
   levels <- unique(levels)
 
@@ -117,7 +117,7 @@ getFrequencyPlot <- function(dat, toPlot, levels, title) {
   laby <- dat %>% count(outcome) %$% max(n)*.8
   p <-
     ggplot(dat, aes(x = outcome)) +
-    geom_bar(stat='count', width = .65) +
+    geom_bar(stat='count', width = .65, fill='skyblue2') +
     geom_vline(xintercept = mean(dat$outcome)) +
     labs(title = paste(title[2])) +
     scale_x_continuous(labels=levels, breaks=sort(unique(dat$outcome))) +
@@ -160,7 +160,8 @@ getPivotPlots <- function(dat, pivots, specialPivot=NULL) {
             aes(x=get(pivots[i]), y=avgVal, fill=get(specialPivot)),
             stat='identity', position='dodge')
       } else {
-        p <- p + geom_bar(aes(x=get(pivots[i]), y=avgVal), stat='identity')
+        p <- p + geom_bar(aes(x=get(pivots[i]), y=avgVal),
+                          fill='skyblue2', stat='identity')
       }
       myplots[[i]] <<- p
     })
