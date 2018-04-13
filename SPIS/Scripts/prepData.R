@@ -1,4 +1,5 @@
 source('config/init.R')
+library(rlang)
 
 age <- function(dob, age.day = today(), units = "years", floor = TRUE) {
   calc.age = interval(dob, age.day) / duration(num = 1, units = units)
@@ -69,7 +70,7 @@ recodeCheckAllApply <- function(dat) {
 
   meetCriteria <- function(var) {
 
-    cnt <- set %>% count(!!sym(var))
+    cnt <- dat %>% count(!!sym(var))
 
     vals <- cnt %>% nrow()
     incNA <-  cnt %>% pull(!!sym(var)) %>% unique() %>% anyNA()

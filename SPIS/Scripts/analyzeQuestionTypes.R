@@ -1,5 +1,4 @@
 source('Scripts/prepData.R')
-library(rlang)
 
 buildMapping <- function(replace, inCode, outCode) {
 
@@ -74,7 +73,7 @@ rfPivotSelection <- function(tree, outcome, pivots) {
   f <- as.formula(paste0('outcome ~ ',pivots.form,'+rand1+rand2'))
 
   rf <- randomForest(f, data=tree, importance=T)
-  browser()
+
   rfImportance <- varImp(rf,scale=T)
   rfImportance <- setNames(rfImportance, 'Overall')
 
