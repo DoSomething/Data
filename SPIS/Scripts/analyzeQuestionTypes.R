@@ -236,21 +236,22 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
     mutate(
       variable = str_replace_all(variable, questionSuffix, '')
       ) %>%
-    left_join(corDat)
+    left_join(corDat) %>%
+    mutate(pos = pmax(value/2, .2))
 
   ovr.p <-
     ggplot(ovr, aes(x=reorder(variable, -value), y=value, fill=cor)) +
     geom_bar(stat='identity') +
     geom_text(
-      aes(label=paste('Top Corr: ',top_cor, ' = ', round(cor, 2))),
-      position=position_stack(vjust = .5), size=3, angle=90
+      aes(y=pos,label=paste('Top Corr: ',top_cor, ' = ', round(cor, 2))),
+      size=3, angle=90
       ) +
     labs(x=paste0('Average # Ticked = ', round(sum(ovr$value), 3)),
          title=questionSuffix,y='Percentage Ticked') +
     theme(
       axis.text.x = element_text(angle = 30, hjust = 1),
       plot.title = element_text(hjust = .5)
-      ) + ylim(-.15, 1) +
+      ) +
     scale_fill_gradientn(colours=rev(terrain.colors(2)))
 
   # keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
