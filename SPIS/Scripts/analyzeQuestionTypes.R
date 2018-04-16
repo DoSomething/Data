@@ -202,14 +202,31 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
 styleSelectMultiple <- function(dat, questionSuffix, pivots) {
   require(reshape2)
+  require(corrplot)
 
   pivots <- enquo(pivots)
   thisQuestionSet <-
     dat %>%
     select(!!pivots) %>%
     bind_cols(dat %>% select(starts_with(questionSuffix))) %>%
-    select(-ends_with('Other'), -ends_with('None_of_these'))
+    select(-ends_with('Other'), -ends_with('None_of_these')) %>%
+    mutate(
+      outcome = rowSums(select(., starts_with(questionSuffix)))
+    )
 
+  forCorr <- thisQuestionSet %>% select(starts_with(questionSuffix))
+  names(forCorr) <- gsub(questionSuffix, '', names(forCorr))
+
+  forCorr <- forCorr %>% cor(.)
+  corPlot <- corrplot(forCorr, method="pie")
+
+  corDat <-
+    forCorr %>%
+    melt() %>%
+    filter(value < 1) %>%
+    group_by(Var1) %>%
+    filter(value == max(value)) %>%
+    setNames(c('variable','top_cor','cor'))
 
   ovr <-
     thisQuestionSet %>%
@@ -218,17 +235,31 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
     melt() %>%
     mutate(
       variable = str_replace_all(variable, questionSuffix, '')
-      )
-  # browser()
+      ) %>%
+    left_join(corDat)
+
   ovr.p <-
-    ggplot(ovr, aes(x=reorder(variable, -value), y=value)) +
-    geom_bar(stat='identity', fill='skyblue2') +
+    ggplot(ovr, aes(x=reorder(variable, -value), y=value, fill=cor)) +
+    geom_bar(stat='identity') +
+    geom_text(
+      aes(label=paste('Top Correlate: ',top_cor, ' = ', round(cor, 2))),
+      position=position_stack(vjust = .5), size=3, angle=90
+      ) +
     labs(x=paste0('Average # Ticked = ', round(sum(ovr$value), 3)),
          title=questionSuffix,y='Percentage Ticked') +
-    theme(axis.text.x = element_text(angle = 25, hjust = 1))
+    theme(
+      axis.text.x = element_text(angle = 25, hjust = 1),
+      plot.title = element_text(hjust = .5)
+      ) +
+    scale_fill_gradientn(colours=rev(terrain.colors(2)))
 
+  browser()
 
-  return(ovr.p)
+  keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
+
+  out <- list(corPlot, ovr.p)
+
+  return(out)
 
 }
 
