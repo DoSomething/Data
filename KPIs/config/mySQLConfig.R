@@ -9,7 +9,7 @@ quasarConnect <- function() {
     dbConnect(
     MySQL(),
     user=user,
-    host='quasar-slave-new.c9ajz690mens.us-east-1.rds.amazonaws.com',
+    host='quasar-secondary.c9ajz690mens.us-east-1.rds.amazonaws.com',
     password=pw,
     dbname='quasar'
     )
