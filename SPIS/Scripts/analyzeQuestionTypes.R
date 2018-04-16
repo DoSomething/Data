@@ -242,20 +242,18 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
     ggplot(ovr, aes(x=reorder(variable, -value), y=value, fill=cor)) +
     geom_bar(stat='identity') +
     geom_text(
-      aes(label=paste('Top Correlate: ',top_cor, ' = ', round(cor, 2))),
+      aes(label=paste('Top Corr: ',top_cor, ' = ', round(cor, 2))),
       position=position_stack(vjust = .5), size=3, angle=90
       ) +
     labs(x=paste0('Average # Ticked = ', round(sum(ovr$value), 3)),
          title=questionSuffix,y='Percentage Ticked') +
     theme(
-      axis.text.x = element_text(angle = 25, hjust = 1),
+      axis.text.x = element_text(angle = 30, hjust = 1),
       plot.title = element_text(hjust = .5)
-      ) +
+      ) + ylim(-.15, 1) +
     scale_fill_gradientn(colours=rev(terrain.colors(2)))
 
-  browser()
-
-  keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
+  # keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
 
   out <- list(corPlot, ovr.p)
 
@@ -265,6 +263,6 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
 
 styleSelectMultiple(
   set,
-  'which_issues_taken_action_12mo.',
+  'products_used_past12mo.',
   pivots=c(Group, sex, fam_finances, age, race)
 )
