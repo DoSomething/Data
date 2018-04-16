@@ -45,16 +45,23 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
   guides(fill=guide_legend(title='Source'))
 ```
 #### Source Details
-*Email*
-* The number of newsletters is really piling up. What is a better grouping for these source details?
-* Do we know how many people each of these newsletters went out to? This would help us identify which copy was the most effective
-*SMS*
-* This won't become useful until we find a way to add more source details
-*Social*
-* Generally isn't performing very well, but Facebook is doing better than the others. Is this because we've done more on facebook or because our efforts are smarter?
-*Web*
-* GTM and Hellobar are dominating 
-* Similar to email, is there a broader bucketing that could be useful here?
+**Email**
+
+  - The number of newsletters is really piling up. What is a better grouping for these source details?
+  - Do we know how many people each of these newsletters went out to? This would help us identify which copy was the most effective
+  
+**SMS**
+
+  - This won't become useful until we find a way to add more source details
+  
+**Social**
+
+  - Generally isn't performing very well, but Facebook is doing better than the others. Is this because we've done more on facebook or because our efforts are smarter?
+  
+**Web**
+
+  - GTM and Hellobar are dominating 
+  - Similar to email, is there a broader bucketing that could be useful here?
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 # ggplot(detSource.t, aes(x=ds_vr_status, y=value, fill=source_details)) +
 #   geom_bar(stat='identity', position='stack') +
