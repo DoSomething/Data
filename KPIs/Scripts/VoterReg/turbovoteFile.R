@@ -187,8 +187,12 @@ addFields <- function(dat) {
                ifelse(max(reportback.record==T), T, F))
       # )
   ,
-      updated_at = max(updated_at),
-      created_at = min(created_at)
+      updated_at = ifelse(
+        is.na(nsid) | nsid %in% c('','null'), updated_at, max(updated_at)
+        ),
+      created_at = ifelse(
+        is.na(nsid) | nsid %in% c('','null'), created_at, max(created_at)
+      )
     ) %>%
     ungroup() %>%
     select(-reportback.record, -ds_vr_status.record)
@@ -353,6 +357,34 @@ aster <-
     tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
     self_report = sum(ds_vr_status=='confirmed')
   )
+
+MoM <-
+  vr %>%
+  filter(created_at >= '2018-01-01') %>%
+  mutate(
+    date = as.Date(created_at)
+  ) %>%
+  group_by(date) %>%
+  summarise(
+    Registrations = length(which(grepl('register', ds_vr_status))),
+    Reportbacks = sum(reportback)
+  ) %>%
+  mutate(
+    month = month(date)
+  ) %>%
+  group_by(month) %>%
+  mutate(
+    registerToDate = cumsum(Registrations),
+    reportbacksToDate = cumsum(Reportbacks),
+    dayOfMonth = as.numeric(format(date, "%d"))
+  ) %>%
+  ungroup() %>%
+  select(dayOfMonth, month, registerToDate, reportbacksToDate) %>%
+  melt(id.var=c('dayOfMonth','month')) %>%
+  mutate(month = as.factor(month))
+
+ggplot(MoM, aes(x=dayOfMonth, value)) +
+  geom_line(aes(color=month, linetype=variable))
 
 library(openxlsx)
 
