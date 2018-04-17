@@ -105,7 +105,7 @@ rfPivotSelection <- function(tree, outcome, pivots) {
 }
 
 getFrequencyPlot <- function(dat, toPlot, levels, title) {
-  browser()
+
   toPlot <- enquo(toPlot)
   levels <- unique(levels)
 
