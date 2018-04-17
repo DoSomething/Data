@@ -186,13 +186,13 @@ addFields <- function(dat) {
         ifelse(is.na(nsid) | nsid %in% c('','null'), reportback.record,
                ifelse(max(reportback.record==T), T, F))
       # )
-  ,
-      updated_at = ifelse(
+      ,
+      updated_at = as.POSIXct(ifelse(
         is.na(nsid) | nsid %in% c('','null'), updated_at, max(updated_at)
-        ),
-      created_at = ifelse(
+        ), origin = '1970-01-01'),
+      created_at = as.POSIXct(ifelse(
         is.na(nsid) | nsid %in% c('','null'), created_at, max(created_at)
-      )
+      ), origin = '1970-01-01')
     ) %>%
     ungroup() %>%
     select(-reportback.record, -ds_vr_status.record)
@@ -220,13 +220,6 @@ prepData <- function(...) {
       recordCounter = 1:n()
     )
 
-  vr <-
-    vr %>%
-    group_by(nsid) %>%
-    filter(updated_at == max(updated_at) |
-          (nsid %in% c('','null','5a84b01ea0bfad5dc71768a2'))) %>%
-    ungroup()
-
   nsids <-
     vr %>%
     filter(nsid != '') %$%
@@ -241,6 +234,13 @@ prepData <- function(...) {
   vr <- addFields(vr)
 
   dupes <- addFields(dupes)
+  browser()
+
+  vr %<>%
+    filter(
+      !duplicated(nsid) |
+      nsid %in% c('','null')
+    )
 
   out <- list(vr, dupes)
 
@@ -248,7 +248,8 @@ prepData <- function(...) {
 
 }
 
-vfile <- 'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
+vfile <-
+  'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
 
 out <- prepData(path=paste0(vfile,latest_file,'.csv'))
 
