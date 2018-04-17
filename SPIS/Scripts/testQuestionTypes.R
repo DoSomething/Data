@@ -1,5 +1,8 @@
 source('Scripts/analyzeQuestionTypes.R')
 
+mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
+mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
+finCode <- c(-2,-1,0,1,2)
 analysis <-
   stylePickOneOrdinal(
     set,
@@ -9,9 +12,6 @@ analysis <-
                grade_level),
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
-mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
-mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
-finCode <- c(-2,-1,0,1,2)
 
 mapFrom <- c("Don't know",NA,'Less than 10%','10-20%','More than 20%')
 mapTo <- c('Uncertain','Uncertain','Less than 10%','10-20%','More than 20%')
