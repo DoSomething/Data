@@ -1,7 +1,8 @@
 source('config/init.R')
 source('config/mySQLConfig.R')
 source('config/pgConnect.R')
-today <- Sys.Date()
+
+latest_file <- '2018-04-16'
 # Data prep ---------------------------------------------------------------
 getData <- function(path) {
 
@@ -245,7 +246,7 @@ prepData <- function(...) {
 
 vfile <- 'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
 
-out <- prepData(path=paste0(vfile,today,'.csv'))
+out <- prepData(path=paste0(vfile,latest_file,'.csv'))
 
 vr <- out[[1]]
 dupes <- out[[2]]
