@@ -2,7 +2,7 @@ source('config/init.R')
 source('config/mySQLConfig.R')
 source('config/pgConnect.R')
 
-latest_file <- '2018-04-16'
+latest_file <- '2018-04-17'
 # Data prep ---------------------------------------------------------------
 getData <- function(path) {
 
@@ -234,7 +234,6 @@ prepData <- function(...) {
   vr <- addFields(vr)
 
   dupes <- addFields(dupes)
-  browser()
 
   vr %<>%
     filter(
