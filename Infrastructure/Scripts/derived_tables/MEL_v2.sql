@@ -74,7 +74,7 @@ FROM (
 		'email' AS source,
 		'0' AS action_serial_id
 	FROM
-		cio.customer_event cio
+		cio.email_event cio
 	WHERE 
 		cio.event_type = 'email_clicked'
 	) AS a 
