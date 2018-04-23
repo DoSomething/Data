@@ -2,7 +2,7 @@ source('config/init.R')
 source('config/mySQLConfig.R')
 source('config/pgConnect.R')
 
-latest_file <- '2018-04-17'
+latest_file <- '2018-04-23'
 # Data prep ---------------------------------------------------------------
 getData <- function(path) {
 
@@ -172,8 +172,7 @@ addFields <- function(dat) {
     mutate(
       ds_vr_status =
         case_when(
-          # nsid=='5a84b01ea0bfad5dc71768a2' ~ ds_vr_status.record,
-          is.na(nsid) | nsid %in% c('','null') ~ ds_vr_status.record,
+          nsid=='' ~ ds_vr_status.record,
           max(ds_vr_status.record=='register-form')==1 ~ 'register-form',
           max(ds_vr_status.record=='register-OVR')==1 ~ 'register-OVR',
           max(ds_vr_status.record=='confirmed')==1 ~ 'confirmed',
@@ -182,16 +181,14 @@ addFields <- function(dat) {
           TRUE ~ ''
         ),
       reportback =
-        # ifelse(nsid=='5a84b01ea0bfad5dc71768a2', reportback.record,
-        ifelse(is.na(nsid) | nsid %in% c('','null'), reportback.record,
+        ifelse(nsid=='', reportback.record,
                ifelse(max(reportback.record==T), T, F))
-      # )
       ,
       updated_at = as.POSIXct(ifelse(
-        is.na(nsid) | nsid %in% c('','null'), updated_at, max(updated_at)
+        nsid=='', updated_at, max(updated_at)
         ), origin = '1970-01-01'),
       created_at = as.POSIXct(ifelse(
-        is.na(nsid) | nsid %in% c('','null'), created_at, max(created_at)
+        nsid=='', created_at, max(created_at)
       ), origin = '1970-01-01')
     ) %>%
     ungroup() %>%
@@ -199,18 +196,25 @@ addFields <- function(dat) {
 }
 
 prepData <- function(...) {
+
   d <- getData(...)
   refParsed <- processReferralColumn(d)
 
   vr <-
     d %>%
     select(-referral_code) %>%
-    left_join(refParsed)
+    left_join(refParsed) %>%
+    mutate(
+      nsid = case_when(
+        nsid %in% c('5a84b01ea0bfad5dc71768a2','null') | is.na(nsid) ~ '',
+        TRUE ~ nsid
+        )
+    )
 
   dupes <-
     vr %>%
     filter((duplicated(nsid) | duplicated(nsid, fromLast=T)) &
-             !(nsid %in% c('','null','5a84b01ea0bfad5dc71768a2'))) %>%
+             !(nsid %in% c('','null'))) %>%
     arrange(nsid, created_at, updated_at) %>%
     mutate(
       nsidInd = cumsum(nsid != lag(nsid, default=""))
@@ -251,6 +255,7 @@ vfile <-
   'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
 
 out <- prepData(path=paste0(vfile,latest_file,'.csv'))
+test <- prepData('Data/Turbovote/test-tv-import.csv')[[1]]
 
 vr <- out[[1]]
 dupes <- out[[2]]
