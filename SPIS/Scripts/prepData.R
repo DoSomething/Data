@@ -202,47 +202,47 @@ addSurveyWeights <- function(dat) {
 
   calcWeights <- function(subDat, popEst) {
 
-  raceWeights <-
-    subDat %>%
-    mutate(
-      race_cat =
-        case_when(
-          race == 'White' ~ 'white',
-          TRUE ~ 'non_white'
-        )
-    ) %>%
-    count(race_cat) %>%
-    mutate(
-      pct = n/sum(n),
-      raceWeight =
-        case_when(
-          race_cat == 'white' ~ popEst$race$white / pct,
-          race_cat != 'white' ~ popEst$race$non_white / pct,
-          TRUE ~ 1
-        )
-    )
+    raceWeights <-
+      subDat %>%
+      mutate(
+        race_cat =
+          case_when(
+            race == 'White' ~ 'white',
+            TRUE ~ 'non_white'
+          )
+      ) %>%
+      count(race_cat) %>%
+      mutate(
+        pct = n/sum(n),
+        raceWeight =
+          case_when(
+            race_cat == 'white' ~ popEst$race$white / pct,
+            race_cat != 'white' ~ popEst$race$non_white / pct,
+            TRUE ~ 1
+          )
+      )
 
-  genderWeights <-
-    subDat %>%
-    mutate(
-      gender_cat =
-        case_when(
-          sex == 'Male' ~ 'male',
-          sex == 'Female' ~ 'female',
-          TRUE ~ 'other'
-        )
-    ) %>%
-    count(gender_cat) %>%
-    mutate(
-      pct = n/sum(n),
-      genderWeight =
-        case_when(
-          gender_cat == 'male' ~ popEst$sex$male / pct,
-          gender_cat == 'female' ~ popEst$sex$female / pct,
-          gender_cat == 'other' ~ popEst$sex$other / pct,
-          TRUE ~ 1
-        )
-    )
+    genderWeights <-
+      subDat %>%
+      mutate(
+        gender_cat =
+          case_when(
+            sex == 'Male' ~ 'male',
+            sex == 'Female' ~ 'female',
+            TRUE ~ 'other'
+          )
+      ) %>%
+      count(gender_cat) %>%
+      mutate(
+        pct = n/sum(n),
+        genderWeight =
+          case_when(
+            gender_cat == 'male' ~ popEst$sex$male / pct,
+            gender_cat == 'female' ~ popEst$sex$female / pct,
+            gender_cat == 'other' ~ popEst$sex$other / pct,
+            TRUE ~ 1
+          )
+      )
 
     ageWeights <-
       subDat %>%
