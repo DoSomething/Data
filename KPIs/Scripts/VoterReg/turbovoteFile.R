@@ -266,6 +266,11 @@ powerUsers <-
   filter(max(recordCounter)>=5) %>%
   bind_rows(vr %>% filter(nsid=='5a84b01ea0bfad5dc71768a2'))
 
+pg <- pgConnect()
+if(dbExistsTable(pg,c("public", "turbovote_file"))) {
+  dbRemoveTable(pg,c("public", "turbovote_file"))}
+dbWriteTable(pg,c("public", "turbovote_file"), vr, row.names=F)
+
 # Analysis ----------------------------------------------------------------
 library(reshape2)
 
