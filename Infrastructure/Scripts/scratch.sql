@@ -131,43 +131,6 @@ LEFT JOIN quasar.moco_profile_import m ON m.moco_id = u.moco_commons_profile_id
 WHERE u.moco_commons_profile_id IS NOT NULL
 AND a.campaign_run_id = '7931';
 
-SELECT 
-	ca.`year`,
-	ca.campaign_run_id,
-	count(*) AS signups,
-	sum(ca.reportbacks) AS reportbacks
-FROM
-	(SELECT 
-		c.signup_id,
-		c.campaign_run_id,
-		year(c.signup_created_at) AS 'year',
-		max(CASE WHEN c.post_id <> -1 THEN 1 ELSE 0 END) AS reportbacks
-	FROM quasar.users u
-	LEFT JOIN quasar.campaign_activity c ON u.northstar_id=c.northstar_id
-	WHERE u.country='MX'
-	AND c.signup_created_at >= '2016-01-01'
-	GROUP BY c.signup_id) ca
-GROUP BY ca.`year`, ca.campaign_run_id
-;
-
-SELECT DISTINCT 
-	ca.post_id,
-	ca.url
-FROM 
-	(SELECT 
-		c.signup_id,
-		c.post_id,
-		c.url,
-		max(c.submission_updated_at) AS max_submission
-	FROM quasar.users u
-	INNER JOIN quasar.campaign_activity c ON u.northstar_id=c.northstar_id
-	WHERE u.country='MX'
-	AND c.post_id <> -1 
-	AND c.signup_created_at >= '2016-01-01'
-	GROUP BY c.signup_id) ca
-INNER JOIN quasar.campaign_activity camp ON camp.signup_id = ca.signup_id AND camp.submission_updated_at = ca.max_submission
-;
-
 SELECT
    MAX(CASE WHEN GREATEST(u.last_accessed, u.last_logged_in) <= u.created_at 
      AND u.source='niche' 
@@ -346,3 +309,34 @@ AND JSON_EXTRACT(e.`data`, "$.event_type") = 'customer_unsubscribed';
 SELECT DISTINCT JSON_EXTRACT(e.`data`, "$.event_type") 
 FROM (SELECT * FROM cio.event_log et LIMIT 10000) e;
 
+SELECT 
+	u.northstar_id,
+	u.email,
+	u.source,
+	COALESCE(m.email, i.email) AS email,
+	COALESCE(m.confirm_time, i.confirm_time) AS created_at
+FROM quasar.users u 
+LEFT JOIN mailchimp_final_exports.final_mailchimp_main_sub m ON m.email = u.email
+LEFT JOIN mailchimp_final_exports.final_mailchimp_intl_sub i ON i.email = u.email 
+WHERE u.source LIKE '%etl%'
+AND u.created_at >= '2017-04-01' AND u.created_at < '2017-05-01';
+
+SELECT 
+	count(*),
+	sum(CASE WHEN m.email IS NULL AND i.email IS NULL THEN 1 ELSE 0 end) AS count_unmatched	
+FROM quasar.users u 
+LEFT JOIN mailchimp_final_exports.final_mailchimp_main_sub m ON m.email = u.email
+LEFT JOIN mailchimp_final_exports.final_mailchimp_intl_sub i ON i.email = u.email 
+WHERE u.source LIKE '%etl%'
+AND u.created_at >= '2017-04-01' AND u.created_at < '2017-05-01';
+
+SELECT 
+	u.facebook_id
+FROM quasar.users u 
+WHERE u.facebook_id IS NOT NULL AND u.facebook_id <> '';
+
+SELECT * FROM campaign_info i WHERE i.campaign_node_id_title LIKE '%gun%';
+
+SELECT * FROM quasar.member_event_log;
+
+SELECT count(*) FROM quasar.users u WHERE u.country = 'MX'
