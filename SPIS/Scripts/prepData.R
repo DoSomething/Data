@@ -200,8 +200,10 @@ addSurveyWeights <- function(dat) {
                          some_college = .11, associate = .11, degree = .36)
     )
 
+  calcWeights <- function(subDat, popEst) {
+
   raceWeights <-
-    dat %>%
+    subDat %>%
     mutate(
       race_cat =
         case_when(
@@ -221,7 +223,7 @@ addSurveyWeights <- function(dat) {
     )
 
   genderWeights <-
-    dat %>%
+    subDat %>%
     mutate(
       gender_cat =
         case_when(
@@ -242,80 +244,89 @@ addSurveyWeights <- function(dat) {
         )
     )
 
-  ageWeights <-
-    dat %>%
-    count(age) %>%
-    mutate(
-      pct = n/sum(n),
-      ageWeight = popEst$age$all / pct
-    )
+    ageWeights <-
+      subDat %>%
+      count(age) %>%
+      mutate(
+        pct = n/sum(n),
+        ageWeight = popEst$age$all / pct
+      )
 
-  eduWeights <-
-    dat %>%
-    mutate(
-      edu_cat =
-        case_when(
-          parental_education == 'Some High School' ~ 'some_highschool',
-          parental_education == 'High School Diploma' ~ 'high_school',
-          parental_education == 'Some College' ~ 'some_college',
-          parental_education == 'Associate Degree' ~ 'associate',
-          parental_education %in% c('Bachelors Degree','Graduate Degree') ~ 'degree',
-          TRUE ~ 'other'
-        )
-    ) %>%
-    count(edu_cat) %>%
-    mutate(
-      pct = n/sum(n),
-      eduWeight =
-        case_when(
-          edu_cat == 'some_highschool' ~ popEst$education$some_highschool / pct,
-          edu_cat == 'high_school' ~ popEst$education$high_school / pct,
-          edu_cat == 'some_college' ~ popEst$education$some_college / pct,
-          edu_cat == 'associate' ~ popEst$education$associate / pct,
-          edu_cat == 'degree' ~ popEst$education$degree / pct,
-          TRUE ~ 1
-        )
-    )
+    eduWeights <-
+      subDat %>%
+      mutate(
+        edu_cat =
+          case_when(
+            parental_education == 'Some High School' ~ 'some_highschool',
+            parental_education == 'High School Diploma' ~ 'high_school',
+            parental_education == 'Some College' ~ 'some_college',
+            parental_education == 'Associate Degree' ~ 'associate',
+            parental_education %in% c('Bachelors Degree','Graduate Degree') ~ 'degree',
+            TRUE ~ 'other'
+          )
+      ) %>%
+      count(edu_cat) %>%
+      mutate(
+        pct = n/sum(n),
+        eduWeight =
+          case_when(
+            edu_cat == 'some_highschool' ~ popEst$education$some_highschool / pct,
+            edu_cat == 'high_school' ~ popEst$education$high_school / pct,
+            edu_cat == 'some_college' ~ popEst$education$some_college / pct,
+            edu_cat == 'associate' ~ popEst$education$associate / pct,
+            edu_cat == 'degree' ~ popEst$education$degree / pct,
+            TRUE ~ 1
+          )
+      )
 
-  idWeights <-
-    dat %>%
-    select(Response_ID, age, race, sex, parental_education) %>%
-    left_join(ageWeights, by = 'age') %>%
-    mutate(
-      raceWeight =
-        case_when(
-          race == 'White' ~ filter(raceWeights, race_cat=='white') %$% raceWeight,
-          race != 'White' ~ filter(raceWeights, race_cat=='non_white') %$% raceWeight
-        ),
-      genderWeight =
-        case_when(
-          sex == 'Male' ~ filter(genderWeights, gender_cat=='male') %$% genderWeight,
-          sex == 'Female' ~ filter(genderWeights, gender_cat=='female') %$% genderWeight,
-          !sex %in% c('Male','Female') ~ filter(genderWeights, gender_cat=='other') %$% genderWeight
-        ),
-      eduWeight =
-        case_when(
-          parental_education == 'Some High School' ~
-            filter(eduWeights, edu_cat=='some_highschool') %$% eduWeight,
-          parental_education == 'High School Diploma' ~
-            filter(eduWeights, edu_cat=='high_school') %$% eduWeight,
-          parental_education == 'Some College' ~
-            filter(eduWeights, edu_cat=='some_college') %$% eduWeight,
-          parental_education == 'Associate Degree' ~
-            filter(eduWeights, edu_cat=='associate') %$% eduWeight,
-          parental_education %in% c('Bachelors Degree','Graduate Degree') ~
-            filter(eduWeights, edu_cat=='degree') %$% eduWeight,
-          TRUE ~ 1
-        )
-    ) %>%
-    mutate(
-      weight = eduWeight * ageWeight * genderWeight * raceWeight
-    ) %>%
-    select(Response_ID, weight)
+    idWeights <-
+      subDat %>%
+      select(Response_ID, age, race, sex, parental_education) %>%
+      left_join(ageWeights, by = 'age') %>%
+      mutate(
+        raceWeight =
+          case_when(
+            race == 'White' ~ filter(raceWeights, race_cat=='white') %$% raceWeight,
+            race != 'White' ~ filter(raceWeights, race_cat=='non_white') %$% raceWeight
+          ),
+        genderWeight =
+          case_when(
+            sex == 'Male' ~ filter(genderWeights, gender_cat=='male') %$% genderWeight,
+            sex == 'Female' ~ filter(genderWeights, gender_cat=='female') %$% genderWeight,
+            !sex %in% c('Male','Female') ~ filter(genderWeights, gender_cat=='other') %$% genderWeight
+          ),
+        eduWeight =
+          case_when(
+            parental_education == 'Some High School' ~
+              filter(eduWeights, edu_cat=='some_highschool') %$% eduWeight,
+            parental_education == 'High School Diploma' ~
+              filter(eduWeights, edu_cat=='high_school') %$% eduWeight,
+            parental_education == 'Some College' ~
+              filter(eduWeights, edu_cat=='some_college') %$% eduWeight,
+            parental_education == 'Associate Degree' ~
+              filter(eduWeights, edu_cat=='associate') %$% eduWeight,
+            parental_education %in% c('Bachelors Degree','Graduate Degree') ~
+              filter(eduWeights, edu_cat=='degree') %$% eduWeight,
+            TRUE ~ 1
+          )
+      ) %>%
+      mutate(
+        weight =  ageWeight * genderWeight  * raceWeight * eduWeight
+      ) %>%
+      select(Response_ID, eduWeight, ageWeight, genderWeight, raceWeight, weight)
+
+    return(idWeights)
+
+  }
+
+  gp <- dat %>% filter(Group == 'Gen Pop') %>% calcWeights(., popEst)
+  mem <- dat %>% filter(Group == 'Members') %>% calcWeights(., popEst)
+
+  both <- bind_rows(gp, mem)
 
   out <-
     dat %>%
-    left_join(idWeights, by = 'Response_ID')
+    left_join(both, by = 'Response_ID')
 
   return(out)
 
@@ -375,3 +386,6 @@ set <- createAnalyticalSet(
   'Data/spis_members_raw_values.csv',
   'Data/spis_genpop_raw_values.csv'
   )
+
+forChar <- set %>% filter(Group=='Gen Pop') %>% select(Response_ID, weight)
+saveCSV(forChar, desktop=T)
