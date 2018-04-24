@@ -376,8 +376,7 @@ MoM <-
   ) %>%
   group_by(date) %>%
   summarise(
-    Registrations = length(which(grepl('register', ds_vr_status))),
-    Reportbacks = sum(reportback)
+    Registrations = length(which(grepl('register', ds_vr_status)))
   ) %>%
   mutate(
     month = month(date)
@@ -385,16 +384,15 @@ MoM <-
   group_by(month) %>%
   mutate(
     registerToDate = cumsum(Registrations),
-    reportbacksToDate = cumsum(Reportbacks),
     dayOfMonth = as.numeric(format(date, "%d"))
   ) %>%
   ungroup() %>%
-  select(dayOfMonth, month, registerToDate, reportbacksToDate) %>%
+  select(dayOfMonth, month, registerToDate) %>%
   melt(id.var=c('dayOfMonth','month')) %>%
   mutate(month = as.factor(month))
 
 ggplot(MoM, aes(x=dayOfMonth, value)) +
-  geom_line(aes(color=month, linetype=variable))
+  geom_line(aes(color=month))
 
 library(openxlsx)
 
