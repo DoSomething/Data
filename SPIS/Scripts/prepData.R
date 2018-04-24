@@ -189,6 +189,138 @@ refactorPivots <- function(dat) {
     )
 }
 
+addSurveyWeights <- function(dat) {
+
+  popEst <-
+    list(
+      race = tibble(white = .6, non_white = .4),
+      sex = tibble(other = .01, male = .505, female = .485),
+      age = tibble(all = 1/13),
+      education = tibble(some_highschool = .11, high_school = .19,
+                         some_college = .11, associate = .11, degree = .36)
+    )
+
+  raceWeights <-
+    dat %>%
+    mutate(
+      race_cat =
+        case_when(
+          race == 'White' ~ 'white',
+          TRUE ~ 'non_white'
+        )
+    ) %>%
+    count(race_cat) %>%
+    mutate(
+      pct = n/sum(n),
+      raceWeight =
+        case_when(
+          race_cat == 'white' ~ popEst$race$white / pct,
+          race_cat != 'white' ~ popEst$race$non_white / pct,
+          TRUE ~ 1
+        )
+    )
+
+  genderWeights <-
+    dat %>%
+    mutate(
+      gender_cat =
+        case_when(
+          sex == 'Male' ~ 'male',
+          sex == 'Female' ~ 'female',
+          TRUE ~ 'other'
+        )
+    ) %>%
+    count(gender_cat) %>%
+    mutate(
+      pct = n/sum(n),
+      genderWeight =
+        case_when(
+          gender_cat == 'male' ~ popEst$sex$male / pct,
+          gender_cat == 'female' ~ popEst$sex$female / pct,
+          gender_cat == 'other' ~ popEst$sex$other / pct,
+          TRUE ~ 1
+        )
+    )
+
+  ageWeights <-
+    dat %>%
+    count(age) %>%
+    mutate(
+      pct = n/sum(n),
+      ageWeight = popEst$age$all / pct
+    )
+
+  eduWeights <-
+    dat %>%
+    mutate(
+      edu_cat =
+        case_when(
+          parental_education == 'Some High School' ~ 'some_highschool',
+          parental_education == 'High School Diploma' ~ 'high_school',
+          parental_education == 'Some College' ~ 'some_college',
+          parental_education == 'Associate Degree' ~ 'associate',
+          parental_education %in% c('Bachelors Degree','Graduate Degree') ~ 'degree',
+          TRUE ~ 'other'
+        )
+    ) %>%
+    count(edu_cat) %>%
+    mutate(
+      pct = n/sum(n),
+      eduWeight =
+        case_when(
+          edu_cat == 'some_highschool' ~ popEst$education$some_highschool / pct,
+          edu_cat == 'high_school' ~ popEst$education$high_school / pct,
+          edu_cat == 'some_college' ~ popEst$education$some_college / pct,
+          edu_cat == 'associate' ~ popEst$education$associate / pct,
+          edu_cat == 'degree' ~ popEst$education$degree / pct,
+          TRUE ~ 1
+        )
+    )
+
+  idWeights <-
+    dat %>%
+    select(Response_ID, age, race, sex, parental_education) %>%
+    left_join(ageWeights, by = 'age') %>%
+    mutate(
+      raceWeight =
+        case_when(
+          race == 'White' ~ filter(raceWeights, race_cat=='white') %$% raceWeight,
+          race != 'White' ~ filter(raceWeights, race_cat=='non_white') %$% raceWeight
+        ),
+      genderWeight =
+        case_when(
+          sex == 'Male' ~ filter(genderWeights, gender_cat=='male') %$% genderWeight,
+          sex == 'Female' ~ filter(genderWeights, gender_cat=='female') %$% genderWeight,
+          !sex %in% c('Male','Female') ~ filter(genderWeights, gender_cat=='other') %$% genderWeight
+        ),
+      eduWeight =
+        case_when(
+          parental_education == 'Some High School' ~
+            filter(eduWeights, edu_cat=='some_highschool') %$% eduWeight,
+          parental_education == 'High School Diploma' ~
+            filter(eduWeights, edu_cat=='high_school') %$% eduWeight,
+          parental_education == 'Some College' ~
+            filter(eduWeights, edu_cat=='some_college') %$% eduWeight,
+          parental_education == 'Associate Degree' ~
+            filter(eduWeights, edu_cat=='associate') %$% eduWeight,
+          parental_education %in% c('Bachelors Degree','Graduate Degree') ~
+            filter(eduWeights, edu_cat=='degree') %$% eduWeight,
+          TRUE ~ 1
+        )
+    ) %>%
+    mutate(
+      weight = eduWeight * ageWeight * genderWeight * raceWeight
+    ) %>%
+    select(Response_ID, weight)
+
+  out <-
+    dat %>%
+    left_join(idWeights, by = 'Response_ID')
+
+  return(out)
+
+}
+
 createAnalyticalSet <- function(memberPath, genpopPath) {
 
   memberSet <-
@@ -233,6 +365,7 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
 
   combine <-  refactorPivots(combine)
   combine <- recodeCheckAllApply(combine)
+  combine <- addSurveyWeights(combine)
 
   return(combine)
 
