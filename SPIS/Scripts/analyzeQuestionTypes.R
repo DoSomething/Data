@@ -249,25 +249,54 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
 }
 
-styleSelectMultiple <- function(dat, questionSuffix, pivots) {
-  require(reshape2)
-  require(corrplot)
+selectMultiCorPlot <- function(set, questionSuffix) {
 
-  pivots <- enquo(pivots)
-  thisQuestionSet <-
-    dat %>%
-    select(!!pivots) %>%
-    bind_cols(dat %>% select(starts_with(questionSuffix))) %>%
-    select(-ends_with('Other'), -ends_with('None_of_these')) %>%
-    mutate(
-      outcome = rowSums(select(., starts_with(questionSuffix)))
-    )
+  get_upper_tri <- function(cormat){
+    cormat[lower.tri(cormat)]<- NA
+    return(cormat)
+  }
 
-  forCorr <- thisQuestionSet %>% select(starts_with(questionSuffix))
+  reorder_cormat <- function(cormat){
+    # Use correlation between variables as distance
+    dd <- as.dist((1-cormat)/2)
+    hc <- hclust(dd)
+    cormat <-cormat[hc$order, hc$order]
+  }
+
+  forCorr <- set %>% select(starts_with(questionSuffix))
   names(forCorr) <- gsub(questionSuffix, '', names(forCorr))
 
-  forCorr <- forCorr %>% cor(.)
-  corPlot <- corrplot(forCorr, method="pie")
+  forCorr <-
+    forCorr %>%
+    cor(.)
+
+  corPlotDat <-
+    forCorr %>%
+    reorder_cormat(.) %>%
+    get_upper_tri(.) %>%
+    melt(., na.rm=T)
+
+  corPlot <-
+    ggplot(corPlotDat, aes(Var2, Var1, fill = value)) +
+    geom_tile(color = "white") +
+    scale_fill_gradient2(low = "red", high = "blue", mid = "white",
+                         midpoint = 0, limit = c(-1,1), space = "Lab",
+                         name="Correlation") +
+    coord_fixed() +
+    theme(
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.border = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks = element_blank(),
+      legend.justification = c(1, 0),
+      legend.position = c(0.6, 0.7),
+      legend.direction = "horizontal",
+      axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
+      ) +
+    guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                                 title.position = "top", title.hjust = 0.5))
 
   corDat <-
     forCorr %>%
@@ -277,10 +306,36 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
     filter(value == max(value)) %>%
     setNames(c('variable','top_cor','cor'))
 
+  out <- list(corPlot, corDat)
+
+  return(out)
+
+}
+
+
+styleSelectMultiple <- function(dat, questionSuffix, pivots) {
+  require(reshape2)
+  require(corrplot)
+
+  pivots <- enquo(pivots)
+
+  thisQuestionSet <-
+    dat %>%
+    select(!!pivots, weight) %>%
+    bind_cols(dat %>% select(starts_with(questionSuffix))) %>%
+    select(-ends_with('Other'), -ends_with('None_of_these')) %>%
+    mutate(
+      outcome = rowSums(select(., starts_with(questionSuffix)))
+    )
+
+  corOut <- selectMultiCorPlot(thisQuestionSet, questionSuffix)
+  corPlot <- corOut[[1]]
+  corDat <- corOut[[2]]
+
   ovr <-
     thisQuestionSet %>%
     select(starts_with(questionSuffix)) %>%
-    summarise_all(mean) %>%
+    summarise_all(funs(weighted.mean(.,weight=weight))) %>%
     melt() %>%
     mutate(
       variable = str_replace_all(variable, questionSuffix, '')

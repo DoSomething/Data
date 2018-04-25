@@ -66,8 +66,9 @@ analysis <-
   )
 
 
-styleSelectMultiple(
-  set,
-  'products_used_past12mo.',
-  pivots=c(Group, sex, fam_finances, age, race)
+ana <-
+  styleSelectMultiple(
+    set,
+    'which_issues_taken_action_12mo.',
+    pivots=c(Group, sex, fam_finances, age, race)
 )
