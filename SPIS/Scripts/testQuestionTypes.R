@@ -52,8 +52,6 @@ analysis <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-
-
 mapFrom <- c('Yes','No')
 mapTo <- c('Yes','No')
 finCode <- c(1,0)
@@ -66,3 +64,10 @@ analysis <-
                grade_level),
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
+
+
+styleSelectMultiple(
+  set,
+  'products_used_past12mo.',
+  pivots=c(Group, sex, fam_finances, age, race)
+)
