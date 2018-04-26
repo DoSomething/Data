@@ -1,17 +1,46 @@
-SELECT
-	s.northstar_id AS northstar_id,
-	s.id AS signup_id,
-	p.id AS post_id,
-	p.quantity AS quantity,
-	s.campaign_id AS campaign_id,
-	s."source" AS signup_source,
-	p.SOURCE AS post_source,
-	s.created_at AS signup_created_at,
-	p.created_at AS post_created_at
+SELECT  
+	a.northstar_id AS northstar_id,
+	a.id AS signup_id,
+	b.id AS post_id,
+	b.quantity AS quantity,
+	a.campaign_id AS campaign_id,
+	a.source AS signup_source,
+	b.source AS post_source,
+	a.created_at AS signup_created_at,
+	b.created_at AS post_created_at,
+	c.reported_back AS reported_back,
 FROM 
-	rogue.signups s
+	(SELECT *
+	FROM 
+		rogue.signups s
+	WHERE 
+		s.updated_at = MAX(updated_at)
+	GROUP BY 
+		s.id
+	) a
 LEFT JOIN 
-	rogue.posts p
-	ON p.signup_id = s.id AND p.id = s.post_id
-GROUP BY 1,2,3,4,5,6,7,8,9
+	(SELECT *
+	FROM 
+		rogue.posts p
+	WHERE 
+		p.updated_at = MAX(p.updated_at)
+	GROUP BY 
+		p.id
+	) b
+	ON b.signup_id = a.id
+LEFT JOIN 
+	(SELECT 
+		temp_posts.signup_id,
+		MAX(CASE WHEN temp_posts.post_id <> -1 then 1 else 0 end) AS reported_back
+	FROM 
+		rogue.posts temp_posts
+	GROUP BY 
+		temp_posts.signup_id
+	) c
+	ON c.signup_id = a.id
+WHERE s.SOURCE IS DISTINCT FROM 'runscope'
+AND s.SOURCE IS DISTINCT FROM 'runscope-oauth'
+AND s.deleted_at IS NULL
+
+	
 	
