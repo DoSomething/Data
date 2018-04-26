@@ -46,7 +46,8 @@ lookupMaker <- function(dat, input, mapFrom, mapTo, finCode) {
 rfPivotSelection <- function(tree, outcome, pivots) {
 
   require(randomForest)
-
+  require(caret)
+  browser()
   pivots.form <-
     paste0(pivots[2]) %>%
     substr(start = 3, stop = nchar(.)-1) %>%
@@ -312,10 +313,40 @@ selectMultiCorPlot <- function(set, questionSuffix) {
 
 }
 
+selectMultiOvrPlot <- function(dat, questionSuffix, corDat) {
+
+  ovr <-
+    dat %>%
+    select(starts_with(questionSuffix)) %>%
+    summarise_all(funs(weighted.mean(.,weight=weight))) %>%
+    melt() %>%
+    mutate(
+      variable = str_replace_all(variable, questionSuffix, '')
+    ) %>%
+    left_join(corDat) %>%
+    mutate(pos = pmax(value/2, .2))
+
+  ovr.p <-
+    ggplot(ovr, aes(x=reorder(variable, -value), y=value, fill=cor)) +
+    geom_bar(stat='identity') +
+    geom_text(
+      aes(y=pos,label=paste('Top Corr: ',top_cor, ' = ', round(cor, 2))),
+      size=3, angle=90
+    ) +
+    labs(x=paste0('Average # Ticked = ', round(sum(ovr$value), 3)),
+         title=questionSuffix,y='Percentage Ticked') +
+    theme(
+      axis.text.x = element_text(angle = 30, hjust = 1),
+      plot.title = element_text(hjust = .5)
+    ) +
+    scale_fill_gradientn(colours=rev(terrain.colors(2)))
+
+  return(ovr.p)
+
+}
 
 styleSelectMultiple <- function(dat, questionSuffix, pivots) {
   require(reshape2)
-  require(corrplot)
 
   pivots <- enquo(pivots)
 
@@ -332,33 +363,9 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
   corPlot <- corOut[[1]]
   corDat <- corOut[[2]]
 
-  ovr <-
-    thisQuestionSet %>%
-    select(starts_with(questionSuffix)) %>%
-    summarise_all(funs(weighted.mean(.,weight=weight))) %>%
-    melt() %>%
-    mutate(
-      variable = str_replace_all(variable, questionSuffix, '')
-      ) %>%
-    left_join(corDat) %>%
-    mutate(pos = pmax(value/2, .2))
+  ovr.p <- selectMultiOvrPlot(thisQuestionSet, questionSuffix, corDat)
 
-  ovr.p <-
-    ggplot(ovr, aes(x=reorder(variable, -value), y=value, fill=cor)) +
-    geom_bar(stat='identity') +
-    geom_text(
-      aes(y=pos,label=paste('Top Corr: ',top_cor, ' = ', round(cor, 2))),
-      size=3, angle=90
-      ) +
-    labs(x=paste0('Average # Ticked = ', round(sum(ovr$value), 3)),
-         title=questionSuffix,y='Percentage Ticked') +
-    theme(
-      axis.text.x = element_text(angle = 30, hjust = 1),
-      plot.title = element_text(hjust = .5)
-      ) +
-    scale_fill_gradientn(colours=rev(terrain.colors(2)))
-
-  # keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
+  keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
 
   out <- list(corPlot, ovr.p)
 
