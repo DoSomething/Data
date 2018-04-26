@@ -143,8 +143,8 @@ CREATE MATERIALIZED VIEW public.mel AS
 		AND pe.northstarid_s <> ''
 		) AS a 
 		); 
- CREATE index ON public.mel (m.event_id, m.northstar_id);
- GRANT SELECT ON public.temp_mel TO looker;
- GRANT SELECT ON public.temp_mel TO jjensen;
- GRANT SELECT ON public.temp_mel TO jli;
- GRANT SELECT ON public.temp_mel TO shasan;
+ CREATE INDEX ON public.mel (m.event_id, m.northstar_id);
+ GRANT SELECT ON public.mel TO looker;
+ GRANT SELECT ON public.mel TO jjensen;
+ GRANT SELECT ON public.mel TO jli;
+ GRANT SELECT ON public.mel TO shasan;
