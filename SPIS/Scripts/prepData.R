@@ -153,8 +153,8 @@ refactorPivots <- function(dat) {
           levels =
             c('Middle school', 'High School', 'Associate/Technical/Vocational',
               '2 year college (part-time)', '2 year college (full-time)',
-              '4 year college (part-time)', '4 year college (full-time)',
-              'Graduate school', 'Not in School', 'Other')
+              'Not in School', 'Other','4 year college (part-time)',
+               '4 year college (full-time)','Graduate school')
         ),
       parental_education = case_when(
         grepl('Associate', parental_education) ~ 'Associate Degree',
@@ -169,8 +169,8 @@ refactorPivots <- function(dat) {
           .,
           levels =
             c('Some High School', 'High School Diploma', 'Some College',
-              'Associate Degree', 'Bachelors Degree', 'Graduate Degree',
-              "Don't know")
+              "Don't know",'Associate Degree', 'Bachelors Degree',
+              'Graduate Degree')
         ),
       attend_religious_services_freq =
         factor(
@@ -185,6 +185,12 @@ refactorPivots <- function(dat) {
           political_party,
           levels =
             c('Republican', 'Independent', 'Unaffiliated', 'Other', 'Democrat')
+        ),
+      fam_finances =
+        factor(
+          fam_finances,
+          levels =
+            c('Below Average','Average',"Don't Know",'Comfortable','Well off')
         )
     )
 }

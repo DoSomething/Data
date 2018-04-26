@@ -250,7 +250,7 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
 }
 
-selectMultiCorPlot <- function(set, questionSuffix) {
+selectMultiCorPlot <- function(dat, questionSuffix) {
 
   get_upper_tri <- function(cormat){
     cormat[lower.tri(cormat)]<- NA
@@ -258,13 +258,12 @@ selectMultiCorPlot <- function(set, questionSuffix) {
   }
 
   reorder_cormat <- function(cormat){
-    # Use correlation between variables as distance
     dd <- as.dist((1-cormat)/2)
     hc <- hclust(dd)
     cormat <-cormat[hc$order, hc$order]
   }
 
-  forCorr <- set %>% select(starts_with(questionSuffix))
+  forCorr <- dat %>% select(starts_with(questionSuffix))
   names(forCorr) <- gsub(questionSuffix, '', names(forCorr))
 
   forCorr <-
@@ -345,6 +344,19 @@ selectMultiOvrPlot <- function(dat, questionSuffix, corDat) {
 
 }
 
+getTopCors <- function(dat, vars, pivots) {
+
+
+
+}
+
+getCorPlots <- function(dat, pivot, outcomePrefix) {
+
+
+
+}
+
+
 styleSelectMultiple <- function(dat, questionSuffix, pivots) {
   require(reshape2)
 
@@ -365,7 +377,10 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
 
   ovr.p <- selectMultiOvrPlot(thisQuestionSet, questionSuffix, corDat)
 
-  keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
+  # keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
+  keyPivots <- c('Group', 'sex', 'fam_finances', 'age', 'race')
+
+  getCorPlots(thisQuestionSet, 'fam_finances', questionSuffix)
 
   out <- list(corPlot, ovr.p)
 
@@ -373,3 +388,9 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
 
 }
 
+ana <-
+  styleSelectMultiple(
+    set,
+    'which_issues_taken_action_12mo.',
+    pivots=c(Group, sex, fam_finances, age, race)
+  )
