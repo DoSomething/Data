@@ -350,9 +350,62 @@ getTopCors <- function(dat, vars, pivots) {
 
 }
 
-getCorPlots <- function(dat, pivot, outcomePrefix) {
+getNumAssociation <- function(dat, pivot, outcomePrefix) {
+  require(gridExtra)
 
+  mDat <-
+    dat %>%
+    select(starts_with(outcomePrefix), pivot) %>%
+    melt(id.var=pivot) %>%
+    mutate(
+      variable = gsub(outcomePrefix, '', variable)
+    )%>%
+    as.tibble()
 
+  requiredGroups <- ceiling(length(unique(mDat$variable))/4)
+  panelCol <-
+    tibble(
+      panel =
+        rep(seq(1:requiredGroups), ceiling(nrow(mDat)/requiredGroups))
+    ) %>%
+    slice(1:nrow(mDat)) %>%
+    arrange(panel)
+
+  mDat %<>%
+    bind_cols(panelCol)
+
+  myplots <- list()
+
+  for (i in 1:requiredGroups) {
+
+    pdat <- mDat %>% filter(panel==i)
+
+    local({
+      i <- i
+      p <-
+        ggplot(pdat, aes(x=age, y=value, color=variable)) +
+        geom_smooth(method='lm', se=F) +
+        labs(y='% Selected') +
+        guides(colour = guide_legend(nrow = 2)) +
+        theme(
+          legend.title=element_blank(),
+          legend.position = "bottom",
+          legend.direction = "horizontal"
+        )
+
+      myplots[[i]] <<- p
+
+    })
+
+  }
+
+  outPlot <-
+    arrangeGrob(
+      grobs=myplots, ncol=2,
+      top = paste('Relationship between', pivot, 'and', outcomePrefix)
+      )
+
+  return(outPlot)
 
 }
 
@@ -380,7 +433,7 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
   # keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
   keyPivots <- c('Group', 'sex', 'fam_finances', 'age', 'race')
 
-  getCorPlots(thisQuestionSet, 'fam_finances', questionSuffix)
+  agePlot <- getNumAssociation(thisQuestionSet, 'age', questionSuffix)
 
   out <- list(corPlot, ovr.p)
 
