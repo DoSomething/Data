@@ -26,7 +26,7 @@ allTypeForm <- getKeyList(tfkey)
 gtmMarch <- 'cCoZe3'
 
 getOutput <- function(surveyKey, tfkey) {
-  browser()
+
   res <- getResults(surveyKey, tfkey)
   questions <- as.tibble(res$questions)
   answers <- as.tibble(
