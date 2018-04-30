@@ -323,8 +323,7 @@ prepData <- function(...) {
   return(out)
 
 }
-## TODO
-## replace email details with category
+
 vfile <-
   'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
 
