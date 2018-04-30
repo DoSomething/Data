@@ -1,8 +1,9 @@
 source('config/init.R')
 source('config/mySQLConfig.R')
 source('config/pgConnect.R')
+pg <- pgConnect()
 
-latest_file <- '2018-04-23'
+latest_file <- '2018-04-30'
 # Data prep ---------------------------------------------------------------
 getData <- function(path) {
 
@@ -145,7 +146,7 @@ addFields <- function(dat) {
             'register-form',
           voter_registration_status == 'registered' & voter_registration_method == 'online' ~
             'register-OVR',
-          voter_registration_status %in% c('unknown','pending') | is.na(voter_registration_status) ~
+          voter_registration_status %in% c('unknown','pending','') | is.na(voter_registration_status) ~
             'uncertain',
           voter_registration_status %in% c('ineligible','not-required') ~
             'ineligible',
@@ -255,7 +256,6 @@ vfile <-
   'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
 
 out <- prepData(path=paste0(vfile,latest_file,'.csv'))
-test <- prepData('Data/Turbovote/test-tv-import.csv')[[1]]
 
 vr <- out[[1]]
 dupes <- out[[2]]
@@ -266,10 +266,13 @@ powerUsers <-
   filter(max(recordCounter)>=5) %>%
   bind_rows(vr %>% filter(nsid=='5a84b01ea0bfad5dc71768a2'))
 
-pg <- pgConnect()
 if(dbExistsTable(pg,c("public", "turbovote_file"))) {
-  dbRemoveTable(pg,c("public", "turbovote_file"))}
-dbWriteTable(pg,c("public", "turbovote_file"), vr, row.names=F)
+
+  q <- "truncate public.turbovote_file"
+  runQuery(q,'pg')
+
+  }
+dbWriteTable(pg,c("public", "turbovote_file"), vr, append = TRUE, row.names=F)
 
 # Analysis ----------------------------------------------------------------
 library(reshape2)
@@ -368,6 +371,8 @@ aster <-
     self_report = sum(ds_vr_status=='confirmed')
   )
 
+## Month over month view
+
 MoM <-
   vr %>%
   filter(created_at >= '2018-01-01') %>%
@@ -391,8 +396,7 @@ MoM <-
   melt(id.var=c('dayOfMonth','month')) %>%
   mutate(month = as.factor(month))
 
-ggplot(MoM, aes(x=dayOfMonth, value)) +
-  geom_line(aes(color=month))
+## Excel output
 
 library(openxlsx)
 

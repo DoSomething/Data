@@ -2,6 +2,16 @@
 title: ""
 output: html_notebook
 ---
+#### Month over Month Pacing
+* We are pacing lower this month than last month
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+ggplot(MoM, aes(x=dayOfMonth, value)) +
+  geom_line(aes(color=month)) + 
+  labs(title='Voters Registered Month over Month', x='Day of Month', y='Voters Registered') +
+  theme(plot.title = element_text(hjust=.5))
+```
+
+
 #### Northstar Source
 * Web users disproportionately represent all those going through the flow 
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
@@ -77,7 +87,7 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
 #   theme(plot.title = element_text(hjust=.5)) + 
 #   guides(fill=guide_legend(title='Source Details'))
 ```
-```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=24}
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=36}
 library(gridExtra)
 ss <- split(sourceStep, f=sourceStep$source)
 p1 <- ggplot(ss$email, aes(x=ds_vr_status, y=value, fill=reorder(source_details, value))) +
