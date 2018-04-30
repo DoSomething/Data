@@ -90,7 +90,7 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=36}
 library(gridExtra)
 ss <- split(sourceStep, f=sourceStep$source)
-p1 <- ggplot(ss$email, aes(x=ds_vr_status, y=value, fill=reorder(source_details, value))) +
+p1 <- ggplot(ss$email, aes(x=ds_vr_status, y=value, fill=reorder(details, value))) +
   geom_bar(stat='identity', position='stack') +
   geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
   stat_summary(fun.y = sumIf, aes(label = ..y.., group = ds_vr_status), geom = "text", vjust=-.2) +

@@ -1,10 +1,61 @@
 source('config/init.R')
 source('config/mySQLConfig.R')
 source('config/pgConnect.R')
+library(googlesheets)
 pg <- pgConnect()
 
 latest_file <- '2018-04-30'
 # Data prep ---------------------------------------------------------------
+getWorkbookKey <- function(searchPhrase) {
+
+  key <-
+    gs_ls() %>%
+    filter(grepl(searchPhrase,sheet_title)) %>%
+    select(sheet_key) %>%
+    as.character()
+
+  return(key)
+
+}
+
+getWorkBook <- function(key) {
+
+  workbook <-
+    gs_key(key)
+
+  return(workbook)
+
+}
+
+getSheetName <- function(key) {
+
+  sheetNames <-
+    gs_key(key) %>%
+    gs_ws_ls()
+
+  return(sheetNames)
+}
+
+getWorksheet <- function(sheetNames, Workbook, whichSheet) {
+
+  whichSheet <- which(sheetNames==whichSheet)
+  sheet <-  Workbook %>% gs_read(sheetNames[whichSheet])
+
+  return(sheet)
+
+}
+
+getSheet <- function(workbook, sheet) {
+
+  workbookID <- getWorkbookKey(workbook)
+  workbook <- getWorkBook(workbookID)
+  sheetNames <- getSheetName(workbookID)
+  cioConv <- getWorksheet(sheetNames, workbook, sheet)
+
+  return(cioConv)
+
+}
+
 getData <- function(path) {
 
   vr <-
@@ -93,6 +144,14 @@ processReferralColumn <- function(dat) {
       source_details = case_when(
         is.na(source_details) ~ '',
         source == 'web' & source_details == '' ~ paste0('campaign_',campaignRunId),
+        TRUE ~ source_details
+      ),
+      newsletter = case_when(
+        source == 'email' & grepl('newsletter', source_details) ~ gsub('newsletter_', '', source_details),
+        TRUE ~ ''
+      ),
+      details = case_when(
+        newsletter != '' & !is.na(newsletter) ~ newsletter,
         TRUE ~ source_details
       )
     ) %>%
@@ -240,10 +299,23 @@ prepData <- function(...) {
 
   dupes <- addFields(dupes)
 
+  cioConv <-
+    getSheet('Voter Registration Pacing', 'Conversions') %>%
+    select(source_details, type, category) %>%
+    rename(newsletter = source_details) %>%
+    filter(type=='email')
+
   vr %<>%
     filter(
       !duplicated(nsid) |
       nsid %in% c('','null')
+    ) %>%
+    left_join(cioConv) %>%
+    mutate(
+      details = case_when(
+        newsletter != '' & !is.na(newsletter) ~ category,
+        TRUE ~ details
+      )
     )
 
   out <- list(vr, dupes)
@@ -251,7 +323,8 @@ prepData <- function(...) {
   return(out)
 
 }
-
+## TODO
+## replace email details with category
 vfile <-
   'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
 
@@ -304,7 +377,7 @@ detSource <- npPivot(source_details)
 sourceStep <-
   vr %>%
   filter(source != '') %>%
-  group_by(ds_vr_status, source, source_details) %>%
+  group_by(ds_vr_status, source, details) %>%
   summarise(Count=n()) %>%
   mutate(Proportion=Count/sum(Count)) %>%
   melt(value.var='Proportion') %>% as.tibble() %>%
