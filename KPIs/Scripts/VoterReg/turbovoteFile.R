@@ -4,7 +4,7 @@ source('config/pgConnect.R')
 library(googlesheets)
 pg <- pgConnect()
 
-latest_file <- '2018-04-30'
+latest_file <- '2018-05-02'
 # Data prep ---------------------------------------------------------------
 getWorkbookKey <- function(searchPhrase) {
 
@@ -300,7 +300,7 @@ prepData <- function(...) {
   dupes <- addFields(dupes)
 
   cioConv <-
-    getSheet('Voter Registration Pacing', 'Conversions') %>%
+    getSheet('Voter Registration Source Details Buckets', 'Conversions') %>%
     select(source_details, type, category) %>%
     rename(newsletter = source_details) %>%
     filter(type=='email')
