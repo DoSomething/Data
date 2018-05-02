@@ -5,36 +5,23 @@ output: html_notebook
 
 
 #### Deeper Dive
-
-```{r warning=FALSE, echo=FALSE, fig.width=11, fig.height=6.5}
+* Although there is a substantial decrease month over month
+```{r warning=FALSE, echo=FALSE, fig.width=10, fig.height=6.5}
 labs <- mm %>% group_by(Month) %>% summarise(count=sum(nsids))
 ggplot(mm, aes(x=as.factor(Month), y=nsids)) + 
   geom_bar(stat='identity') + 
   labs(title='Overall Trend', y='Distinct Users', x='Month') + 
   stat_summary(fun.y = sum, aes(label = ..y.., group = Month), geom = "text", vjust=-.2) +
   scale_y_continuous(breaks=pretty_breaks(10)) + 
-  theme(plot.title=element_text(hjust=.5)) 
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle = 30, hjust = 1)) 
 ```
-* Pivoting by Niche and New/Returning
-	* Niche overall active looks comparable to last year
-	  * A 3:1 new:repeat ratio in niche has given way to roughly 45:55 ratio
-	* Most of the decline appears to be among non-niche, occuring in both new and repeat
-	  * Ratio of new:repeat is not very different
-```{r warning=FALSE, echo=FALSE, fig.width=16, fig.height=6.5}
-ggplot(mm, aes(x=as.factor(Month), y=nsids, fill=Type)) + 
-  geom_bar(stat='identity', position='stack') + 
-  geom_text(position=position_stack(vjust = 0.5), aes(label=nsids), size=2.5) +
-  stat_summary(fun.y = sum, aes(label = ..y.., group = Month), geom = "text", vjust=-.2) +
-  facet_wrap(~niche) + 
-  labs(y='Distinct Users', x='Month') + 
-  scale_y_continuous(breaks=pretty_breaks(16)) +
-  scale_fill_brewer(palette="Set2")
-```
+
 * Pivoting by Action Types
 	* Very interesting that the total number of actions taken is actually a bit higher than last year
 	* This suggests we have fewer people taking more actions
 	* Account creations are down but website utilization is up
-```{r warning=FALSE, echo=FALSE, fig.width=16, fig.height=6.5}
+```{r warning=FALSE, echo=FALSE, fig.width=12, fig.height=6.5}
 act.agg <- act %>% group_by(Month, action_type) %>% summarise(count = sum(actions))
 ggplot(act.agg, aes(x=as.factor(Month), y=count, fill=reorder(action_type, count))) + 
   geom_bar(stat='identity', position='stack') + 
@@ -42,58 +29,93 @@ ggplot(act.agg, aes(x=as.factor(Month), y=count, fill=reorder(action_type, count
   stat_summary(fun.y = sum, aes(label = ..y.., group = Month), geom = "text", vjust=-.2) +
   scale_y_continuous(breaks=pretty_breaks(10)) + 
   labs(title='Action Counts', y='Actions', x='Month') + 
-  theme(plot.title=element_text(hjust=.5)) + 
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle = 30, hjust = 1)) + 
   guides(fill=guide_legend(title="Action Type")) +
   scale_fill_brewer(palette="Set3")
 ```
-* Splitting by Niche
-  * Both niche and non-niche show the same pattern of slightly more activity this March
-  * Similar action type breakdowns as overall with fewer new accounts, but more site activity
-```{r warning=FALSE, echo=FALSE, fig.width=16, fig.height=6.5}
-ggplot(act, aes(x=as.factor(Month), y=actions, fill=reorder(action_type, actions))) + 
+
+```{r warning=FALSE, echo=FALSE, fig.width=12, fig.height=6.5}
+ggplot(filter(actMemAvg, Month!='2018-05-01'), aes(x=Month, y=avg_n_actions, color=Type)) +
+  geom_line() + geom_point() + facet_wrap(~niche) +
+  scale_x_date(breaks=pretty_breaks(20)) + 
+  labs(title='Average # of Actions Taken Per Member', y='# of Actions', x='Month') + 
+  theme(
+    plot.title=element_text(hjust=.5),
+    axis.text.x = element_text(angle = 30, hjust = 1)
+    )
+```
+* Pivoting by Niche and New/Returning
+```{r warning=FALSE, echo=FALSE, fig.width=12, fig.height=6.5}
+ggplot(mm, aes(x=as.factor(Month), y=nsids, fill=Type)) + 
   geom_bar(stat='identity', position='stack') + 
-  geom_text(position=position_stack(vjust = 0.5), aes(label=actions), vjust=0, size=2.5) +
-  stat_summary(fun.y = sum, aes(label = ..y.., group = Month), geom = "text", vjust=-.3) +
-  scale_y_continuous(breaks=pretty_breaks(10)) + 
-  labs(title='Action Counts', x='Month') + 
+  geom_text(position=position_stack(vjust = 0.5), aes(label=nsids), size=2.5) +
+  stat_summary(fun.y = sum, aes(label = ..y.., group = Month), geom = "text", vjust=-.4, size=3) +
   facet_wrap(~niche) + 
-  theme(plot.title=element_text(hjust=.5)) + 
-  guides(fill=guide_legend(title="Action Type")) +
-  scale_fill_brewer(palette="Set3")
+  labs(y='Distinct Users', x='Month') + 
+  scale_y_continuous(breaks=pretty_breaks(16)) +
+  scale_fill_brewer(palette="Set2") + 
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
 ```
+
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=6}
+ggplot(filter(da, active_members != max(active_members)), aes(x=date, y=active_members)) +
+  geom_point(aes(colour=DayOfWeek), size=.8) +
+  geom_smooth(se=F, aes(colour=DayOfWeek), linetype='dotdash') +
+  scale_x_date(breaks=pretty_breaks(16)) +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle = 30, hjust = 1)) +
+  scale_colour_brewer(palette='YlGnBu') +
+  labs(title='Users Per Day Over Time', x='Date', y='Active Members')
+```
+
 * Activity composition 
   * Activity breakdown delta shows up even more clearly here; lots more website activity
-```{r warning=FALSE, echo=FALSE, fig.width=16, fig.height=6.5}
+```{r warning=FALSE, echo=FALSE, fig.width=12, fig.height=6.5}
 ggplot(act.N, aes(x=as.factor(Month), y=prop, fill=reorder(action_type, prop))) + 
   geom_bar(stat='identity', position='stack') + 
   geom_text(position=position_stack(vjust=.5), aes(label=Text), size=2.5) +
   scale_y_continuous(breaks=pretty_breaks(10)) + 
-  theme(plot.title=element_text(hjust=.5)) + 
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle = 30, hjust = 1)) + 
   labs(y='Proportion', x='Month', title='Action Composition') +
   guides(fill=guide_legend(title="Action Type")) +
   scale_fill_brewer(palette="Set3")
 ```
 * Splitting by Niche
   * Same story holds when breaking out niche and non-niche
-```{r warning=FALSE, echo=FALSE, fig.width=18, fig.height=6.5}
+```{r warning=FALSE, echo=FALSE, fig.width=12, fig.height=6.5}
 ggplot(act, aes(x=as.factor(Month), y=prop, fill=reorder(action_type, prop))) + 
   geom_bar(stat='identity', position='stack') + 
   geom_text(position=position_stack(vjust=.5), aes(label=Text), size=3) +
   facet_wrap(~niche) + 
   scale_y_continuous(breaks=pretty_breaks(10)) + 
   labs(title='Action Composition', y='Proportion', x='Month') + 
-  theme(plot.title=element_text(hjust=.5)) +
+  theme(
+    plot.title=element_text(hjust=.5),
+    axis.text.x = element_text(angle = 30, hjust = 1)
+    ) +
   guides(fill=guide_legend(title="Action Type")) +
   scale_fill_brewer(palette="Set3")
 ```
 
-```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=6.5}
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=10, fig.height=6.5}
 ggplot(filter(da, active_members != max(active_members)), aes(x=date, y=active_members)) +
-  geom_point(aes(colour=DayOfWeek)) +
+  geom_point(aes(colour=DayOfWeek), size=.8) +
   geom_smooth(se=F, aes(colour=DayOfWeek), linetype='dotdash') +
   scale_x_date(breaks=pretty_breaks(16)) +
-  theme(plot.title=element_text(hjust=.5)) +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle = 30, hjust = 1)) +
   scale_colour_brewer(palette='YlGnBu') +
   ggtitle('Users Per Day Over Time')
 ```
 
+* Time on Site
+
+```{r warning=FALSE, echo=FALSE, fig.width=10, fig.height=6.5}
+ggplot(sumTOS, aes(x=date, y=avgTimeOnSite)) + 
+  geom_line() + geom_smooth(se=F, linetype='dotdash', color='blue') + 
+  scale_x_date(breaks=pretty_breaks(10)) +
+  labs(x='Day', y='Time On Site') + 
+  theme(plot.title=element_text(hjust=.5))
+```

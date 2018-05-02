@@ -35,3 +35,32 @@ da <-
                        levels=c('Monday','Tuesday','Wednesday','Thursday',
                                 'Friday','Saturday','Sunday'))
   )
+
+actMemAvg <-
+  runQuery('Scripts/MAMReport/avgActionsPerMember.sql', 'pg')
+
+tos <-
+  runQuery('Scripts/MAMReport/timeOnSite.sql','pg') %>%
+  mutate(
+    sessionLength = difftime(ending_ts, landing_ts, unit='mins'),
+    date = as.Date(landing_ts)
+    ) %>%
+  filter(date < today()) %>%
+  group_by(date, northstar_id) %>%
+  summarise(
+    timeThatDay = sum(sessionLength)
+  ) %>%
+  filter(
+    timeThatDay > quantile(timeThatDay, .001) &
+    timeThatDay < quantile(timeThatDay, .999)
+  ) %>%
+  group_by(date) %>%
+  summarise(
+    avgTimeOnSite = mean(timeThatDay)
+  )
+
+ggplot(sumTOS, aes(x=date, y=avgTimeOnSite)) +
+  geom_line() + geom_smooth(se=F, linetype='dotdash', color='blue') +
+  scale_x_date(breaks=pretty_breaks(10)) +
+  labs(title='Average Time Spent on Site', x='Day', y='Time On Site') +
+  theme(plot.title=element_text(hjust=.5))
