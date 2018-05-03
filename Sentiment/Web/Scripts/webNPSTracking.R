@@ -34,5 +34,9 @@ out <- tibble(as_of_date = today(), NPS = round(mean(scores)))
 
 channel <- pgConnect()
 dbWriteTable(channel,c("public","web_nps"), out, row.names=F, append=T)
-grant <- "grant select on web_nps to public;"
+grant <- "grant select on public.web_nps to looker;"
+dbGetQuery(channel, grant)
+grant <- "grant select on web_nps to jjensen;"
+dbGetQuery(channel, grant)
+grant <- "grant select on web_nps to jli;"
 dbGetQuery(channel, grant)
