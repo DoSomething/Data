@@ -2,9 +2,12 @@ source('config/init.R')
 library(rlang)
 
 age <- function(dob, age.day = today(), units = "years", floor = TRUE) {
+
   calc.age = interval(dob, age.day) / duration(num = 1, units = units)
   if (floor) return(as.integer(floor(calc.age)))
+
   return(calc.age)
+
 }
 
 fixColName <- function(x) {
@@ -25,6 +28,7 @@ fixColName <- function(x) {
     y <- x
 
   }
+
   end.s <- substr(y, nchar(y)-2, nchar(y))
   lastNumber <- grepl('[0-9]', substr(end.s, nchar(end.s), nchar(end.s)))
   secondLastNumber <- grepl('[0-9]', substr(end.s, nchar(end.s)-1, nchar(end.s)-1))
@@ -90,6 +94,7 @@ processSet <- function(path) {
     filter(!is.na(Response_ID))
 
   return(memberSet)
+
 }
 
 recodeCheckAllApply <- function(dat) {
@@ -141,11 +146,15 @@ collapseRace <- function(dat) {
   setRace <-
     raceSet %>%
     mutate_at(
+
       .vars = vars(starts_with('race')),
       .funs = funs(ifelse(is.na(.),0,1))
+
     ) %>%
     mutate(
+
       ticks = rowSums(select(., contains("race."))),
+
       race = case_when(
         ticks > 1 ~ 'Multiracial',
         get(raceVars[1])==1 & ticks==1 ~ 'White',
@@ -156,24 +165,31 @@ collapseRace <- function(dat) {
         get(raceVars[6])==1 & ticks==1 ~ 'Pacific Islander',
         TRUE ~ 'Uncertain'
       )
+
     ) %>%
     select(-starts_with('race.'), -ticks)
+
 }
 
 refactorPivots <- function(dat) {
 
   dat %<>%
     mutate(
+
       state = case_when(is.na(state) ~ 'Missing', TRUE ~ state),
+
       political_party =
         case_when(grepl('Other', political_party) ~ 'Other',
                   TRUE ~ political_party),
+
       attend_religious_services_freq =
         gsub(' because', '', attend_religious_services_freq),
+
       political_view =
         factor(political_view,
                levels = c('Very conservative', 'Conservative', 'Moderate',
                           'Liberal', 'Very Liberal')),
+
       grade_level = case_when(
         grepl('vocati', grade_level) ~ 'Associate/Technical/Vocational',
         grepl('not in school', grade_level) ~ 'Not in School',
@@ -188,6 +204,7 @@ refactorPivots <- function(dat) {
               'Not in School', 'Other','4 year college (part-time)',
                '4 year college (full-time)','Graduate school')
         ),
+
       parental_education = case_when(
         grepl('Associate', parental_education) ~ 'Associate Degree',
         grepl('Bachelor', parental_education) ~ 'Bachelors Degree',
@@ -204,6 +221,7 @@ refactorPivots <- function(dat) {
               "Don't know",'Associate Degree', 'Bachelors Degree',
               'Graduate Degree')
         ),
+
       attend_religious_services_freq =
         factor(
           attend_religious_services_freq,
@@ -212,19 +230,25 @@ refactorPivots <- function(dat) {
               'Once every few years', 'Once per year', 'Several times per year',
               'At least once per month', 'Weekly', 'Multiple times a week')
         ),
+
       political_party =
         factor(
           political_party,
           levels =
             c('Republican', 'Independent', 'Unaffiliated', 'Other', 'Democrat')
         ),
+
       fam_finances =
         factor(
           fam_finances,
           levels =
             c('Below Average','Average',"Don't Know",'Comfortable','Well off')
         )
+
     )
+
+  return(dat)
+
 }
 
 addSurveyWeights <- function(dat) {
@@ -243,15 +267,18 @@ addSurveyWeights <- function(dat) {
     raceWeights <-
       subDat %>%
       mutate(
+
         race_cat =
           case_when(
             race == 'White' ~ 'white',
             TRUE ~ 'non_white'
           )
+
       ) %>%
       count(race_cat) %>%
       mutate(
         pct = n/sum(n),
+
         raceWeight =
           case_when(
             race_cat == 'white' ~ popEst$race$white / pct,
@@ -273,6 +300,7 @@ addSurveyWeights <- function(dat) {
       count(gender_cat) %>%
       mutate(
         pct = n/sum(n),
+
         genderWeight =
           case_when(
             gender_cat == 'male' ~ popEst$sex$male / pct,
@@ -306,6 +334,7 @@ addSurveyWeights <- function(dat) {
       count(edu_cat) %>%
       mutate(
         pct = n/sum(n),
+
         eduWeight =
           case_when(
             edu_cat == 'some_highschool' ~ popEst$education$some_highschool / pct,
@@ -322,17 +351,20 @@ addSurveyWeights <- function(dat) {
       select(Response_ID, age, race, sex, parental_education) %>%
       left_join(ageWeights, by = 'age') %>%
       mutate(
+
         raceWeight =
           case_when(
             race == 'White' ~ filter(raceWeights, race_cat=='white') %$% raceWeight,
             race != 'White' ~ filter(raceWeights, race_cat=='non_white') %$% raceWeight
           ),
+
         genderWeight =
           case_when(
             sex == 'Male' ~ filter(genderWeights, gender_cat=='male') %$% genderWeight,
             sex == 'Female' ~ filter(genderWeights, gender_cat=='female') %$% genderWeight,
             !sex %in% c('Male','Female') ~ filter(genderWeights, gender_cat=='other') %$% genderWeight
           ),
+
         eduWeight =
           case_when(
             parental_education == 'Some High School' ~
@@ -379,6 +411,7 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
       Time_Taken_to_Complete_Seconds >=
         quantile(Time_Taken_to_Complete_Seconds, .5) / 3
     )
+
   genpopSet <-
     processSet(genpopPath) %>%
     mutate(Group = 'Gen Pop') %>%
