@@ -8,47 +8,73 @@ age <- function(dob, age.day = today(), units = "years", floor = TRUE) {
 }
 
 fixColName <- function(x) {
-  # browser()
+
   beginNumber <- grepl('[0-9]', substr(x, 1, 1))
   secondCharNumber <- grepl('[0-9]', substr(x, 2, 2))
+
   if (beginNumber==T & secondCharNumber==T) {
+
     y <- substr(x, 6, nchar(x))
+
   } else if (beginNumber==T) {
+
     y <- substr(x, 5, nchar(x))
+
   } else {
+
     y <- x
+
   }
   end.s <- substr(y, nchar(y)-2, nchar(y))
   lastNumber <- grepl('[0-9]', substr(end.s, nchar(end.s), nchar(end.s)))
   secondLastNumber <- grepl('[0-9]', substr(end.s, nchar(end.s)-1, nchar(end.s)-1))
+
   if (lastNumber==T & secondLastNumber==T) {
+
     out <- substr(y, 1, nchar(y)-3)
+
   } else if (lastNumber==T) {
+
     out <- substr(y, 1, nchar(y)-2)
+
   } else {
+
     out <- y
+
   }
+
   out <- gsub(' ', '_', out)
   out <- gsub("[-/&'() ]+", '', out)
+
   return(out)
 }
 
 liftColFromRow1 <- function(dat) {
-  # browser()
+
   topRow <-
     dat %>%
     filter(is.na(`Response ID`))
+
   for (j in 1:length(names(dat))) {
+
     pasteVal <- gsub('[^A-z]','_',topRow[[j]])
     pasteVal <- gsub('__', '_', pasteVal)
     fixVal <- fixColName(names(dat)[j])
+
     if (!is.na(pasteVal)) {
+
       names(dat)[j] <- paste0(fixVal,'.',pasteVal)
+
     } else {
+
       names(dat)[j] <- fixVal
+
     }
+
   }
+
   return(dat)
+
 }
 
 processSet <- function(path) {
@@ -86,10 +112,15 @@ recodeCheckAllApply <- function(dat) {
   recodeThese <- c()
 
   for (j in 1:length(names(dat))) {
+
     thisVar <- names(dat)[j]
+
     if (meetCriteria(thisVar)==T) {
+
       recodeThese <- c(thisVar, recodeThese)
+
     }
+
   }
 
   dat %<>%
@@ -130,6 +161,7 @@ collapseRace <- function(dat) {
 }
 
 refactorPivots <- function(dat) {
+
   dat %<>%
     mutate(
       state = case_when(is.na(state) ~ 'Missing', TRUE ~ state),
@@ -393,5 +425,5 @@ set <- createAnalyticalSet(
   'Data/spis_genpop_raw_values.csv'
   )
 
-forChar <- set %>% filter(Group=='Gen Pop') %>% select(Response_ID, weight)
-saveCSV(forChar, desktop=T)
+# forChar <- set %>% filter(Group=='Gen Pop') %>% select(Response_ID, weight)
+# saveCSV(forChar, desktop=T)

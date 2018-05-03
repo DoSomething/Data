@@ -3,7 +3,7 @@ source('Scripts/analyzeQuestionTypes.R')
 mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
 mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
 finCode <- c(-2,-1,0,1,2)
-analysis <-
+effortUnderstandPerspectives <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_make_an_active_effort_to_understand_others_perspectives,
@@ -16,7 +16,7 @@ analysis <-
 mapFrom <- c("Don't know",NA,'Less than 10%','10-20%','More than 20%')
 mapTo <- c('Uncertain','Uncertain','Less than 10%','10-20%','More than 20%')
 finCode <- c(0,0,1,2,3)
-analysis <-
+willingPayMoreBrandValues <-
   stylePickOneOrdinal(
     dat=set %>% filter(!is.na(willing_to_pay_how_much_more_brand_good_values)),
     willing_to_pay_how_much_more_brand_good_values,
@@ -29,7 +29,7 @@ analysis <-
 mapFrom <- c('Not at all important','2','3','4','Very Important')
 mapTo <- c('Not Important','A Little','Neutral','Important','Very Important')
 finCode <- c(-2,-1,0,1,2)
-analysis <-
+howImportantVoterReg <-
   stylePickOneOrdinal(
     set,
     causes_importance.Voter_registration,
@@ -39,23 +39,23 @@ analysis <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-mapFrom <- c("Don't know",'Less than 10%','10-20%','More than 20%')
-mapTo <- c('Uncertain','Uncertain','Less than 10%','10-20%','More than 20%')
-finCode <- c(0,1,2,3)
-analysis <-
-  stylePickOneOrdinal(
-    dat=set %>% filter(!is.na(willing_to_pay_how_much_more_brand_good_values)),
-    willing_to_pay_how_much_more_brand_good_values,
-    pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
-               political_party, political_view, attend_religious_services_freq,
-               grade_level),
-    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
-  )
+# mapFrom <- c("Don't know",'Less than 10%','10-20%','More than 20%')
+# mapTo <- c('Uncertain','Uncertain','Less than 10%','10-20%','More than 20%')
+# finCode <- c(0,1,2,3)
+# analysis <-
+#   stylePickOneOrdinal(
+#     dat=set %>% filter(!is.na(willing_to_pay_how_much_more_brand_good_values)),
+#     willing_to_pay_how_much_more_brand_good_values,
+#     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
+#                political_party, political_view, attend_religious_services_freq,
+#                grade_level),
+#     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
+#   )
 
 mapFrom <- c('Yes','No')
 mapTo <- c('Yes','No')
 finCode <- c(1,0)
-analysis <-
+volunteerInformal <-
   stylePickOneOrdinal(
     set,
     volunteer_informal,
@@ -66,9 +66,20 @@ analysis <-
   )
 
 
-ana <-
+issuesTakenAction <-
   styleSelectMultiple(
     set,
     'which_issues_taken_action_12mo.',
-    pivots=c(Group, sex, fam_finances, age, race)
-)
+    pivots=c(Group, sex, fam_finances, age, race, region, parental_education,
+             political_party, political_view, attend_religious_services_freq,
+             grade_level)
+  )
+
+productsUsed <-
+  styleSelectMultiple(
+    set,
+    'products_used_past12mo.',
+    pivots=c(Group, sex, fam_finances, age, race, region, parental_education,
+             political_party, political_view, attend_religious_services_freq,
+             grade_level)
+  )

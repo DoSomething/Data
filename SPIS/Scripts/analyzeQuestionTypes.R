@@ -47,7 +47,7 @@ rfPivotSelection <- function(tree, outcome, pivots) {
 
   require(randomForest)
   require(caret)
-  browser()
+
   pivots.form <-
     paste0(pivots[2]) %>%
     substr(start = 3, stop = nchar(.)-1) %>%
@@ -430,20 +430,20 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
 
   ovr.p <- selectMultiOvrPlot(thisQuestionSet, questionSuffix, corDat)
 
-  # keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
-  keyPivots <- c('Group', 'sex', 'fam_finances', 'age', 'race')
+  keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
+  # keyPivots <- c('Group', 'sex', 'fam_finances', 'age', 'race')
 
   agePlot <- getNumAssociation(thisQuestionSet, 'age', questionSuffix)
 
-  out <- list(corPlot, ovr.p)
+  out <- list(corPlot, ovr.p, agePlot)
 
   return(out)
 
 }
 
-ana <-
-  styleSelectMultiple(
-    set,
-    'which_issues_taken_action_12mo.',
-    pivots=c(Group, sex, fam_finances, age, race)
-  )
+# ana <-
+#   styleSelectMultiple(
+#     set,
+#     'which_issues_taken_action_12mo.',
+#     pivots=c(Group, sex, fam_finances, age, race)
+#   )
