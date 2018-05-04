@@ -39,22 +39,22 @@ howImportantVoterReg <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-# mapFrom <- c("Don't know",'Less than 10%','10-20%','More than 20%')
-# mapTo <- c('Uncertain','Uncertain','Less than 10%','10-20%','More than 20%')
-# finCode <- c(0,1,2,3)
-# analysis <-
-#   stylePickOneOrdinal(
-#     dat=set %>% filter(!is.na(willing_to_pay_how_much_more_brand_good_values)),
-#     willing_to_pay_how_much_more_brand_good_values,
-#     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
-#                political_party, political_view, attend_religious_services_freq,
-#                grade_level),
-#     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
-#   )
+mapFrom <- c('Not at all influential','2','3','4','Very influential')
+mapTo <- c('Not Influential','A Little','Neutral','Influential','Very Influential')
+finCode <- c(-2,-1,0,1,2)
+howInfluentialQuality <-
+  stylePickOneOrdinal(
+    set,
+    influence_when_purchasing.Quality_of_product_service,
+    pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
+               political_party, political_view, attend_religious_services_freq,
+               grade_level),
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
+  )
 
-mapFrom <- c('Yes','No')
-mapTo <- c('Yes','No')
-finCode <- c(1,0)
+mapFrom <- c('No','Yes')
+mapTo <- c('No','Yes')
+finCode <- c(0,1)
 volunteerInformal <-
   stylePickOneOrdinal(
     set,
@@ -65,6 +65,50 @@ volunteerInformal <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
+mapFrom <- c('Not very likely','Not likely','Neutral',
+             "Don't know, it would depend on the issue",'Likely','Very likely','Very Likely')
+mapTo <- c('Not Very Likely','Not Likely','Neutral','Neutral','Likely',
+           'Very Likely','Very Likely')
+finCode <- c(-2,-1,0,0,1,2,2)
+howLikelyStudentMarch <-
+  stylePickOneOrdinal(
+    set,
+    how_likely_student_march,
+    pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
+               political_party, political_view, attend_religious_services_freq,
+               grade_level),
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
+  )
+
+mapFrom <- c('Not at all influential','2','3','4','Very influential')
+mapTo <- c('Not Influential','A Little','Neutral','Influential','Very Influential')
+finCode <- c(-2,-1,0,1,2)
+howInfluentialQuality <-
+  stylePickOneOrdinal(
+    set,
+    influence_when_purchasing.Quality_of_product_service,
+    pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
+               political_party, political_view, attend_religious_services_freq,
+               grade_level),
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
+  )
+
+mapFrom <- c('Never','One time only','Once every few months',
+             'About once a month','2-3 times a month','About once a week',
+             'More than once a week')
+mapTo <- c('Never','One time only','Once every few months',
+           'About once a month','2-3 times a month','About once a week',
+           'More than once a week')
+finCode <- c(1,2,3,4,5,6,7)
+volunteerFrequency <-
+  stylePickOneOrdinal(
+    set,
+    volunteer_freq,
+    pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
+               political_party, political_view, attend_religious_services_freq,
+               grade_level),
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
+  )
 
 issuesTakenAction <-
   styleSelectMultiple(

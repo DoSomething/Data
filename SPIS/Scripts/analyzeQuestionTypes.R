@@ -71,7 +71,10 @@ rfPivotSelection <- function(tree, outcome, pivots) {
     tree$outcome <- as.factor(tree$outcome)
   }
 
-  f <- as.formula(paste0('outcome ~ ',pivots.form,'+rand1+rand2+rand3+rand4+rand5'))
+  f <-
+    as.formula(
+      paste0('outcome ~ ',pivots.form,'+rand1+rand2+rand3+rand4+rand5')
+      )
 
   rf <- randomForest(f, data=tree, importance=T, ntree=500)
 
@@ -189,7 +192,8 @@ getPivotPlots <- function(dat, pivots, specialPivot=NULL) {
 
           p <- p +
             geom_smooth(
-              aes(x=as.numeric(get(pivots[i])), y=avgVal, color=get(specialPivot)),
+              aes(x=as.numeric(get(pivots[i])), y=avgVal,
+                  color=get(specialPivot)),
               method='lm', se=F, linetype='dashed', size=.75
               )
 
