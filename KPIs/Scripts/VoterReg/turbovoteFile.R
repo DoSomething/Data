@@ -138,7 +138,7 @@ processReferralColumn <- function(dat) {
       source = case_when(
         source_details %in% c('twitter','facebook') ~ 'social',
         source_details == '11_facts' | source == 'dosomething' ~ 'web',
-        is.na(source) ~ 'no_attribution',
+        is.na(source) | source=='{source}' ~ 'no_attribution',
         TRUE ~ source
       ),
       source_details = case_when(
@@ -152,6 +152,31 @@ processReferralColumn <- function(dat) {
       ),
       details = case_when(
         newsletter != '' & !is.na(newsletter) ~ newsletter,
+        source == 'social' &
+          grepl('twitter', source_details) ~ 'twitter',
+        source == 'social' &
+          grepl('facebook', source_details) | grepl('fb',source_details) ~ 'facebook',
+        source == 'social' &
+          grepl('dsaboutgvp', source_details) ~ 'ds_share',
+        source == 'web' &
+          grepl('11_facts', source_details) ~ '11_facts',
+        source == 'web' &
+          grepl('hellobar', source_details) ~ 'hellobar',
+        source == 'web' &
+          grepl('affirmation', source_details) ~ 'affirmation',
+        source == 'web' &
+          grepl('campaign', source_details) ~ 'campaigns_page',
+        source == 'web' &
+          grepl('quiz', source_details) ~ 'quiz',
+        source == 'web' &
+          grepl('homepage', source_details) ~ 'homepage',
+        source == 'web' &
+          grepl('landingpage', source_details) ~ 'landing_page',
+        source == 'web' &
+          grepl('redirect', source_details) ~ 'redirect',
+        source == 'web' &
+          grepl('sms', source_details) ~ 'sms',
+        is.na(source_details) | source_details == '' ~ 'blank',
         TRUE ~ source_details
       )
     ) %>%
@@ -316,7 +341,7 @@ prepData <- function(...) {
         newsletter != '' & !is.na(newsletter) ~ category,
         TRUE ~ details
       )
-    )
+    ) %>% select(-type, -category)
 
   out <- list(vr, dupes)
 

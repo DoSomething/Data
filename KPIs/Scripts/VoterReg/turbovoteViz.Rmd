@@ -95,7 +95,6 @@ p1 <- ggplot(ss$email, aes(x=ds_vr_status, y=value, fill=reorder(details, value)
   geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
   stat_summary(fun.y = sumIf, aes(label = ..y.., group = ds_vr_status), geom = "text", vjust=-.2) +
   scale_y_continuous(breaks=pretty_breaks(10)) +
-  # scale_fill_brewer(palette = 'Set3') +
   facet_wrap(~variable, scales='free')  + 
   labs(x='',y='') +
   theme(plot.title = element_text(hjust=.5)) + 
