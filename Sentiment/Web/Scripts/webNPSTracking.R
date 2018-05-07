@@ -1,17 +1,34 @@
 setwd('~/Data/Sentiment/')
-source('config/init.R')
+suppressMessages(source('config/init.R'))
 source('config/pgConnect.R')
 source('config/customFunctions.R')
-library(httr)
-library(jsonlite)
-library(glue)
+suppressMessages(library(httr))
+suppressMessages(library(jsonlite))
+suppressMessages(library(glue))
 
-allTypeForm <- getKeyList(Sys.getenv('TYPEFORM_KEY'))
+getResults <- function(surveyKey, tfkey) {
+  npsfeedback <- paste0('https://api.typeform.com/v1/form/',surveyKey,'?key=',tfkey)
+  res <- GET(url = npsfeedback)
+  json <- content(res, as = "text")
+  feedbackResults <- fromJSON(json)
+  return(feedbackResults)
+}
+
+getOutput <- function(surveyKey, tfkey) {
+  res <- getResults(surveyKey, tfkey)
+  print(res)
+  questions <- as.tibble(res$questions)
+  answers <- as.tibble(cbind(res$responses$hidden, res$responses$answers,res$responses$metadata$date_submit))
+  return(answers)
+}
 
 webKey <- 'Bvcwvm'
 
 web <-
-  getOutput(webKey, Sys.getenv('TYPEFORM_KEY')) %>%
+  getOutput(webKey, Sys.getenv('TYPEFORM_KEY'))
+print(web)
+
+web %<>%
   setNames(c('northstar_id','campaign_id','campaign_run_id',
              'origin','nps','text','response_ts')) %>%
   select(-campaign_id, -origin) %>%
