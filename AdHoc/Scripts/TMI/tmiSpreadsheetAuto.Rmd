@@ -98,25 +98,19 @@ tmi.x <- rbind(tmi.x, fullList, fill=T) %>%
     Child4FirstNameSeg12 = ifelse(Child4Age >= 1 & Child4Age < 2 , Child4FirstName, NA),
     Child4FirstNameSeg23 = ifelse(Child4Age >= 2 & Child4Age < 3, Child4FirstName, NA),
     Child4FirstNameSeg34 = ifelse(Child4Age >= 3 & Child4Age < 4, Child4FirstName, NA),
-    Child4FirstNameSeg45 = ifelse(Child4Age >= 4, Child4FirstName, NA)
-  ) %>%
-  mutate(
-    ContentTrack = as.character(ContentTrack),
-    ContentTrack = ifelse(Language == 'ESP' & is.na(ContentTrack), 'Direct', ContentTrack),
+    Child4FirstNameSeg45 = ifelse(Child4Age >= 4, Child4FirstName, NA),
     Language = as.character(Language)
   ) %>%
   select(
     -childAgeInterestRef, -starts_with('X')
   )
 
-ContentTracks <- c('Direct','Motivational')
 TipTimes <- c('AM','PM')
 Languages <- c('ENG','ESP')
 Ages <- c(0,1,2,3,4)
 
 allOptions <- data.table(
-  expand.grid(ContentTrack = ContentTracks, 
-              TipTime = TipTimes,
+  expand.grid(TipTime = TipTimes,
               Language = Languages, 
               Age = Ages)
   )
@@ -131,7 +125,6 @@ for (i in 1:nrow(allOptions)) {
   out <-
     tmi.x %>%
     filter(
-      ContentTrack == allOptions[i,ContentTrack] & 
         TipTime == allOptions[i,TipTime] & 
         Language == allOptions[i,Language] &
       (Child1Age == allOptions[i,Age] | Child2Age == allOptions[i,Age] | 
@@ -140,8 +133,8 @@ for (i in 1:nrow(allOptions)) {
     select(`Mobile Number`)
   
   name <- 
-    paste(allOptions[i,ContentTrack],allOptions[i,TipTime],
-          allOptions[i,Language], allOptions[i,Age], sep='_')
+    paste(allOptions[i,TipTime],allOptions[i,Language], 
+          allOptions[i,Age], sep='_')
   
   if (nrow(out)>0) {
     
