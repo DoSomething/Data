@@ -493,6 +493,33 @@ MoM <-
   melt(id.var=c('dayOfMonth','month')) %>%
   mutate(month = as.factor(month))
 
+MoM.Source <-
+  vr %>%
+  filter(created_at >= '2018-01-01') %>%
+  mutate(
+    date = as.Date(created_at),
+    Source = case_when(
+      source %in% c('no_attribution','partner','social') ~ 'Other',
+      TRUE ~ source
+    )
+  ) %>%
+  group_by(date, Source) %>%
+  summarise(
+    Registrations = length(which(grepl('register', ds_vr_status)))
+  ) %>%
+  mutate(
+    month = month(date)
+  ) %>%
+  group_by(month, Source) %>%
+  mutate(
+    registerToDate = cumsum(Registrations),
+    dayOfMonth = as.numeric(format(date, "%d"))
+  ) %>%
+  ungroup() %>%
+  select(dayOfMonth, month, registerToDate, Source) %>%
+  melt(id.var=c('dayOfMonth','month','Source')) %>%
+  mutate(month = as.factor(month))
+
 ## Excel output
 
 library(openxlsx)
