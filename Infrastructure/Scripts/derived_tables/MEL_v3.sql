@@ -62,25 +62,48 @@ CREATE MATERIALIZED VIEW public.mel AS
     			) p
 		WHERE p.deleted_at IS NULL
 		UNION ALL
-		SELECT -- SITE ACCESS
-			DISTINCT u.id AS northstar_id,
-			u.last_accessed_at AS timestamp,
+		SELECT DISTINCT 
+			u_access.northstar_id,
+			u_access.timestamp,
 			'site_access' AS action,
 			'3' AS action_id,
 			NULL AS source,
 			'0' AS action_serial_id
-		FROM
-			northstar.users u
+		FROM 
+			(SELECT -- SITE ACCESS
+				DISTINCT u_new_acc.id AS northstar_id,
+				u_new_acc.last_accessed_at AS timestamp
+			FROM
+				northstar.users u_new_acc
+			WHERE u_new_acc.last_accessed_at IS NOT NULL 
+			UNION ALL 
+			SELECT --SITE ACCESS LEGACY
+				DISTINCT u_leg_acc.northstar_id,
+				u_leg_acc.last_accessed AS timestamp
+			FROM 
+				northstar.users_log_mysql u_leg_acc) u_access
 		UNION ALL 
-		SELECT -- SITE LOGIN
-			DISTINCT u.id AS northstar_id,
-			u.last_authenticated_at AS timestamp,
+		SELECT DISTINCT 
+			u_login.northstar_id,
+			u_login.timestamp,
 			'site_login' AS action,
 			'4' AS action_id,
 			NULL AS source,
 			'0' AS action_serial_id
 		FROM 
-			northstar.users u
+			(SELECT -- SITE LOGIN
+				DISTINCT u_new_login.id AS northstar_id,
+				u_new_login.last_accessed_at AS timestamp
+			FROM
+				northstar.users u_new_login
+			WHERE u_new_login.last_accessed_at IS NOT NULL 
+			UNION ALL 
+			SELECT --SITE LOGIN LEGACY
+				DISTINCT u_leg_login.northstar_id,
+				u_leg_login.last_accessed AS timestamp
+			FROM 
+				northstar.users_log_mysql u_leg_login
+			WHERE u_leg_login.last_accessed IS NOT NULL) u_login
 		UNION ALL 
 		SELECT -- ACCOUNT CREATION 
 			DISTINCT u.id AS northstar_id,
