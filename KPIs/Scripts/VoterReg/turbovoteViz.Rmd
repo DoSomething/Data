@@ -3,7 +3,7 @@ title: ""
 output: html_notebook
 ---
 #### Month over Month Pacing
-* We are pacing lower this month than last month
+* We are pacing higher this month than last month, but below March
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(MoM, aes(x=dayOfMonth, value)) +
   geom_line(aes(color=month)) + 
@@ -55,9 +55,12 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
   guides(fill=guide_legend(title='Source'))
 ```
 #### Source Details
+
+* We need denominators to better understand conversion. Where can we find this information?
+
 **Email**
 
-  - The number of newsletters is really piling up. What is a better grouping for these source details?
+  - Now with more informative buckets!
   - Do we know how many people each of these newsletters went out to? This would help us identify which copy was the most effective
   
 **SMS**
@@ -70,8 +73,7 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
   
 **Web**
 
-  - GTM and Hellobar are dominating 
-  - Similar to email, is there a broader bucketing that could be useful here?
+  - Campaign pages and Hellobar are dominating 
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 # ggplot(detSource.t, aes(x=ds_vr_status, y=value, fill=source_details)) +
 #   geom_bar(stat='identity', position='stack') +
