@@ -3,10 +3,20 @@ title: "Monthly MAM Report"
 output: html_notebook
 ---
 
+* Summary
+    * We are utilizing a new definition of MAM, leading to a lot of historical revision
+    * MAM dropped quite a bit, but a similar drop was seen last April
+    * The total amount of actions did not drop as much, and there is a significant increase in diversity of actions and the number of actions taken per active member
+    * The revised MAM definition and Niche being pointed to phoenix pages is leading to significantly smaller impact from Niche going forward
+    * Primary driver of lower MAM appears to be fewer big SMS pushes with no big outlier days leading to less SMS activity and fewer signups
+    * May was a big month for us last year, setting the pace for the summer. Are we set up for success this May?
 
 #### Deeper Dive
-* Although there is a substantial decrease month over month
-```{r warning=FALSE, echo=FALSE, fig.width=10, fig.height=6.5}
+* Overall Trend
+    * Although there is a substantial decrease month over month it is not very different from last year.
+    * May will be critical to get back on track
+    * The summer wasn't as big for us as it was under the previous MAM definition, driven specifically by how we are now treating Niche engagement
+```{r warning=FALSE, echo=FALSE, fig.width=7, fig.height=4}
 labs <- mm %>% group_by(Month) %>% summarise(count=sum(nsids))
 ggplot(mm, aes(x=as.factor(Month), y=nsids)) + 
   geom_bar(stat='identity') + 
@@ -17,11 +27,14 @@ ggplot(mm, aes(x=as.factor(Month), y=nsids)) +
         axis.text.x = element_text(angle = 30, hjust = 1)) 
 ```
 
-* Pivoting by Action Types
-	* Very interesting that the total number of actions taken is actually a bit higher than last year
-	* This suggests we have fewer people taking more actions
-	* Account creations are down but website utilization is up
-```{r warning=FALSE, echo=FALSE, fig.width=12, fig.height=6.5}
+* Action Types
+	  * Look at all those action types!
+	  * Overall activity did drop, but the number of actions taken this April is more than double last year
+	  * Even looking at the same actions, most were up, aside from signups
+	  * Web activity was higher this month than last, but signups and gambit messages were lower. Did we have fewer opportunities for SMS signups this month?
+	  * We are still verifying and gathering some historical website data, so site login and site access counts from mid 2017 are subject to change a bit
+	
+```{r warning=FALSE, echo=FALSE, fig.width=8, fig.height=4}
 act.agg <- act %>% group_by(Month, action_type) %>% summarise(count = sum(actions))
 ggplot(act.agg, aes(x=as.factor(Month), y=count, fill=reorder(action_type, count))) + 
   geom_bar(stat='identity', position='stack') + 
@@ -35,7 +48,10 @@ ggplot(act.agg, aes(x=as.factor(Month), y=count, fill=reorder(action_type, count
   scale_fill_brewer(palette="Set3")
 ```
 
-```{r warning=FALSE, echo=FALSE, fig.width=12, fig.height=6.5}
+* Action Taken Per Member
+    * Across member type and source, the average number of actions taken per member is steadily ascending
+    * New members have consistently more actions than returning, but they get a "free" action from creating an account. Among niche members, this appears to account for the gap, but non-niche new members have even more actions. There will be an exploratory phase for any new user on any product, but is there opportunity here to get returning members to do more?
+```{r warning=FALSE, echo=FALSE, fig.width=8, fig.height=4}
 ggplot(filter(actMemAvg, Month!='2018-05-01'), aes(x=Month, y=avg_n_actions, color=Type)) +
   geom_line() + geom_point() + facet_wrap(~niche) +
   scale_x_date(breaks=pretty_breaks(20)) + 
@@ -45,8 +61,12 @@ ggplot(filter(actMemAvg, Month!='2018-05-01'), aes(x=Month, y=avg_n_actions, col
     axis.text.x = element_text(angle = 30, hjust = 1)
     )
 ```
-* Pivoting by Niche and New/Returning
-```{r warning=FALSE, echo=FALSE, fig.width=12, fig.height=6.5}
+* Getting back to MAM
+    * *Niche new prior 2017-06 is still using old MAM definition*
+    * Breaking out by Niche/Non-Niche will become increasinly pointless as niche is pointed straight to the website, and so, is treated like any other user. 
+    * Overall, we can see decrease occured primarily in return user engagement, with the number halving month over month
+    * New and returning split is very similar to last April, but last April we didn't have as many action types
+```{r warning=FALSE, echo=FALSE, fig.width=8, fig.height=4}
 ggplot(mm, aes(x=as.factor(Month), y=nsids, fill=Type)) + 
   geom_bar(stat='identity', position='stack') + 
   geom_text(position=position_stack(vjust = 0.5), aes(label=nsids), size=2.5) +
@@ -58,20 +78,28 @@ ggplot(mm, aes(x=as.factor(Month), y=nsids, fill=Type)) +
   theme(axis.text.x = element_text(angle = 30, hjust = 1))
 ```
 
-```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=6}
+* Unique users per day over time, split by day of week
+    * Tuesdays and Wednesdays have always been when we got the most users, but this has been even moreso the case recently
+    * MAM is driven by outlier days where we suddenly get a huge influx of activity
+    * Can MAM become more predictable and more pliable if we tag potential outlier days and revise expectations down when we have fewer of these scheduled in a month?
+    * Next step is to pivot this out by SMS/Web
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=8, fig.height=4}
 ggplot(filter(da, active_members != max(active_members)), aes(x=date, y=active_members)) +
   geom_point(aes(colour=DayOfWeek), size=.8) +
-  geom_smooth(se=F, aes(colour=DayOfWeek), linetype='dotdash') +
+  geom_smooth(method='loess',se=F, aes(colour=DayOfWeek)) +
   scale_x_date(breaks=pretty_breaks(16)) +
   theme(plot.title=element_text(hjust=.5),
         axis.text.x = element_text(angle = 30, hjust = 1)) +
-  scale_colour_brewer(palette='YlGnBu') +
+  # scale_colour_brewer(palette='Spectral') +
   labs(title='Users Per Day Over Time', x='Date', y='Active Members')
 ```
 
 * Activity composition 
-  * Activity breakdown delta shows up even more clearly here; lots more website activity
-```{r warning=FALSE, echo=FALSE, fig.width=12, fig.height=6.5}
+    * Historically, activity composition has been fairly consistent even while MAM fluctuates
+    * Probably not enough data to fully understand at this point, but this is something to keep an eye on as our activity types grow
+    * Big drop in SMS activity and signups this month, these are linked and are likely the big driver of the drop in MAM
+    * Next step is to clean up activity source to add as a pivot
+```{r warning=FALSE, echo=FALSE, fig.width=8, fig.height=4}
 ggplot(act.N, aes(x=as.factor(Month), y=prop, fill=reorder(action_type, prop))) + 
   geom_bar(stat='identity', position='stack') + 
   geom_text(position=position_stack(vjust=.5), aes(label=Text), size=2.5) +
@@ -83,8 +111,10 @@ ggplot(act.N, aes(x=as.factor(Month), y=prop, fill=reorder(action_type, prop))) 
   scale_fill_brewer(palette="Set3")
 ```
 * Splitting by Niche
-  * Same story holds when breaking out niche and non-niche
-```{r warning=FALSE, echo=FALSE, fig.width=12, fig.height=6.5}
+    * Same story holds when breaking out niche and non-niche
+    * We did manage to keep Niche a little more engaged over SMS, is this by chance or did we do something here?
+    * Facebook shares are definitely crowding out some reportback activity, but most of it is likely activity that wouldn't have happened otherwise
+```{r warning=FALSE, echo=FALSE, fig.width=8, fig.height=5}
 ggplot(act, aes(x=as.factor(Month), y=prop, fill=reorder(action_type, prop))) + 
   geom_bar(stat='identity', position='stack') + 
   geom_text(position=position_stack(vjust=.5), aes(label=Text), size=3) +
@@ -99,22 +129,12 @@ ggplot(act, aes(x=as.factor(Month), y=prop, fill=reorder(action_type, prop))) +
   scale_fill_brewer(palette="Set3")
 ```
 
-```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=10, fig.height=6.5}
-ggplot(filter(da, active_members != max(active_members)), aes(x=date, y=active_members)) +
-  geom_point(aes(colour=DayOfWeek), size=.8) +
-  geom_smooth(se=F, aes(colour=DayOfWeek), linetype='dotdash') +
-  scale_x_date(breaks=pretty_breaks(16)) +
-  theme(plot.title=element_text(hjust=.5),
-        axis.text.x = element_text(angle = 30, hjust = 1)) +
-  scale_colour_brewer(palette='YlGnBu') +
-  ggtitle('Users Per Day Over Time')
-```
-
 * Time on Site
-
-```{r warning=FALSE, echo=FALSE, fig.width=10, fig.height=6.5}
-ggplot(sumTOS, aes(x=date, y=avgTimeOnSite)) + 
-  geom_line() + geom_smooth(se=F, linetype='dotdash', color='blue') + 
+    * Perhaps something just for Rocket, but time on site has been stable, suggesting that our web experience is maintaining a consistent level of engagement.
+    * These are the deeper patterns that level up to MAM, so we want to start thinking along these lines to gain more control over MAM and get more leading indicators
+```{r warning=FALSE, echo=FALSE, fig.width=7, fig.height=4}
+ggplot(tos, aes(x=date, y=avgTimeOnSite)) + 
+  geom_line() + geom_smooth(method='loess',se=F, linetype='dotdash', color='blue') + 
   scale_x_date(breaks=pretty_breaks(10)) +
   labs(x='Day', y='Time On Site') + 
   theme(plot.title=element_text(hjust=.5))

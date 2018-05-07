@@ -1,13 +1,34 @@
 source('config/init.R')
 library(scales)
 
+mm.old <-
+  read_csv('Data/MAM_breakdown_April.csv') %>%
+  setNames(c('month','return_user','niche','nsids')) %>%
+  mutate(
+    niche = ifelse(niche=='Yes', 'Niche', 'Non-Niche'),
+    Type = ifelse(return_user=='Yes', 'Returning', 'New'),
+    Month = as.Date(paste0(month, '-01'))
+  ) %>% select(-month, -return_user)
+
 mm <-
   runQuery('Scripts/MAMReport/usertypes.sql', 'pg') %>%
-  filter(Month > '2017-01-01' & Month < '2018-05-01')
+  filter(Month >= '2017-06-01' & Month < '2018-05-01') %>%
+  bind_rows(mm.old) %>%
+  arrange(Month, Type, niche)
+
+act.old <-
+  read_csv('Data/MAM_actionbreakdown_April.csv') %>%
+  setNames(c('Month', 'action_type', 'niche', 'actions')) %>%
+  mutate(
+    niche = ifelse(niche=='Yes', 'Niche', 'Non-Niche'),
+    Month = as.Date(paste0(Month,'-01'))
+  )
 
 qres <-
   runQuery('Scripts/MAMReport/actiontypes.sql', 'pg') %>%
-  filter(Month > '2017-01-01' & Month < '2018-05-01')
+  filter(Month >= '2017-01-01' & Month < '2018-05-01') %>%
+  filter(Month >= '2017-06-01' | !(action_type %in% c('site_login','site_access'))) %>%
+  bind_rows(act.old)
 
 act <-
   qres %>%
@@ -34,10 +55,12 @@ da <-
     DayOfWeek = factor(weekdays(date),
                        levels=c('Monday','Tuesday','Wednesday','Thursday',
                                 'Friday','Saturday','Sunday'))
-  )
+  ) %>%
+  filter(date >= '2017-06-01')
 
 actMemAvg <-
-  runQuery('Scripts/MAMReport/avgActionsPerMember.sql', 'pg')
+  runQuery('Scripts/MAMReport/avgActionsPerMember.sql', 'pg') %>%
+  filter(Month >= '2017-06-01')
 
 tos <-
   runQuery('Scripts/MAMReport/timeOnSite.sql','pg') %>%
@@ -58,9 +81,3 @@ tos <-
   summarise(
     avgTimeOnSite = mean(timeThatDay)
   )
-
-ggplot(sumTOS, aes(x=date, y=avgTimeOnSite)) +
-  geom_line() + geom_smooth(se=F, linetype='dotdash', color='blue') +
-  scale_x_date(breaks=pretty_breaks(10)) +
-  labs(title='Average Time Spent on Site', x='Day', y='Time On Site') +
-  theme(plot.title=element_text(hjust=.5))
