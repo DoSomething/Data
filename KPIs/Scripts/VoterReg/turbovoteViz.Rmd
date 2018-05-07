@@ -2,6 +2,16 @@
 title: ""
 output: html_notebook
 ---
+#### Month over Month Pacing
+* We are pacing higher this month than last month, but below March
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+ggplot(MoM, aes(x=dayOfMonth, value)) +
+  geom_line(aes(color=month)) + 
+  labs(title='Voters Registered Month over Month', x='Day of Month', y='Voters Registered') +
+  theme(plot.title = element_text(hjust=.5))
+```
+
+
 #### Northstar Source
 * Web users disproportionately represent all those going through the flow 
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
@@ -45,16 +55,25 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
   guides(fill=guide_legend(title='Source'))
 ```
 #### Source Details
-*Email*
-* The number of newsletters is really piling up. What is a better grouping for these source details?
-* Do we know how many people each of these newsletters went out to? This would help us identify which copy was the most effective
-*SMS*
-* This won't become useful until we find a way to add more source details
-*Social*
-* Generally isn't performing very well, but Facebook is doing better than the others. Is this because we've done more on facebook or because our efforts are smarter?
-*Web*
-* GTM and Hellobar are dominating 
-* Similar to email, is there a broader bucketing that could be useful here?
+
+* We need denominators to better understand conversion. Where can we find this information?
+
+**Email**
+
+  - Now with more informative buckets!
+  - Do we know how many people each of these newsletters went out to? This would help us identify which copy was the most effective
+  
+**SMS**
+
+  - This won't become useful until we find a way to add more source details
+  
+**Social**
+
+  - Generally isn't performing very well, but Facebook is doing better than the others. Is this because we've done more on facebook or because our efforts are smarter?
+  
+**Web**
+
+  - Campaign pages and Hellobar are dominating 
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 # ggplot(detSource.t, aes(x=ds_vr_status, y=value, fill=source_details)) +
 #   geom_bar(stat='identity', position='stack') +
@@ -70,15 +89,14 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
 #   theme(plot.title = element_text(hjust=.5)) + 
 #   guides(fill=guide_legend(title='Source Details'))
 ```
-```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=24}
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=36}
 library(gridExtra)
 ss <- split(sourceStep, f=sourceStep$source)
-p1 <- ggplot(ss$email, aes(x=ds_vr_status, y=value, fill=reorder(source_details, value))) +
+p1 <- ggplot(ss$email, aes(x=ds_vr_status, y=value, fill=reorder(details, value))) +
   geom_bar(stat='identity', position='stack') +
   geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
   stat_summary(fun.y = sumIf, aes(label = ..y.., group = ds_vr_status), geom = "text", vjust=-.2) +
   scale_y_continuous(breaks=pretty_breaks(10)) +
-  # scale_fill_brewer(palette = 'Set3') +
   facet_wrap(~variable, scales='free')  + 
   labs(x='',y='') +
   theme(plot.title = element_text(hjust=.5)) + 
