@@ -11,6 +11,14 @@ ggplot(MoM, aes(x=dayOfMonth, value)) +
   theme(plot.title = element_text(hjust=.5))
 ```
 
+* Split by source
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+ggplot(MoM.Source, aes(x=dayOfMonth, value)) +
+  geom_line(aes(color=month)) + 
+  facet_wrap(~Source) +
+  labs(title='Voters Registered Month over Month by Source', x='Day of Month', y='Voters Registered') +
+  theme(plot.title = element_text(hjust=.5))
+```
 
 #### Northstar Source
 * Web users disproportionately represent all those going through the flow 
