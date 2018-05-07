@@ -81,7 +81,8 @@ CREATE MATERIALIZED VIEW public.mel AS
 				DISTINCT u_leg_acc.northstar_id,
 				u_leg_acc.last_accessed AS timestamp
 			FROM 
-				northstar.users_log_mysql u_leg_acc) u_access
+				northstar.users_log_mysql u_leg_acc
+			WHERE u_leg_acc.last_accessed IS NOT NULL) u_access
 		UNION ALL 
 		SELECT DISTINCT 
 			u_login.northstar_id,
