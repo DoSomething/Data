@@ -8,12 +8,13 @@ output: html_notebook
     * MAM dropped quite a bit, but a similar drop was seen last April
     * The total amount of actions did not drop as much, and there is a significant increase in diversity of actions and the number of actions taken per active member
     * The revised MAM definition and Niche being pointed to phoenix pages is leading to significantly smaller impact from Niche going forward
+        * Users going through the niche registration flow resulted in Northstar tagging them as Niche. Now we point them to create an account on phoenix, meaning they will look like any other user
     * Primary driver of lower MAM appears to be fewer big SMS pushes with no big outlier days leading to less SMS activity and fewer signups
     * May was a big month for us last year, setting the pace for the summer. Are we set up for success this May?
 
 #### Deeper Dive
 * Overall Trend
-    * Although there is a substantial decrease month over month it is not very different from last year.
+    * Although there is a decrease in MAM from March to April a similar drop was observed last year.
     * May will be critical to get back on track
     * The summer wasn't as big for us as it was under the previous MAM definition, driven specifically by how we are now treating Niche engagement
 ```{r warning=FALSE, echo=FALSE, fig.width=7, fig.height=4}
@@ -33,6 +34,11 @@ ggplot(mm, aes(x=as.factor(Month), y=nsids)) +
 	  * Even looking at the same actions, most were up, aside from signups
 	  * Web activity was higher this month than last, but signups and gambit messages were lower. Did we have fewer opportunities for SMS signups this month?
 	  * We are still verifying and gathering some historical website data, so site login and site access counts from mid 2017 are subject to change a bit
+* Activity composition 
+    * Historically, activity composition has been fairly consistent even while MAM fluctuates
+    * Probably not enough data to fully understand at this point, but this is something to keep an eye on as our activity types grow
+    * Big drop in SMS activity and signups this month, these are linked and are likely the big driver of the drop in MAM
+    * Next step is to clean up activity source to add as a pivot - Bleed is taking on this work this sprint
 	
 ```{r warning=FALSE, echo=FALSE, fig.width=8, fig.height=4}
 act.agg <- act %>% group_by(Month, action_type) %>% summarise(count = sum(actions))
@@ -44,6 +50,16 @@ ggplot(act.agg, aes(x=as.factor(Month), y=count, fill=reorder(action_type, count
   labs(title='Action Counts', y='Actions', x='Month') + 
   theme(plot.title=element_text(hjust=.5),
         axis.text.x = element_text(angle = 30, hjust = 1)) + 
+  guides(fill=guide_legend(title="Action Type")) +
+  scale_fill_brewer(palette="Set3")
+
+ggplot(act.N, aes(x=as.factor(Month), y=prop, fill=reorder(action_type, prop))) + 
+  geom_bar(stat='identity', position='stack') + 
+  geom_text(position=position_stack(vjust=.5), aes(label=Text), size=2.5) +
+  scale_y_continuous(breaks=pretty_breaks(10)) + 
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle = 30, hjust = 1)) + 
+  labs(y='Proportion', x='Month', title='Action Composition') +
   guides(fill=guide_legend(title="Action Type")) +
   scale_fill_brewer(palette="Set3")
 ```
@@ -94,22 +110,6 @@ ggplot(filter(da, active_members != max(active_members)), aes(x=date, y=active_m
   labs(title='Users Per Day Over Time', x='Date', y='Active Members')
 ```
 
-* Activity composition 
-    * Historically, activity composition has been fairly consistent even while MAM fluctuates
-    * Probably not enough data to fully understand at this point, but this is something to keep an eye on as our activity types grow
-    * Big drop in SMS activity and signups this month, these are linked and are likely the big driver of the drop in MAM
-    * Next step is to clean up activity source to add as a pivot
-```{r warning=FALSE, echo=FALSE, fig.width=8, fig.height=4}
-ggplot(act.N, aes(x=as.factor(Month), y=prop, fill=reorder(action_type, prop))) + 
-  geom_bar(stat='identity', position='stack') + 
-  geom_text(position=position_stack(vjust=.5), aes(label=Text), size=2.5) +
-  scale_y_continuous(breaks=pretty_breaks(10)) + 
-  theme(plot.title=element_text(hjust=.5),
-        axis.text.x = element_text(angle = 30, hjust = 1)) + 
-  labs(y='Proportion', x='Month', title='Action Composition') +
-  guides(fill=guide_legend(title="Action Type")) +
-  scale_fill_brewer(palette="Set3")
-```
 * Splitting by Niche
     * Same story holds when breaking out niche and non-niche
     * We did manage to keep Niche a little more engaged over SMS, is this by chance or did we do something here?
@@ -136,6 +136,6 @@ ggplot(act, aes(x=as.factor(Month), y=prop, fill=reorder(action_type, prop))) +
 ggplot(tos, aes(x=date, y=avgTimeOnSite)) + 
   geom_line() + geom_smooth(method='loess',se=F, linetype='dotdash', color='blue') + 
   scale_x_date(breaks=pretty_breaks(10)) +
-  labs(x='Day', y='Time On Site') + 
+  labs(x='Day', y='Minutes Spent On Site') + 
   theme(plot.title=element_text(hjust=.5))
 ```
