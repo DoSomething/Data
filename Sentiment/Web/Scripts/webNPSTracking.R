@@ -1,3 +1,4 @@
+setwd('~/Data/Sentiment/')
 source('config/init.R')
 source('config/pgConnect.R')
 source('config/customFunctions.R')
