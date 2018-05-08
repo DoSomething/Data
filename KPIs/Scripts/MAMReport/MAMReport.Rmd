@@ -78,7 +78,6 @@ ggplot(filter(actMemAvg, Month!='2018-05-01'), aes(x=Month, y=avg_n_actions, col
     )
 ```
 * Getting back to MAM
-    * *Niche new prior 2017-06 is still using old MAM definition*
     * Breaking out by Niche/Non-Niche will become increasinly pointless as niche is pointed straight to the website, and so, is treated like any other user. 
     * Overall, we can see decrease occured primarily in return user engagement, with the number halving month over month
     * New and returning split is very similar to last April, but last April we didn't have as many action types

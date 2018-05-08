@@ -1,34 +1,13 @@
 source('config/init.R')
 library(scales)
 
-mm.old <-
-  read_csv('Data/MAM_breakdown_April.csv') %>%
-  setNames(c('month','return_user','niche','nsids')) %>%
-  mutate(
-    niche = ifelse(niche=='Yes', 'Niche', 'Non-Niche'),
-    Type = ifelse(return_user=='Yes', 'Returning', 'New'),
-    Month = as.Date(paste0(month, '-01'))
-  ) %>% select(-month, -return_user)
-
 mm <-
   runQuery('Scripts/MAMReport/usertypes.sql', 'pg') %>%
-  filter(Month >= '2017-06-01' & Month < '2018-05-01') %>%
-  bind_rows(mm.old) %>%
-  arrange(Month, Type, niche)
-
-act.old <-
-  read_csv('Data/MAM_actionbreakdown_April.csv') %>%
-  setNames(c('Month', 'action_type', 'niche', 'actions')) %>%
-  mutate(
-    niche = ifelse(niche=='Yes', 'Niche', 'Non-Niche'),
-    Month = as.Date(paste0(Month,'-01'))
-  )
+  filter(Month >= '2017-01-01' & Month < '2018-05-01')
 
 qres <-
   runQuery('Scripts/MAMReport/actiontypes.sql', 'pg') %>%
-  filter(Month >= '2017-01-01' & Month < '2018-05-01') %>%
-  filter(Month >= '2017-06-01' | !(action_type %in% c('site_login','site_access'))) %>%
-  bind_rows(act.old)
+  filter(Month >= '2017-01-01' & Month < '2018-05-01')
 
 act <-
   qres %>%
@@ -56,11 +35,11 @@ da <-
                        levels=c('Monday','Tuesday','Wednesday','Thursday',
                                 'Friday','Saturday','Sunday'))
   ) %>%
-  filter(date >= '2017-06-01')
+  filter(date >= '2017-01-01')
 
 actMemAvg <-
   runQuery('Scripts/MAMReport/avgActionsPerMember.sql', 'pg') %>%
-  filter(Month >= '2017-06-01')
+  filter(Month >= '2017-01-01')
 
 tos <-
   runQuery('Scripts/MAMReport/timeOnSite.sql','pg') %>%
