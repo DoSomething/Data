@@ -1,5 +1,5 @@
-DROP MATERIALIZED VIEW IF EXISTS public.mel; 
-CREATE MATERIALIZED VIEW public.mel AS 
+DROP MATERIALIZED VIEW IF EXISTS public.member_event_log; 
+CREATE MATERIALIZED VIEW public.member_event_log AS 
 	(SELECT
 	    MD5(concat(a.northstar_id, a.timestamp, a.action_id, a.action_serial_id)) AS event_id,
 	    a.northstar_id AS northstar_id,
@@ -167,8 +167,8 @@ CREATE MATERIALIZED VIEW public.mel AS
 		AND pe.northstarid_s <> ''
 		) AS a 
 		); 
- CREATE INDEX ON public.mel (m.event_id, m.northstar_id);
- GRANT SELECT ON public.mel TO looker;
- GRANT SELECT ON public.mel TO jjensen;
- GRANT SELECT ON public.mel TO jli;
- GRANT SELECT ON public.mel TO shasan;
+ CREATE INDEX ON public.member_event_log (m.event_id, m.northstar_id, m."timestamp",m.action_serial_id);
+ GRANT SELECT ON public.member_event_log TO looker;
+ GRANT SELECT ON public.member_event_log TO jjensen;
+ GRANT SELECT ON public.member_event_log TO jli;
+ GRANT SELECT ON public.member_event_log TO shasan;
