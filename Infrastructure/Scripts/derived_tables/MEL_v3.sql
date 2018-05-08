@@ -94,17 +94,17 @@ CREATE MATERIALIZED VIEW public.mel AS
 		FROM 
 			(SELECT -- SITE LOGIN
 				DISTINCT u_new_login.id AS northstar_id,
-				u_new_login.last_accessed_at AS timestamp
+				u_new_login.last_authenticated_at AS timestamp
 			FROM
 				northstar.users u_new_login
-			WHERE u_new_login.last_accessed_at IS NOT NULL 
+			WHERE u_new_login.last_authenticated_at IS NOT NULL 
 			UNION ALL 
 			SELECT --SITE LOGIN LEGACY
 				DISTINCT u_leg_login.northstar_id,
-				u_leg_login.last_accessed AS timestamp
+				u_leg_login.last_logged_in AS timestamp
 			FROM 
 				northstar.users_log_mysql u_leg_login
-			WHERE u_leg_login.last_accessed IS NOT NULL) u_login
+			WHERE u_leg_login.last_logged_in IS NOT NULL) u_login
 		UNION ALL 
 		SELECT -- ACCOUNT CREATION 
 			DISTINCT u.id AS northstar_id,
