@@ -167,7 +167,7 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
 		AND pe.northstarid_s <> ''
 		) AS a 
 		); 
- CREATE INDEX ON public.member_event_log (m.event_id, m.northstar_id, m."timestamp",m.action_serial_id);
+ CREATE INDEX ON public.member_event_log (event_id, northstar_id,"timestamp",action_serial_id);
  GRANT SELECT ON public.member_event_log TO looker;
  GRANT SELECT ON public.member_event_log TO jjensen;
  GRANT SELECT ON public.member_event_log TO jli;
