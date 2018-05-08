@@ -1,6 +1,6 @@
 setwd('~/Data/Sentiment/')
 suppressMessages(source('config/init.R'))
-source('config/pgConnect.R')
+suppressMessages(source('config/pgConnect.R'))
 source('config/customFunctions.R')
 suppressMessages(library(httr))
 suppressMessages(library(jsonlite))
@@ -8,25 +8,25 @@ suppressMessages(library(glue))
 
 getResults <- function(surveyKey, tfkey) {
   npsfeedback <- paste0('https://api.typeform.com/v1/form/',surveyKey,'?key=',tfkey)
+  browser()
   res <- GET(url = npsfeedback)
   json <- content(res, as = "text")
   feedbackResults <- fromJSON(json)
+  head(feedbackResults$responses)
   return(feedbackResults)
 }
 
 getOutput <- function(surveyKey, tfkey) {
   res <- getResults(surveyKey, tfkey)
-  print(res)
   questions <- as.tibble(res$questions)
   answers <- as.tibble(cbind(res$responses$hidden, res$responses$answers,res$responses$metadata$date_submit))
   return(answers)
 }
 
 webKey <- 'Bvcwvm'
-
+tfKey <- Sys.getenv('TYPEFORM_KEY')
 web <-
-  getOutput(webKey, Sys.getenv('TYPEFORM_KEY'))
-print(web)
+  getOutput(webKey, tfKey)
 
 web %<>%
   setNames(c('northstar_id','campaign_id','campaign_run_id',
