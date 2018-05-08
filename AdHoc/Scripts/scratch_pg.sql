@@ -139,4 +139,111 @@ SELECT
 FROM northstar.users u
 GROUP BY substring(u.created_at::varchar,1,7)
 ORDER BY substring(u.created_at::varchar,1,7);
->>>>>>> master
+>>>>>>> master;
+SELECT * FROM phoenix_next_sessions;
+
+SELECT 
+	meta.did AS event_id,
+	page_q.did AS pq_eid,
+	to_timestamp(meta.timestamp_d/1000) AS "timestamp"
+FROM heroku_wzsf6b3z.events_meta meta
+LEFT JOIN heroku_wzsf6b3z.events_page_query page_q ON page_q.did = meta.did
+WHERE to_timestamp(meta.timestamp_d/1000) >= '2018-05-02'
+AND page_q.did IS NOT NULL ;
+
+SELECT to_timestamp(m.timestamp_d/1000) AS "timestamp" FROM heroku_wzsf6b3z.events_meta m WHERE m.did = 1344187157;
+
+
+SELECT DISTINCT
+	meta.did,
+	event.name_s,
+	page.sessionid_s AS session_id,  
+	use.deviceid_s AS device_id,
+	COALESCE(page.landingtimestamp_d, 
+		(CASE WHEN page.landingtimestamp_s = 'null' THEN NULL ELSE page.landingtimestamp_s END)::bigint
+		)::bigint AS landing_ts
+FROM heroku_wzsf6b3z.events_meta meta
+LEFT JOIN heroku_wzsf6b3z.events_event event ON event.did = meta.did
+LEFT JOIN heroku_wzsf6b3z.events_page page ON meta.did = page.did
+LEFT JOIN heroku_wzsf6b3z.events_user use ON page.did = use.did
+ORDER BY page.sessionid_s
+LIMIT 100;
+
+		SELECT
+			page.sessionid_s AS session_id,  
+			max(use.deviceid_s) AS device_id,
+			min(COALESCE(page.landingtimestamp_d, 
+				(CASE WHEN page.landingtimestamp_s = 'null' THEN NULL ELSE page.landingtimestamp_s END)::bigint
+				)::bigint) AS landing_ts,
+			max(refer.path_s) AS referrer_path,
+			max(refer.host_s) AS referrer_host,
+			max(refer.href_s) AS referrer_href,		
+			max(ref_q.from_session_s),
+			max(ref_q.source_s) AS referrer_source,
+			max(ref_q.utm_medium_s) AS referrer_utm_medium,
+			max(ref_q.utm_source_s) AS referrer_utm_source,
+			max(ref_q.utm_campaign_s) AS referrer_utm_campaign
+		FROM heroku_wzsf6b3z.events_page page
+		LEFT JOIN 
+			(SELECT 
+				page_temp.sessionid_s,
+				max(use_temp.deviceid_s::bigint) AS deviceid_s
+			FROM heroku_wzsf6b3z.events_page page_temp
+			LEFT JOIN heroku_wzsf6b3z.events_user use_temp ON page_temp.did = use_temp.did
+			GROUP BY page_temp.sessionid_s) use ON page.sessionid_s = use.sessionid_s
+		LEFT JOIN heroku_wzsf6b3z.events_page_referrer refer ON refer.did = page.did
+		LEFT JOIN heroku_wzsf6b3z.events_page_referrer_query ref_q ON ref_q.did = page.did
+		GROUP BY page.sessionid_s;
+			
+SELECT 
+	page.sessionid_s AS session_id,  
+	max(refer.path_s) AS referrer_path,
+	max(refer.host_s) AS referrer_host,
+	max(refer.href_s) AS referrer_href 
+FROM heroku_wzsf6b3z.events_page page
+LEFT JOIN (SELECT 
+				refer_temp.did,
+				refer_temp.path_s,
+				refer_temp.host_s,
+				refer_temp.href_s
+			FROM heroku_wzsf6b3z.events_page_referrer refer_temp 
+			WHERE refer_temp.path_s IS NOT NULL) refer ON refer.did = page.did
+WHERE page.sessionid_s = '1234483220159126651234483220159'
+GROUP BY page.sessionid_s;
+
+SELECT 
+	u.id,
+	count(*) AS n_appearances
+FROM northstar.users u 
+GROUP BY u.id
+ORDER BY count(*) DESC;
+
+		SELECT DISTINCT 
+			u.northstar_id,
+			u.timestamp,
+			'site_access' AS action,
+			'3' AS action_id,
+			NULL AS source,
+			'0' AS action_serial_id,
+			u.im_from
+		FROM 
+			(SELECT -- SITE ACCESS
+				DISTINCT u_new.id AS northstar_id,
+				u_new.last_accessed_at AS timestamp,
+				'new' AS im_from 
+			FROM
+				northstar.users u_new
+			WHERE u_new.last_accessed_at IS NOT NULL 
+			UNION ALL 
+			SELECT --SITE ACCESS LEGACY
+				DISTINCT u_leg.northstar_id,
+				u_leg.last_accessed AS timestamp,
+				'legacy' AS im_from
+			FROM 
+				northstar.users_log_mysql u_leg
+			WHERE u_leg.last_accessed IS NOT NULL 
+				LIMIT 10000) u;
+				
+
+SELECT * FROM member_event_log m WHERE m.action_type = 'site_access' AND m.timestamp >= '2017-01-01' AND m."timestamp" < '2017-02-02';
+SELECT * FROM northstar.users_log_mysql m WHERE m.last_accessed < '2017-01-02' AND m.last_accessed >= '2017-01-01'
