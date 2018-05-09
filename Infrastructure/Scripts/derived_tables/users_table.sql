@@ -1,8 +1,8 @@
-DROP MATERIALIZED VIEW IF EXISTS derived_user_test;
-CREATE MATERIALIZED VIEW derived_user_test AS 
+DROP MATERIALIZED VIEW IF EXISTS public.derived_user_test;
+CREATE MATERIALIZED VIEW public.derived_user_test AS 
 	(SELECT 
 		u.*,
-		email_status."timestamp" AS cio_subs_status
+		email_status.event_type AS cio_subs_status
 	FROM northstar.users u
 	INNER JOIN 
 		(SELECT
@@ -14,7 +14,7 @@ CREATE MATERIALIZED VIEW derived_user_test AS
 		(
 		SELECT 
 			cio.customer_id,
-			cio."timestamp"
+			cio.event_type
 		FROM cio.customer_event cio
 		INNER JOIN  
 			(SELECT 
@@ -26,3 +26,10 @@ CREATE MATERIALIZED VIEW derived_user_test AS
 	)
 	;
 
+CREATE INDEX dut_indices ON derived_user_test (northstar_id, created_at, updated_at);
+
+GRANT SELECT ON public.derived_user_test TO jjensen;
+GRANT SELECT ON public.derived_user_test TO public;
+GRANT SELECT ON public.derived_user_test TO looker;
+GRANT SELECT ON public.derived_user_test TO shasan;
+GRANT SELECT ON public.derived_user_test TO jli;
