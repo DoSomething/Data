@@ -1,4 +1,20 @@
 DROP MATERIALIZED VIEW IF EXISTS public.derived_user_test;
+
+CREATE MATERIALIZED VIEW public.cio_latest_status AS 
+	(SELECT 
+			cio.customer_id,
+			cio.event_type
+		FROM cio.customer_event cio
+		INNER JOIN 
+			(SELECT 
+				ctemp.customer_id,
+				max(ctemp."timestamp") AS max_update
+			FROM cio.customer_event ctemp
+			GROUP BY ctemp.customer_id) cio_max ON cio_max.customer_id = cio.customer_id AND cio_max.max_update = cio."timestamp"
+		)
+		
+CREATE INDEX cio_indices ON public.cio_latest_status (customer_id);
+
 CREATE MATERIALIZED VIEW public.derived_user_test AS 
 	(SELECT 
 		u.*,
@@ -10,23 +26,11 @@ CREATE MATERIALIZED VIEW public.derived_user_test AS
 			max(utemp.updated_at) AS max_update
 		FROM northstar.users utemp
 		GROUP BY utemp.id) umax ON umax.id = u.id AND umax.max_update = u.updated_at
-	LEFT JOIN 
-		(
-		SELECT 
-			cio.customer_id,
-			cio.event_type
-		FROM cio.customer_event cio
-		INNER JOIN  
-			(SELECT 
-				ctemp.customer_id,
-				max(ctemp."timestamp") AS max_update
-			FROM cio.customer_event ctemp
-			GROUP BY ctemp.customer_id) cio_max ON cio_max.customer_id = cio.customer_id AND cio_max.max_update = cio."timestamp"
-		) email_status ON email_status.customer_id = u.id 
+	LEFT JOIN public.cio_latest_status email_status ON email_status.customer_id = u.id
 	)
 	;
 
-CREATE INDEX dut_indices ON derived_user_test (northstar_id, created_at, updated_at);
+CREATE INDEX dut_indices ON public.derived_user_test (id, created_at, updated_at);
 
 GRANT SELECT ON public.derived_user_test TO jjensen;
 GRANT SELECT ON public.derived_user_test TO public;
