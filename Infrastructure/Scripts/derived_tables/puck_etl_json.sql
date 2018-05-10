@@ -1,7 +1,7 @@
-DROP MATERIALIZED VIEW IF EXISTS public.path_campaign_lookup_staging;
-DROP MATERIALIZED VIEW IF EXISTS public.phoenix_events_staging; 
-DROP MATERIALIZED VIEW IF EXISTS public.phoenix_sessions_staging; 
 DROP MATERIALIZED VIEW IF EXISTS public.device_northstar_crosswalk_staging;
+DROP MATERIALIZED VIEW IF EXISTS public.phoenix_sessions_staging; 
+DROP MATERIALIZED VIEW IF EXISTS public.phoenix_events_staging; 
+DROP MATERIALIZED VIEW IF EXISTS public.path_campaign_lookup_staging;
 
 CREATE MATERIALIZED VIEW public.path_campaign_lookup_staging AS 
 	(
@@ -28,7 +28,7 @@ CREATE MATERIALIZED VIEW public.phoenix_events_staging AS (
 		e.records #>> '{_id,$oid}' AS object_id,
 		e.records #>> '{meta,id}' AS puck_id,
 		to_timestamp((e.records #>> '{meta,timestamp}')::bigint/1000) AS event_datetime,
-		e.records #>> '{meta,timestamp}' AS ts,
+		(e.records #>> '{meta,timestamp}')::bigint AS ts,
 		e.records #>> '{event,name}' AS event_name,
 		e.records #>> '{event,source}' AS event_source,
 		e.records #>> '{page,path}' AS "path",
@@ -76,7 +76,7 @@ CREATE MATERIALIZED VIEW phoenix_sessions_staging AS (
 				e.records #>> '{page,landingTimestamp}' = 'null' 
 				THEN e.records #>> '{meta,timestamp}' 
 				ELSE e.records #>> '{page,landingTimestamp}' END
-			) AS landing_ts,
+			)::bigint AS landing_ts,
 		min(
 			to_timestamp(
 			(CASE WHEN 
