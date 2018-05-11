@@ -56,6 +56,8 @@ CREATE MATERIALIZED VIEW public.derived_user_test AS
 
 CREATE INDEX dut_indices ON public.derived_user_test (northstar_id, created_at, email, mobile, "source");
 
+SELECT * FROM derived_user_test
+
 GRANT SELECT ON public.derived_user_test TO jjensen;
 GRANT SELECT ON public.derived_user_test TO public;
 GRANT SELECT ON public.derived_user_test TO looker;
