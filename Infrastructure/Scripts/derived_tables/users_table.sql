@@ -25,7 +25,7 @@ CREATE MATERIALIZED VIEW public.cio_latest_status AS
 CREATE INDEX cio_indices ON public.cio_latest_status (customer_id);
 
 CREATE MATERIALIZED VIEW public.derived_user_test AS 
-	(SELECT sa
+	(SELECT 
 		u.id AS northstar_id,
 		u.created_at,
 		umax.max_last_auth AS last_logged_in,
@@ -37,7 +37,7 @@ CREATE MATERIALIZED VIEW public.derived_user_test AS
 		u.mobile,
 		CASE WHEN 
 			u.birthdate < '1900-01-01' OR 
-			u.birthdate > date('now') - INTERVAL '10 years' 
+			u.birthdate > (date('now') - INTERVAL '10 years') 
 			THEN NULL ELSE u.birthdate END AS birthdate,
 		u.first_name,
 		u.last_name,
@@ -69,7 +69,8 @@ CREATE MATERIALIZED VIEW public.derived_user_test AS
 	WHERE u."source" IS DISTINCT FROM 'runscope'
 	AND u."source" IS DISTINCT FROM 'runscope-client'
 	AND u.email IS DISTINCT FROM 'runscope-scheduled-test@dosomething.org'
-	AND u.email IS DISTINCT FROM 'juy+runscopescheduledtests@dosomething.org')
+	AND u.email IS DISTINCT FROM 'juy+runscopescheduledtests@dosomething.org'
+	AND (u.email NOT ILIKE '%@example.org%' OR u.email IS NULL) )
 	;
 
 CREATE INDEX dut_indices 
