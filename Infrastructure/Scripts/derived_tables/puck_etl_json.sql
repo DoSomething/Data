@@ -1,9 +1,9 @@
-DROP MATERIALIZED VIEW IF EXISTS public.path_campaign_lookup_staging;
-DROP MATERIALIZED VIEW IF EXISTS public.phoenix_events_staging; 
-DROP MATERIALIZED VIEW IF EXISTS public.phoenix_sessions_staging; 
-DROP MATERIALIZED VIEW IF EXISTS public.device_northstar_crosswalk_staging;
+DROP MATERIALIZED VIEW IF EXISTS public.device_northstar_crosswalk;
+DROP MATERIALIZED VIEW IF EXISTS public.phoenix_sessions; 
+DROP MATERIALIZED VIEW IF EXISTS public.phoenix_events; 
+DROP MATERIALIZED VIEW IF EXISTS public.path_campaign_lookup;
 
-CREATE MATERIALIZED VIEW public.path_campaign_lookup_staging AS 
+CREATE MATERIALIZED VIEW public.path_campaign_lookup AS 
 	(
 	SELECT 
 		max(camps.campaign_id) AS campaign_id,
@@ -23,12 +23,12 @@ CREATE MATERIALIZED VIEW public.path_campaign_lookup_staging AS
 	)
 ;
 
-CREATE MATERIALIZED VIEW public.phoenix_events_staging AS (
+CREATE MATERIALIZED VIEW public.phoenix_events AS (
 	SELECT 
-		e.records #>> '{_id,$oid}' AS object_id,
+		e.records #>> '{_id,$oid}' AS event_id,
 		e.records #>> '{meta,id}' AS puck_id,
 		to_timestamp((e.records #>> '{meta,timestamp}')::bigint/1000) AS event_datetime,
-		e.records #>> '{meta,timestamp}' AS ts,
+		(e.records #>> '{meta,timestamp}')::bigint AS ts,
 		e.records #>> '{event,name}' AS event_name,
 		e.records #>> '{event,source}' AS event_source,
 		e.records #>> '{page,path}' AS "path",
@@ -63,11 +63,11 @@ CREATE MATERIALIZED VIEW public.phoenix_events_staging AS (
 			p.records #>> '{_id,$oid}' AS object_id,
 			(regexp_split_to_array(p.records #>> '{page,path}', E'\/'))[4] AS campaign_name 
 		FROM puck.events p) page ON page.object_id = e.records #>> '{_id,$oid}'
-	LEFT JOIN public.path_campaign_lookup_staging lookup ON page.campaign_name = lookup.campaign_name
+	LEFT JOIN public.path_campaign_lookup lookup ON page.campaign_name = lookup.campaign_name
 ) 
 ;
 
-CREATE MATERIALIZED VIEW phoenix_sessions_staging AS (
+CREATE MATERIALIZED VIEW phoenix_sessions AS (
 	SELECT 
 		e.records #>> '{page,sessionId}' AS session_id,
 		max(e.records #>> '{user,deviceId}') AS device_id,
@@ -76,7 +76,7 @@ CREATE MATERIALIZED VIEW phoenix_sessions_staging AS (
 				e.records #>> '{page,landingTimestamp}' = 'null' 
 				THEN e.records #>> '{meta,timestamp}' 
 				ELSE e.records #>> '{page,landingTimestamp}' END
-			) AS landing_ts,
+			)::bigint AS landing_ts,
 		min(
 			to_timestamp(
 			(CASE WHEN 
@@ -106,7 +106,7 @@ CREATE MATERIALIZED VIEW phoenix_sessions_staging AS (
 	GROUP BY e.records #>> '{page,sessionId}'
 ) ;
 
-CREATE MATERIALIZED VIEW public.device_northstar_crosswalk_staging AS 
+CREATE MATERIALIZED VIEW public.device_northstar_crosswalk AS 
 	(SELECT 
 		nsids.device_id,
 		nsids.northstar_id,
@@ -131,18 +131,27 @@ CREATE MATERIALIZED VIEW public.device_northstar_crosswalk_staging AS
 		ON nsids.device_id = counts.device_id
 	);
 
-CREATE INDEX pnes_indices ON phoenix_events_staging (object_id, event_name, ts, event_datetime, northstar_id, session_id);
-CREATE INDEX pnss_indices ON phoenix_sessions_staging (session_id, device_id, landing_ts, landing_datetime);
-CREATE INDEX dncs_indices ON device_northstar_crosswalk_staging (northstar_id, device_id);
+CREATE INDEX pe_indices ON phoenix_events (object_id, event_name, ts, event_datetime, northstar_id, session_id);
+CREATE INDEX ps_indices ON phoenix_sessions (session_id, device_id, landing_ts, landing_datetime);
+CREATE INDEX dnc_indices ON device_northstar_crosswalk (northstar_id, device_id);
 
-GRANT SELECT ON public.phoenix_sessions_staging TO jjensen;
-GRANT SELECT ON public.phoenix_sessions_staging TO public;
-GRANT SELECT ON public.phoenix_sessions_staging TO looker;
-GRANT SELECT ON public.phoenix_sessions_staging TO shasan;
-GRANT SELECT ON public.phoenix_sessions_staging TO jli;
-GRANT SELECT ON public.phoenix_events_staging TO public;
-GRANT SELECT ON public.phoenix_events_staging TO jjensen;
-GRANT SELECT ON public.phoenix_events_staging TO looker;
-GRANT SELECT ON public.phoenix_events_staging TO shasan;
-GRANT SELECT ON public.phoenix_events_staging TO jli;
-GRANT SELECT ON public.device_northstar_crosswalk_staging TO public;
+GRANT SELECT ON public.phoenix_sessions TO jjensen;
+GRANT SELECT ON public.phoenix_sessions TO public;
+GRANT SELECT ON public.phoenix_sessionsg TO looker;
+GRANT SELECT ON public.phoenix_sessions TO shasan;
+GRANT SELECT ON public.phoenix_sessions TO jli;
+GRANT SELECT ON public.phoenix_events TO public;
+GRANT SELECT ON public.phoenix_events TO jjensen;
+GRANT SELECT ON public.phoenix_events TO looker;
+GRANT SELECT ON public.phoenix_events TO shasan;
+GRANT SELECT ON public.phoenix_events TO jli;
+GRANT SELECT ON public.device_northstar_crosswalk TO public;
+GRANT SELECT ON public.device_northstar_crosswalk TO jjensen;
+GRANT SELECT ON public.device_northstar_crosswalk TO looker;
+GRANT SELECT ON public.device_northstar_crosswalk TO shasan;
+GRANT SELECT ON public.device_northstar_crosswalk TO jli;
+GRANT SELECT ON public.path_campaign_lookup TO public;
+GRANT SELECT ON public.path_campaign_lookup TO jjensen;
+GRANT SELECT ON public.path_campaign_lookup TO looker;
+GRANT SELECT ON public.path_campaign_lookup TO shasan;
+GRANT SELECT ON public.path_campaign_lookup TO jli;
