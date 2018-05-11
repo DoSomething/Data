@@ -242,7 +242,7 @@ addSurveyWeights <- function(dat) {
     return(idWeights)
     
   }
-  out <- calcWeights(drivers, popEst)
+  out <- calcWeights(dat, popEst)
   
 }
 
