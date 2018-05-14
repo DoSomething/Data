@@ -4,7 +4,6 @@ source('config/pgConnect.R')
 library(googlesheets)
 pg <- pgConnect()
 
-latest_file <- '2018-05-02'
 # Data prep ---------------------------------------------------------------
 getWorkbookKey <- function(searchPhrase) {
 
