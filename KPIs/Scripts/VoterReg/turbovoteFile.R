@@ -1,8 +1,60 @@
 source('config/init.R')
 source('config/mySQLConfig.R')
 source('config/pgConnect.R')
-today <- Sys.Date()
+library(googlesheets)
+pg <- pgConnect()
+
 # Data prep ---------------------------------------------------------------
+getWorkbookKey <- function(searchPhrase) {
+
+  key <-
+    gs_ls() %>%
+    filter(grepl(searchPhrase,sheet_title)) %>%
+    select(sheet_key) %>%
+    as.character()
+
+  return(key)
+
+}
+
+getWorkBook <- function(key) {
+
+  workbook <-
+    gs_key(key)
+
+  return(workbook)
+
+}
+
+getSheetName <- function(key) {
+
+  sheetNames <-
+    gs_key(key) %>%
+    gs_ws_ls()
+
+  return(sheetNames)
+}
+
+getWorksheet <- function(sheetNames, Workbook, whichSheet) {
+
+  whichSheet <- which(sheetNames==whichSheet)
+  sheet <-  Workbook %>% gs_read(sheetNames[whichSheet])
+
+  return(sheet)
+
+}
+
+getSheet <- function(workbook, sheet) {
+
+  workbookID <- getWorkbookKey(workbook)
+  workbook <- getWorkBook(workbookID)
+  sheetNames <- getSheetName(workbookID)
+  cioConv <- getWorksheet(sheetNames, workbook, sheet)
+
+  return(cioConv)
+
+}
+
 getData <- function(path) {
 
   vr <-
@@ -31,7 +83,7 @@ processReferralColumn <- function(dat) {
   parsedSep <-
     dat %>%
     select(id, referral_code) %>%
-    separate(referral_code, LETTERS[1:maxSep], ',',remove = T) %>%
+    separate(referral_code, LETTERS[1:maxSep], ',',remove = F) %>%
     mutate(
       nsid =
         case_when(
@@ -85,16 +137,49 @@ processReferralColumn <- function(dat) {
       source = case_when(
         source_details %in% c('twitter','facebook') ~ 'social',
         source_details == '11_facts' | source == 'dosomething' ~ 'web',
-        is.na(source) ~ 'no_attribution',
+        is.na(source) | source=='{source}' ~ 'no_attribution',
         TRUE ~ source
       ),
       source_details = case_when(
         is.na(source_details) ~ '',
         source == 'web' & source_details == '' ~ paste0('campaign_',campaignRunId),
         TRUE ~ source_details
+      ),
+      newsletter = case_when(
+        source == 'email' & grepl('newsletter', source_details) ~ gsub('newsletter_', '', source_details),
+        TRUE ~ ''
+      ),
+      details = case_when(
+        newsletter != '' & !is.na(newsletter) ~ newsletter,
+        source == 'social' &
+          grepl('twitter', source_details) ~ 'twitter',
+        source == 'social' &
+          grepl('facebook', source_details) | grepl('fb',source_details) ~ 'facebook',
+        source == 'social' &
+          grepl('dsaboutgvp', source_details) ~ 'ds_share',
+        source == 'web' &
+          grepl('11_facts', source_details) ~ '11_facts',
+        source == 'web' &
+          grepl('hellobar', source_details) ~ 'hellobar',
+        source == 'web' &
+          grepl('affirmation', source_details) ~ 'affirmation',
+        source == 'web' &
+          grepl('campaign', source_details) ~ 'campaigns_page',
+        source == 'web' &
+          grepl('quiz', source_details) ~ 'quiz',
+        source == 'web' &
+          grepl('homepage', source_details) ~ 'homepage',
+        source == 'web' &
+          grepl('landingpage', source_details) ~ 'landing_page',
+        source == 'web' &
+          grepl('redirect', source_details) ~ 'redirect',
+        source == 'web' &
+          grepl('sms', source_details) ~ 'sms',
+        is.na(source_details) | source_details == '' ~ 'blank',
+        TRUE ~ source_details
       )
-    ) #%>%
-    # select(-A,-B,-C,-D,-E)
+    ) %>%
+    select(-A,-B,-C,-D,-E)
   return(parsedSep)
 }
 
@@ -136,24 +221,24 @@ getQuasarAttributes <- function(queryObjects) {
 }
 
 addFields <- function(dat) {
-    dat %<>%
+  dat %<>%
     mutate(
-      ds_vr_status =
+      ds_vr_status.record =
         case_when(
           voter_registration_status == 'initiated' ~
             'register-form',
           voter_registration_status == 'registered' & voter_registration_method == 'online' ~
             'register-OVR',
-          voter_registration_status %in% c('unknown','pending') | is.na(voter_registration_status) ~
+          voter_registration_status %in% c('unknown','pending','') | is.na(voter_registration_status) ~
             'uncertain',
-            voter_registration_status %in% c('ineligible','not-required') ~
+          voter_registration_status %in% c('ineligible','not-required') ~
             'ineligible',
-            voter_registration_status == 'registered' ~
+          voter_registration_status == 'registered' ~
             'confirmed',
           TRUE ~ ''
         ),
-      reportback = ifelse(
-        ds_vr_status %in%
+      reportback.record = ifelse(
+        ds_vr_status.record %in%
           c('confirmed','register-form','register-OVR'), T, F
       ),
       month = month(created_at),
@@ -164,23 +249,64 @@ addFields <- function(dat) {
             as.Date(created_at),
             breaks=
               seq.Date(as.Date('2018-02-06'),as.Date('2019-01-01'),by = '7 days')
-            ) %>% as.character()
+          ) %>% as.character()
       )
-    )
+    ) %>%
+    group_by(nsid) %>%
+    mutate(
+      ds_vr_status =
+        case_when(
+          nsid=='' ~ ds_vr_status.record,
+          max(ds_vr_status.record=='register-form')==1 ~ 'register-form',
+          max(ds_vr_status.record=='register-OVR')==1 ~ 'register-OVR',
+          max(ds_vr_status.record=='confirmed')==1 ~ 'confirmed',
+          max(ds_vr_status.record=='ineligible')==1 ~ 'ineligible',
+          max(ds_vr_status.record=='uncertain')==1 ~ 'uncertain',
+          TRUE ~ ''
+        ),
+      reportback =
+        ifelse(nsid=='', reportback.record,
+               ifelse(max(reportback.record==T), T, F))
+      ,
+      updated_at = as.POSIXct(ifelse(
+        nsid=='', updated_at, max(updated_at)
+        ), origin = '1970-01-01'),
+      created_at = as.POSIXct(ifelse(
+        nsid=='', created_at, max(created_at)
+      ), origin = '1970-01-01')
+    ) %>%
+    ungroup() %>%
+    select(-reportback.record, -ds_vr_status.record)
 }
 
 prepData <- function(...) {
+
   d <- getData(...)
   refParsed <- processReferralColumn(d)
 
-  ## Person can come back after initiated and be pending again
-  ## So latest updated at is not the best source for current status
   vr <-
     d %>%
+    select(-referral_code) %>%
     left_join(refParsed) %>%
+    mutate(
+      nsid = case_when(
+        nsid %in% c('5a84b01ea0bfad5dc71768a2','null') | is.na(nsid) ~ '',
+        TRUE ~ nsid
+        )
+    )
+
+  dupes <-
+    vr %>%
+    filter((duplicated(nsid) | duplicated(nsid, fromLast=T)) &
+             !(nsid %in% c('','null'))) %>%
+    arrange(nsid, created_at, updated_at) %>%
+    mutate(
+      nsidInd = cumsum(nsid != lag(nsid, default=""))
+    ) %>%
     group_by(nsid) %>%
-    filter(updated_at == max(updated_at) | nsid=='') %>%
-    ungroup()
+    mutate(
+      recordCounter = 1:n()
+    )
 
   nsids <-
     vr %>%
@@ -195,21 +321,54 @@ prepData <- function(...) {
 
   vr <- addFields(vr)
 
-  return(vr)
+  dupes <- addFields(dupes)
+
+  cioConv <-
+    getSheet('Voter Registration Source Details Buckets', 'Conversions') %>%
+    select(source_details, type, category) %>%
+    rename(newsletter = source_details) %>%
+    filter(type=='email')
+
+  vr %<>%
+    filter(
+      !duplicated(nsid) |
+      nsid %in% c('','null')
+    ) %>%
+    left_join(cioConv) %>%
+    mutate(
+      details = case_when(
+        newsletter != '' & !is.na(newsletter) ~ category,
+        TRUE ~ details
+      )
+    ) %>% select(-type, -category)
+
+  out <- list(vr, dupes)
+
+  return(out)
 
 }
 
-vfile <- 'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
+vfile <-
+  'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
 
-vr <-
-  prepData(
-    path=paste0(vfile,today,'.csv')
-    )
+out <- prepData(path=paste0(vfile,latest_file,'.csv'))
 
-# dupes <-
-#   vr %>%
-#   filter((duplicated(nsid) | duplicated(nsid, fromLast=T))&nsid!='') %>%
-#   arrange(nsid)
+vr <- out[[1]]
+dupes <- out[[2]]
+
+powerUsers <-
+  dupes %>%
+  group_by(nsid) %>%
+  filter(max(recordCounter)>=5) %>%
+  bind_rows(vr %>% filter(nsid=='5a84b01ea0bfad5dc71768a2'))
+
+if(dbExistsTable(pg,c("public", "turbovote_file"))) {
+
+  q <- "truncate public.turbovote_file"
+  runQuery(q,'pg')
+
+  }
+dbWriteTable(pg,c("public", "turbovote_file"), vr, append = TRUE, row.names=F)
 
 # Analysis ----------------------------------------------------------------
 library(reshape2)
@@ -241,7 +400,7 @@ detSource <- npPivot(source_details)
 sourceStep <-
   vr %>%
   filter(source != '') %>%
-  group_by(ds_vr_status, source, source_details) %>%
+  group_by(ds_vr_status, source, details) %>%
   summarise(Count=n()) %>%
   mutate(Proportion=Count/sum(Count)) %>%
   melt(value.var='Proportion') %>% as.tibble() %>%
@@ -307,6 +466,60 @@ aster <-
     tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
     self_report = sum(ds_vr_status=='confirmed')
   )
+
+## Month over month view
+
+MoM <-
+  vr %>%
+  filter(created_at >= '2018-01-01') %>%
+  mutate(
+    date = as.Date(created_at)
+  ) %>%
+  group_by(date) %>%
+  summarise(
+    Registrations = length(which(grepl('register', ds_vr_status)))
+  ) %>%
+  mutate(
+    month = month(date)
+  ) %>%
+  group_by(month) %>%
+  mutate(
+    registerToDate = cumsum(Registrations),
+    dayOfMonth = as.numeric(format(date, "%d"))
+  ) %>%
+  ungroup() %>%
+  select(dayOfMonth, month, registerToDate) %>%
+  melt(id.var=c('dayOfMonth','month')) %>%
+  mutate(month = as.factor(month))
+
+MoM.Source <-
+  vr %>%
+  filter(created_at >= '2018-01-01') %>%
+  mutate(
+    date = as.Date(created_at),
+    Source = case_when(
+      source %in% c('no_attribution','partner','social') ~ 'Other',
+      TRUE ~ source
+    )
+  ) %>%
+  group_by(date, Source) %>%
+  summarise(
+    Registrations = length(which(grepl('register', ds_vr_status)))
+  ) %>%
+  mutate(
+    month = month(date)
+  ) %>%
+  group_by(month, Source) %>%
+  mutate(
+    registerToDate = cumsum(Registrations),
+    dayOfMonth = as.numeric(format(date, "%d"))
+  ) %>%
+  ungroup() %>%
+  select(dayOfMonth, month, registerToDate, Source) %>%
+  melt(id.var=c('dayOfMonth','month','Source')) %>%
+  mutate(month = as.factor(month))
+
+## Excel output
 
 library(openxlsx)
 
