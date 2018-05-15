@@ -74,3 +74,6 @@ CREATE TABLE public.users_log_to_users_test AS
 
 ALTER TABLE public.users_log_to_users_test ADD PRIMARY KEY (id, created_at, updated_at);
 CREATE INDEX nult_indices ON public.users_log_to_users_test (id, created_at, updated_at);
+
+GRANT SELECT ON public.users_log_to_users_test TO jjensen;
+GRANT SELECT ON public.users_log_to_users_test TO looker;
