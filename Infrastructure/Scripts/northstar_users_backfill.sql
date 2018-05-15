@@ -31,7 +31,7 @@ CREATE TEMPORARY TABLE users_log_to_users_test_dup as
 		ul.last_accessed AS last_accessed_at,
 		ul.last_logged_in AS last_authenticated_at,
 		NULL AS last_messaged_at,
-		GREATEST(ul.last_accessed, ul.last_logged_in) AS updated_at,
+		GREATEST(ul.last_accessed, ul.last_logged_in, ul.created_at) AS updated_at,
 		ul.created_at
 	FROM northstar.users_log_mysql ul
 	WHERE ul.last_accessed IS NOT NULL OR ul.last_logged_in IS NOT NULL)
@@ -71,6 +71,7 @@ CREATE TABLE public.users_log_to_users_test AS
 		max(last_messaged_at) AS last_messaged_at
 	FROM users_log_to_users_test_dup d
 	GROUP BY d.id, d.created_at, d.updated_at)
+;
 
 ALTER TABLE public.users_log_to_users_test ADD PRIMARY KEY (id, created_at, updated_at);
 CREATE INDEX nult_indices ON public.users_log_to_users_test (id, created_at, updated_at);
