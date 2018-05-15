@@ -1,7 +1,6 @@
 library(tidyverse)
 library(data.table)
 library(plyr)
-library(concatenate)
 source('config/init.R')
 source('config/mySQLConfig.R')
 
