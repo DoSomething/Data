@@ -1,3 +1,4 @@
+setwd('~/Data/Sentiment/')
 suppressMessages(source('config/init.R'))
 suppressMessages(source('config/pgConnect.R'))
 source('config/customFunctions.R')
