@@ -21,7 +21,7 @@ FROM
 		sd.campaign_id AS campaign_id,
 		sd.campaign_run_id AS campaign_run_id,
 		sd.why_participated AS why_participated,
-		sd.SOURCE AS SOURCE,
+		sd."source" AS "source",
 		sd.created_at AS created_at
 	FROM 
         (SELECT 
@@ -29,8 +29,9 @@ FROM
         		max(stemp.updated_at) AS updated_at
         FROM rogue.signups stemp
         WHERE stemp.deleted_at IS NULL
-        AND stemp.SOURCE IS DISTINCT FROM 'runscope'
-     	AND stemp.SOURCE IS DISTINCT FROM 'runscope-oauth'
+        AND stemp."source" IS DISTINCT FROM 'runscope'
+     	AND stemp."source" IS DISTINCT FROM 'runscope-oauth'
+     	AND stemp.why_participated IS DISTINCT FROM 'why_participated_ghost_test'
         GROUP BY stemp.id) 
         s_maxupt
 		INNER JOIN rogue.signups sd
@@ -39,10 +40,10 @@ FROM
 LEFT JOIN 
 	(SELECT 
 		pd.id AS id,
-		pd.TYPE AS TYPE,
+		pd."type" AS type,
 		pd.status AS status,
 		pd.quantity AS quantity,
-		pd.SOURCE AS SOURCE,
+		pd."source" AS source,
 		pd.created_at AS created_at,
 		pd.url AS url,
 		pd.signup_id AS signup_id
