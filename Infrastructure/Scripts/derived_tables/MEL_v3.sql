@@ -64,24 +64,39 @@ CREATE TEMPORARY TABLE mel_test AS
         WHERE p.deleted_at IS NULL
 	UNION ALL
         SELECT DISTINCT 
+<<<<<<< HEAD
             u_access.id AS northstar_id,
+=======
+            u_access.northstar_id,
+>>>>>>> master
             u_access.last_accessed_at AS "timestamp",
             'site_access' AS action,
             '3' AS action_id,
             NULL AS source,
             '0' AS action_serial_id
         FROM northstar.users u_access
+<<<<<<< HEAD
 		WHERE u_access.last_accessed_at IS NOT NULL
 	UNION ALL 
         SELECT DISTINCT 
             u_login.id AS northstar_id,
+=======
+		WHERE u_leg_acc.last_accessed IS NOT NULL
+	UNION ALL 
+        SELECT DISTINCT 
+            u_login.northstar_id,
+>>>>>>> master
             u_login.last_authenticated_at AS "timestamp",
             'site_login' AS action,
             '4' AS action_id,
             NULL AS source,
             '0' AS action_serial_id
         FROM northstar.users u_login
+<<<<<<< HEAD
         WHERE u_login.last_authenticated_at IS NOT NULL 
+=======
+        WHERE u_new_login.last_authenticated_at IS NOT NULL 
+>>>>>>> master
 	UNION ALL 
         SELECT -- ACCOUNT CREATION 
             DISTINCT u.id AS northstar_id,
@@ -146,6 +161,7 @@ CREATE TEMPORARY TABLE mel_test AS
 		) AS a 
 	); 
 
+<<<<<<< HEAD
  --CREATE INDEX ON public.member_event_log (event_id, northstar_id, "timestamp", action_serial_id);
 
 CREATE INDEX ON mel_test (event_id, northstar_id, "timestamp", action_serial_id);
@@ -154,3 +170,11 @@ GRANT SELECT ON public.member_event_log TO looker;
 GRANT SELECT ON public.member_event_log TO jjensen;
 GRANT SELECT ON public.member_event_log TO jli;
 GRANT SELECT ON public.member_event_log TO shasan;
+=======
+ CREATE INDEX ON public.member_event_log (event_id, northstar_id, "timestamp", action_serial_id);
+
+ GRANT SELECT ON public.member_event_log TO looker;
+ GRANT SELECT ON public.member_event_log TO jjensen;
+ GRANT SELECT ON public.member_event_log TO jli;
+ GRANT SELECT ON public.member_event_log TO shasan;
+>>>>>>> master
