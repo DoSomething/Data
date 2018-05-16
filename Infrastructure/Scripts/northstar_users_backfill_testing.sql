@@ -1,3 +1,6 @@
+DROP TABLE IF EXISTS current_site_info;
+DROP TABLE IF EXISTS new_site_info;
+
 CREATE TEMPORARY TABLE current_site_info AS 
     (SELECT
         MD5(concat(a.northstar_id, a.timestamp, a.action_id, a.action_serial_id)) AS event_id,
@@ -114,4 +117,4 @@ CREATE TEMPORARY TABLE new_site_info AS
         ); 
         
 SELECT substring("timestamp"::varchar, 1, 7), action_type, count(*) FROM new_site_info GROUP BY substring("timestamp"::varchar, 1, 7), action_type ORDER BY substring("timestamp"::varchar, 1, 7), action_type;
-SELECT substring("timestamp"::varchar, 1, 7), action_type, count(*) FROM current_site_info GROUP BY substring("timestamp"::varchar, 1, 7), action_type ORDER BY substring("timestamp"::varchar, 1, 7), action_type
+SELECT substring("timestamp"::varchar, 1, 7), action_type, count(*) FROM current_site_info GROUP BY substring("timestamp"::varchar, 1, 7), action_type ORDER BY substring("timestamp"::varchar, 1, 7), action_type;

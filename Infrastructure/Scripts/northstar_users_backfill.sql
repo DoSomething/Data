@@ -40,8 +40,8 @@ CREATE TEMPORARY TABLE users_log_to_users_test_dup as
 	WHERE 
 		(ul.last_accessed IS NOT NULL OR 
 		ul.last_logged_in IS NOT NULL) AND
-		(ul.last_accessed + INTERVAL '5h' <> '1970-01-01 00:00:00' OR
-		ul.last_logged_in + INTERVAL '5h' <> '1970-01-01 00:00:00')
+		(ul.last_accessed > '1969-12-31 19:00:00' OR
+		ul.last_logged_in > '1969-12-31 19:00:00')
 	)
 ;
 
