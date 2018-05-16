@@ -12,7 +12,7 @@ CREATE TEMPORARY TABLE users_log_to_users_test_dup as
 		ul.mobile,
 		ul.facebook_id,
 		NULL AS interests,
-		ul.birthdate,
+		ul.birthdate + INTERVAL '5h' AS birthdate,
 		ul.addr_street1,
 		ul.addr_street2,
 		ul.addr_city,
@@ -30,18 +30,18 @@ CREATE TEMPORARY TABLE users_log_to_users_test_dup as
 		NULL AS "role",
 		CASE WHEN 
 			ul.last_accessed IS NOT NULL 
-			THEN ul.last_accessed 
-			ELSE ul.last_logged_in END AS last_accessed_at,
-		ul.last_logged_in AS last_authenticated_at,
+			THEN ul.last_accessed + INTERVAL '5h'
+			ELSE ul.last_logged_in + INTERVAL '5h' END AS last_accessed_at,
+		ul.last_logged_in + INTERVAL '5h' AS last_authenticated_at,
 		NULL AS last_messaged_at,
-		GREATEST(ul.last_accessed, ul.last_logged_in, ul.created_at) AS updated_at,
-		ul.created_at
+		GREATEST(ul.last_accessed, ul.last_logged_in, ul.created_at) + INTERVAL '5h' AS updated_at,
+		ul.created_at + INTERVAL '5h' AS created_at
 	FROM northstar.users_log_mysql ul
 	WHERE 
 		(ul.last_accessed IS NOT NULL OR 
 		ul.last_logged_in IS NOT NULL) AND
-		(ul.last_accessed <> '1970-01-01' OR
-		ul.last_logged_in <> '1970-01-01')
+		(ul.last_accessed + INTERVAL '5h' <> '1970-01-01 00:00:00' OR
+		ul.last_logged_in + INTERVAL '5h' <> '1970-01-01 00:00:00')
 	)
 ;
 
