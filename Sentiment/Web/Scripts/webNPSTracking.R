@@ -1,25 +1,24 @@
 setwd('~/Data/Sentiment/')
-source('config/init.R')
-source('config/pgConnect.R')
+suppressMessages(source('config/init.R'))
+suppressMessages(source('config/pgConnect.R'))
 source('config/customFunctions.R')
-library(httr)
-library(jsonlite)
-library(glue)
-
-allTypeForm <- getKeyList(Sys.getenv('TYPEFORM_KEY'))
+library(rtypeform)
 
 webKey <- 'Bvcwvm'
+tfKey <- Sys.getenv('TYPEFORM_KEY')
+
+typeforms = get_typeforms(tfKey)
+quest <- get_questionnaire(webKey, tfKey, completed = T, order_by = "date_submit_desc")
 
 web <-
-  getOutput(webKey, Sys.getenv('TYPEFORM_KEY')) %>%
-  setNames(c('northstar_id','campaign_id','campaign_run_id',
-             'origin','nps','text','response_ts')) %>%
-  select(-campaign_id, -origin) %>%
+  quest$completed %>%
+  select(northstar_id, opinionscale_L4EinsGMPo38, date_submit) %>%
+  setNames(c('northstar_id','nps','date_submit')) %>%
   filter(!is.na(northstar_id)) %>%
   mutate(
     nps=as.double(nps),
-    response_ts = as.POSIXct(response_ts, format='%Y-%m-%d %H:%M:%S'),
-    responseDist = 1/sqrt(as.numeric(Sys.Date() - as.Date(response_ts) + 1))
+    date_submit = as.POSIXct(date_submit, format='%Y-%m-%d %H:%M:%S'),
+    responseDist = 1/sqrt(as.numeric(Sys.Date() - as.Date(date_submit) + 1))
   )
 
 scores <- numeric()

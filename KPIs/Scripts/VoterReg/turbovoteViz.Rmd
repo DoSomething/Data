@@ -3,7 +3,7 @@ title: ""
 output: html_notebook
 ---
 #### Month over Month Pacing
-* We are pacing higher this month than last month, but below March
+* This month is pacing between March and April rates
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(MoM, aes(x=dayOfMonth, value)) +
   geom_line(aes(color=month)) + 
@@ -11,7 +11,7 @@ ggplot(MoM, aes(x=dayOfMonth, value)) +
   theme(plot.title = element_text(hjust=.5))
 ```
 
-* Split by source
+* Web is showing strongest performance to date. Other channels are lagging
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(MoM.Source, aes(x=dayOfMonth, value)) +
   geom_line(aes(color=month)) + 
@@ -22,6 +22,7 @@ ggplot(MoM.Source, aes(x=dayOfMonth, value)) +
 
 #### Northstar Source
 * Web users disproportionately represent all those going through the flow 
+* Similar proportions of statuses across user channels
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 library(scales)
 sumIf <- function(x) {
@@ -64,16 +65,17 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
 ```
 #### Source Details
 
-* We need denominators to better understand conversion. Where can we find this information?
+* We've gotten access to many denominators. Planning to build into report this week
 
 **Email**
 
   - Now with more informative buckets!
-  - Do we know how many people each of these newsletters went out to? This would help us identify which copy was the most effective
+  - We've gotten access to newsletter info in quasar and so can start getting conversion rates
   
 **SMS**
 
   - This won't become useful until we find a way to add more source details
+  - I believe better attribution is on the horizon with Bert.ly
   
 **Social**
 
@@ -82,6 +84,7 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
 **Web**
 
   - Campaign pages and Hellobar are dominating 
+  - We have full phoenix funnels, and so can start report conversions here too
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 # ggplot(detSource.t, aes(x=ds_vr_status, y=value, fill=source_details)) +
 #   geom_bar(stat='identity', position='stack') +
@@ -97,7 +100,7 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
 #   theme(plot.title = element_text(hjust=.5)) + 
 #   guides(fill=guide_legend(title='Source Details'))
 ```
-```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=36}
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=24}
 library(gridExtra)
 ss <- split(sourceStep, f=sourceStep$source)
 p1 <- ggplot(ss$email, aes(x=ds_vr_status, y=value, fill=reorder(details, value))) +
