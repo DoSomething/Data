@@ -1,4 +1,5 @@
 source('config/init.R')
+source('config/pgConnect.R')
 library(googlesheets)
 library(zoo)
 
@@ -168,3 +169,17 @@ write_csv(
   )
 
 system('scp ~/quasar/quasar/misc/reportbacks_asterisk.csv jump.d12g.co:/quasar-csv/reportbacks_asterisk.csv')
+
+channel <- pgConnect()
+if(dbExistsTable(channel,c("public", "legacy_reportbacks"))) {
+  dbRemoveTable(channel,c("public", "legacy_reportbacks"))}
+dbWriteTable(channel,c("public", "legacy_reportbacks"), reportbacks_asterisk, row.names=F)
+
+grant <- "grant select on public.legacy_reportbacks to public;"
+dbGetQuery(channel, grant)
+grant <- "grant select on public.legacy_reportbacks to looker;"
+dbGetQuery(channel, grant)
+grant <- "grant select on public.legacy_reportbacks to jjensen;"
+dbGetQuery(channel, grant)
+grant <- "grant select on public.legacy_reportbacks to jli;"
+dbGetQuery(channel, grant)
