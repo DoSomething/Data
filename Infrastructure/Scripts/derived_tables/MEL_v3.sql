@@ -3,7 +3,7 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
     (SELECT
         MD5(concat(a.northstar_id, a."timestamp", a.action_id, a.action_serial_id)) AS event_id,
         a.northstar_id AS northstar_id,
-        a.""timestamp"" AS "timestamp",
+        a."timestamp" AS "timestamp",
         a."action" AS action_type,
         a.action_id AS action_id,
         a."source" AS "source",
@@ -124,7 +124,7 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
             tv.created_at AS "timestamp",
             'registered' AS "action",
             '8' AS action_id,
-            tv."source"_details AS "source",
+            tv.source_details AS "source",
             tv.id as action_serial_id
         FROM
             public.turbovote_file tv
