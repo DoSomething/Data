@@ -71,7 +71,8 @@ CREATE MATERIALIZED VIEW public.derived_user_test AS
 	AND u."source" IS DISTINCT FROM 'runscope-client'
 	AND u.email IS DISTINCT FROM 'runscope-scheduled-test@dosomething.org'
 	AND u.email IS DISTINCT FROM 'juy+runscopescheduledtests@dosomething.org'
-	AND (u.email NOT ILIKE '%@example.org%' OR u.email IS NULL) )
+	AND (u.email NOT ILIKE '%@example.org%' OR u.email IS NULL) 
+	)
 	;
 
 CREATE INDEX dut_indices 

@@ -30,3 +30,11 @@ GROUP BY u.customer_io_subscription_status;
 
 SELECT * FROM northstar.users_mysql u WHERE u.customer_io_subscription_status = 'subscribed' AND u.customer_io_subscription_timestamp IS NULL ;
 
+SELECT 
+	*
+FROM northstar.users_mysql u
+LEFT JOIN public.cio_latest_status c ON u.northstar_id = c.customer_id
+WHERE u.customer_io_subscription_status IS NOT NULL 
+AND c.customer_id IS NULL ;
+
+SELECT * FROM cio_latest_status
