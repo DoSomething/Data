@@ -137,7 +137,7 @@ CREATE INDEX dnc_indices ON device_northstar_crosswalk (northstar_id, device_id)
 
 GRANT SELECT ON public.phoenix_sessions TO jjensen;
 GRANT SELECT ON public.phoenix_sessions TO public;
-GRANT SELECT ON public.phoenix_sessionsg TO looker;
+GRANT SELECT ON public.phoenix_sessions TO looker;
 GRANT SELECT ON public.phoenix_sessions TO shasan;
 GRANT SELECT ON public.phoenix_sessions TO jli;
 GRANT SELECT ON public.phoenix_events TO public;
