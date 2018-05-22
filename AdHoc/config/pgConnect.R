@@ -9,7 +9,7 @@ pgConnect <- function() {
   channel <-
     dbConnect(
       drv,
-      user = "shasan",
+      user = user,
       password=pw,
       dbname = 'dbname=d4e7vm204dkmar sslmode=require',
       host = "ec2-35-169-120-240.compute-1.amazonaws.com",
