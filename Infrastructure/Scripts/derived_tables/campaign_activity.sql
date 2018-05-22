@@ -1,4 +1,4 @@
-
+DROP MATERIALIZED VIEW IF EXISTS public.signups CASCADE;
 CREATE MATERIALIZED VIEW public.signups AS 
 	(SELECT 
 		sd.northstar_id AS northstar_id,
@@ -24,7 +24,7 @@ CREATE MATERIALIZED VIEW public.signups AS
 	)
 	; 
 CREATE INDEX signup_source ON public.signups (id); 
-
+DROP MATERIALIZED VIEW IF EXISTS public.posts CASCADE;
 CREATE MATERIALIZED VIEW public.posts AS
 	(SELECT 
 		pd.id AS id,
@@ -49,9 +49,8 @@ CREATE MATERIALIZED VIEW public.posts AS
 			ON pd.id = p_maxupt.id AND pd.updated_at = p_maxupt.updated_at  
 	)
 	;
-CREATE INDEX post_index ON public.posts (id)
-; 
-
+CREATE INDEX post_index ON public.posts (id); 
+DROP MATERIALIZED VIEW IF EXISTS public.reported_back CASCADE;
 CREATE MATERIALIZED VIEW public.reported_back AS 
 	(SELECT 
 		temp_posts.signup_id,
@@ -63,9 +62,8 @@ CREATE MATERIALIZED VIEW public.reported_back AS
 		temp_posts.signup_id
 	) 
 	; 
-CREATE INDEX reported_back_index ON public.reported_back (temp_posts.signup_id)
-;
-
+CREATE INDEX reported_back_index ON public.reported_back (signup_id);
+DROP MATERIALIZED VIEW IF EXISTS public.campaign_activity;
 CREATE MATERIALIZED VIEW public.campaign_activity AS 
 	(SELECT  
 		a.northstar_id AS northstar_id,
@@ -93,3 +91,8 @@ CREATE MATERIALIZED VIEW public.campaign_activity AS
 		ON c.signup_id = a.id
 	)
 	;
+CREATE INDEX ON public.campaign_activity (northstar_id, signup_id, post_id);
+GRANT SELECT ON public.campaign_activity TO looker;
+GRANT SELECT ON public.campaign_activity TO jjensen;
+GRANT SELECT ON public.campaign_activity TO jli;
+GRANT SELECT ON public.campaign_activity TO shasan;
