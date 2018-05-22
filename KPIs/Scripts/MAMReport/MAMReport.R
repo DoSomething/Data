@@ -3,11 +3,11 @@ library(scales)
 
 mm <-
   runQuery('Scripts/MAMReport/usertypes.sql', 'pg') %>%
-  filter(Month >= '2017-01-01' & Month < '2018-05-01')
+  filter(Month >= '2017-01-01')
 
 qres <-
   runQuery('Scripts/MAMReport/actiontypes.sql', 'pg') %>%
-  filter(Month >= '2017-01-01' & Month < '2018-05-01')
+  filter(Month >= '2017-01-01')
 
 act <-
   qres %>%
