@@ -23,7 +23,7 @@ CREATE MATERIALIZED VIEW public.signups AS
 			ON sd.id = s_maxupt.id AND sd.updated_at = s_maxupt.updated_at
 	)
 	; 
-CREATE INDEX signup_source ON public.signups (id); 
+CREATE INDEX signup_source ON public.signups (id, created_at); 
 DROP MATERIALIZED VIEW IF EXISTS public.posts CASCADE;
 CREATE MATERIALIZED VIEW public.posts AS
 	(SELECT 
@@ -49,7 +49,7 @@ CREATE MATERIALIZED VIEW public.posts AS
 			ON pd.id = p_maxupt.id AND pd.updated_at = p_maxupt.updated_at  
 	)
 	;
-CREATE INDEX post_index ON public.posts (id); 
+CREATE INDEX post_index ON public.posts (id, created_at); 
 DROP MATERIALIZED VIEW IF EXISTS public.reported_back CASCADE;
 CREATE MATERIALIZED VIEW public.reported_back AS 
 	(SELECT 
@@ -91,7 +91,7 @@ CREATE MATERIALIZED VIEW public.campaign_activity AS
 		ON c.signup_id = a.id
 	)
 	;
-CREATE INDEX ON public.campaign_activity (northstar_id, signup_id, post_id);
+CREATE INDEX ON public.campaign_activity (northstar_id, signup_id, post_id, post_created_at);
 GRANT SELECT ON public.campaign_activity TO looker;
 GRANT SELECT ON public.campaign_activity TO jjensen;
 GRANT SELECT ON public.campaign_activity TO jli;
