@@ -55,7 +55,7 @@ CREATE MATERIALIZED VIEW public.users AS
 		CASE WHEN 
 			u.sms_status in ('active','less') OR 
 			email_status.event_type = 'customer_subscribed' 
-			THEN TRUE ELSE FALSE END AS active_member,
+			THEN TRUE ELSE FALSE END AS subscribed_member,
 		umax.max_update AS last_updated_at
 	FROM northstar.users u
 	INNER JOIN 
