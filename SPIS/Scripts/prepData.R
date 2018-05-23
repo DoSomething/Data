@@ -402,6 +402,10 @@ addSurveyWeights <- function(dat) {
 
 }
 
+removeSpecialCharacters <- function(x) {
+  x <- gsub("[^[:alnum:][:blank:]?&/\\-]", "", x)
+}
+
 createAnalyticalSet <- function(memberPath, genpopPath) {
 
   memberSet <-
@@ -448,6 +452,11 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
   combine <-  refactorPivots(combine)
   combine <- recodeCheckAllApply(combine)
   combine <- addSurveyWeights(combine)
+  combine <-
+    combine %>%
+    mutate_if(
+     is.character, removeSpecialCharacters
+    )
 
   return(combine)
 
