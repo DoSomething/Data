@@ -24,8 +24,9 @@ CREATE MATERIALIZED VIEW public.signups AS
 	)
 	; 
 CREATE INDEX signup_source ON public.signups (id, created_at); 
-DROP MATERIALIZED VIEW IF EXISTS public.posts CASCADE;
-CREATE MATERIALIZED VIEW public.posts AS
+
+DROP MATERIALIZED VIEW IF EXISTS public.latest_posts CASCADE;
+CREATE MATERIALIZED VIEW public.latest_posts AS
 	(SELECT 
 		pd.id AS id,
 		pd."type" AS "type",
@@ -33,7 +34,7 @@ CREATE MATERIALIZED VIEW public.posts AS
 		pd.status AS status,
 		pd.quantity AS quantity,
 		pd."source" AS "source",
-		COALESCE(tv.created_at, pd.created_at) AS created_at,
+		pd.created_at AS created_at,
 		pd.url AS url,
 		pd.signup_id AS signup_id
 	FROM 
@@ -44,14 +45,30 @@ CREATE MATERIALIZED VIEW public.posts AS
      	WHERE ptemp.deleted_at IS NULL
      	AND ptemp."source" IS DISTINCT FROM 'runscope'
      	AND ptemp."source" IS DISTINCT FROM 'runscope-oauth'
-        GROUP BY ptemp.id) 
-	    p_maxupt
-	    INNER JOIN rogue.posts pd
+        GROUP BY ptemp.id) p_maxupt
+ 	INNER JOIN rogue.posts pd
 			ON pd.id = p_maxupt.id AND pd.updated_at = p_maxupt.updated_at  
-	LEFT JOIN rogue.turbovote tv ON tv.post_id::bigint = pd.id
 	)
 	;
+CREATE INDEX latest_post_index ON public.latest_posts (id, created_at); 
+
+DROP MATERIALIZED VIEW IF EXISTS public.posts CASCADE;
+CREATE TEMPORARY TABLE public.posts AS 
+	(SELECT 
+			pd.id AS id,
+			pd."type" AS "type",
+			pd."action" AS "action",
+			pd.status AS status,
+			pd.quantity AS quantity,
+			pd."source" AS "source",
+			COALESCE(tv.created_at, pd.created_at) AS created_at,
+			pd.url AS url,
+			pd.signup_id AS signup_id
+	FROM public.latest_posts pd
+	LEFT JOIN rogue.turbovote tv ON tv.post_id::bigint = pd.id)
+;
 CREATE INDEX post_index ON public.posts (id, created_at); 
+
 DROP MATERIALIZED VIEW IF EXISTS public.reported_back CASCADE;
 CREATE MATERIALIZED VIEW public.reported_back AS 
 	(SELECT 
