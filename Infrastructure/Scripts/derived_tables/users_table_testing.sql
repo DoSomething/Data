@@ -37,4 +37,18 @@ LEFT JOIN public.cio_latest_status c ON u.northstar_id = c.customer_id
 WHERE u.customer_io_subscription_status IS NOT NULL 
 AND c.customer_id IS NULL ;
 
-SELECT * FROM cio_latest_status
+SELECT * FROM cio_latest_status;
+
+SELECT 
+	t.cio_status,
+	count(*)
+FROM derived_user_test t
+WHERE t.cio_status IS NOT NULL 
+GROUP BY t.cio_status;
+
+SELECT 
+	t.sms_status,
+	count(*)
+FROM derived_user_test t
+WHERE t.sms_status IS NOT NULL 
+GROUP BY t.sms_status

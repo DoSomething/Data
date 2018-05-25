@@ -1,4 +1,4 @@
-DROP MATERIALIZED VIEW IF EXISTS public.derived_user_test;
+DROP MATERIALIZED VIEW IF EXISTS public.users;
 DROP MATERIALIZED VIEW IF EXISTS public.cio_latest_status;
 
 CREATE MATERIALIZED VIEW public.cio_latest_status AS 
@@ -24,7 +24,7 @@ CREATE MATERIALIZED VIEW public.cio_latest_status AS
 		
 CREATE INDEX cio_indices ON public.cio_latest_status (customer_id);
 
-CREATE MATERIALIZED VIEW public.derived_user_test AS 
+CREATE MATERIALIZED VIEW public.users AS 
 	(SELECT 
 		u.id AS northstar_id,
 		u.created_at,
@@ -55,7 +55,7 @@ CREATE MATERIALIZED VIEW public.derived_user_test AS
 		CASE WHEN 
 			u.sms_status in ('active','less') OR 
 			email_status.event_type = 'customer_subscribed' 
-			THEN TRUE ELSE FALSE END AS active_member,
+			THEN TRUE ELSE FALSE END AS subscribed_member,
 		umax.max_update AS last_updated_at
 	FROM northstar.users u
 	INNER JOIN 
@@ -75,11 +75,11 @@ CREATE MATERIALIZED VIEW public.derived_user_test AS
 	)
 	;
 
-CREATE INDEX dut_indices 
-	ON public.derived_user_test (northstar_id, created_at, email, mobile, "source");
+CREATE INDEX du_indices 
+	ON public.users (northstar_id, created_at, email, mobile, "source");
 
-GRANT SELECT ON public.derived_user_test TO jjensen;
-GRANT SELECT ON public.derived_user_test TO public;
-GRANT SELECT ON public.derived_user_test TO looker;
-GRANT SELECT ON public.derived_user_test TO shasan;
-GRANT SELECT ON public.derived_user_test TO jli;
+GRANT SELECT ON public.users TO jjensen;
+GRANT SELECT ON public.users TO public;
+GRANT SELECT ON public.users TO looker;
+GRANT SELECT ON public.users TO shasan;
+GRANT SELECT ON public.users TO jli;
