@@ -6,4 +6,4 @@ smsIn <-
 
 combine <-
   smsIn %>%
-  inner_join(smsout, by = c('nsid' = 'userId'))
+  left_join(smsout, by = c('nsid' = 'userId'))
