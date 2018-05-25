@@ -44,7 +44,7 @@ ggplot(mm, aes(x=as.factor(Month), y=nsids)) +
 act.agg <- act %>% group_by(Month, action_type) %>% summarise(count = sum(actions))
 ggplot(act.agg, aes(x=as.factor(Month), y=count, fill=reorder(action_type, count))) + 
   geom_bar(stat='identity', position='stack') + 
-  # geom_text(position=position_stack(vjust=.5), aes(label=count), vjust=0, size=2.5) +
+  geom_text(position=position_stack(vjust=.5), aes(label=count), vjust=0, size=2.5) +
   stat_summary(fun.y = sum, aes(label = ..y.., group = Month), geom = "text", vjust=-.2) +
   scale_y_continuous(breaks=pretty_breaks(10)) + 
   labs(title='Action Counts', y='Actions', x='Month') + 
