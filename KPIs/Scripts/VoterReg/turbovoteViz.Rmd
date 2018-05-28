@@ -3,7 +3,7 @@ title: ""
 output: html_notebook
 ---
 #### Month over Month Pacing
-* This month is pacing between March and April rates
+* We're pacing better than March!
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(MoM, aes(x=dayOfMonth, value)) +
   geom_line(aes(color=month)) + 
@@ -116,6 +116,7 @@ p2 <- p1 %+% ss$sms %+% ggtitle('SMS')
 p3 <- p1 %+% ss$social %+% ggtitle('Social')
 p4 <- p1 %+% ss$web %+% ggtitle('Web')
 p1 <- p1 %+% ss$email %+% ggtitle('Email')
+p4 <- p1 %+% ss$partner %+% ggtitle('Partner')
 grid.arrange(
   p1,p2,p3,p4,ncol=1,
   top='Counts and Proportions of Form Status split by Source and Details',
