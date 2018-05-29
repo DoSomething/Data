@@ -1,5 +1,5 @@
-DROP TABLE IF EXISTS signups_test ;
-CREATE TEMPORARY TABLE signups_test AS 
+DROP MATERIALIZED VIEW IF EXISTS public.signups_test ;
+CREATE MATERIALIZED VIEW public.signups_test AS 
     (SELECT 
         sd.northstar_id AS northstar_id,
         sd.id AS id,
@@ -22,10 +22,10 @@ CREATE TEMPORARY TABLE signups_test AS
             ON sd.id = s_maxupt.id AND sd.updated_at = s_maxupt.updated_at
     )
     ; 
-CREATE INDEX signups_testi ON signups_test (id, created_at); 
+CREATE INDEX signups_testi ON public.signups_test (id, created_at); 
 
-DROP TABLE IF EXISTS latest_post_test CASCADE;
-CREATE TEMPORARY TABLE latest_post_test AS
+DROP MATERIALIZED VIEW IF EXISTS public.latest_post_test CASCADE;
+CREATE MATERIALIZED VIEW public.latest_post_test AS
     (SELECT 
         pd.id AS id,
         pd."type" AS "type",
@@ -49,10 +49,10 @@ CREATE TEMPORARY TABLE latest_post_test AS
             ON pd.id = p_maxupt.id AND pd.updated_at = p_maxupt.updated_at  
     )
     ;
-CREATE INDEX latest_post_testi ON latest_post_test (id, created_at); 
+CREATE INDEX latest_post_testi ON public.latest_post_test (id, created_at); 
 
-DROP TABLE IF EXISTS posts_test CASCADE;
-CREATE TEMPORARY TABLE posts_test AS 
+DROP MATERIALIZED VIEW IF EXISTS public.posts_test CASCADE;
+CREATE MATERIALIZED VIEW public.posts_test AS 
     (SELECT 
             pd.id AS id,
             pd."type" AS "type",
@@ -63,27 +63,27 @@ CREATE TEMPORARY TABLE posts_test AS
             COALESCE(tv.created_at, pd.created_at) AS created_at,
             pd.url AS url,
             pd.signup_id AS signup_id
-    FROM latest_post_test pd
+    FROM public.latest_post_test pd
     LEFT JOIN rogue.turbovote tv ON tv.post_id::bigint = pd.id)
 ;
-CREATE INDEX post_testi ON posts_test (id, created_at); 
+CREATE INDEX post_testi ON public.posts_test (id, created_at); 
 
-DROP TABLE IF EXISTS reported_back_test CASCADE;
-CREATE TEMPORARY TABLE reported_back_test AS 
+DROP MATERIALIZED VIEW IF EXISTS public.reported_back_test CASCADE;
+CREATE MATERIALIZED VIEW public.reported_back_test AS 
     (SELECT 
         temp_posts.signup_id,
         MAX(CASE WHEN temp_posts.id <> -1 THEN 1 ELSE 0 END) AS reported_back
     FROM 
-        latest_post_test temp_posts
+        public.posts_test temp_posts
     WHERE temp_posts.signup_id IS NOT NULL
     GROUP BY 
         temp_posts.signup_id
     ) 
     ; 
-CREATE INDEX reported_back_testi ON reported_back_test (signup_id);
+CREATE INDEX reported_back_testi ON public.reported_back_test (signup_id);
 
-DROP TABLE IF EXISTS ca_test;
-CREATE TEMPORARY TABLE ca_test AS 
+DROP MATERIALIZED VIEW IF EXISTS public.campaign_activity_testing;
+CREATE MATERIALIZED VIEW public.campaign_activity_testing AS 
     (SELECT  
         a.northstar_id AS northstar_id,
         a.id AS signup_id,
@@ -108,17 +108,17 @@ CREATE TEMPORARY TABLE ca_test AS
         c.reported_back AS reported_back,
         b.url AS url
     FROM 
-        signups_test a
+        public.signups_test a
     LEFT JOIN 
-        posts_test b
+        public.posts_test b
         ON b.signup_id = a.id
     LEFT JOIN 
-        reported_back_test c
+        public.reported_back_test c
         ON c.signup_id = a.id
     )
     ;
-CREATE INDEX ON public.campaign_activity (northstar_id, signup_id, post_id, post_created_at);
-GRANT SELECT ON public.campaign_activity TO looker;
-GRANT SELECT ON public.campaign_activity TO jjensen;
-GRANT SELECT ON public.campaign_activity TO jli;
-GRANT SELECT ON public.campaign_activity TO shasan;
+CREATE INDEX ON public.campaign_activity_testing (northstar_id, signup_id, post_id, post_created_at);
+GRANT SELECT ON public.campaign_activity_testing TO looker;
+GRANT SELECT ON public.campaign_activity_testing TO jjensen;
+GRANT SELECT ON public.campaign_activity_testing TO jli;
+GRANT SELECT ON public.campaign_activity_testing TO shasan;
