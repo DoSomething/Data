@@ -139,6 +139,7 @@ processReferralColumn <- function(dat) {
           ),
       source = case_when(
         source == 'sms_share' ~ 'sms',
+        grepl('niche', source_details) ~ 'partner',
         source_details %in% c('twitter','facebook') ~ 'social',
         source_details == '11_facts' | source == 'dosomething' ~ 'web',
         is.na(source) | source=='{source}' ~ 'no_attribution',
