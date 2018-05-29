@@ -1,4 +1,4 @@
-select id, userId, createdAt, text, broadcastId
+select id, userId, broadcastId
 from messages
 where createdAt >= date('2018-05-15')
 and direction = 'outbound-api-send'
