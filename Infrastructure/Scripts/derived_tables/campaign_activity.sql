@@ -53,7 +53,7 @@ CREATE MATERIALIZED VIEW public.latest_posts AS
 CREATE INDEX latest_post_index ON public.latest_posts (id, created_at); 
 
 DROP MATERIALIZED VIEW IF EXISTS public.posts CASCADE;
-CREATE TEMPORARY TABLE public.posts AS 
+CREATE MATERIALIZED VIEW public.posts AS 
     (SELECT 
             pd.id AS id,
             pd."type" AS "type",
