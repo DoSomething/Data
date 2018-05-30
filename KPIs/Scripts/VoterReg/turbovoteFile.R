@@ -136,7 +136,7 @@ processReferralColumn <- function(dat) {
         case_when(
           grepl('content', E) ~ gsub('utm_content:','',E),
           TRUE ~ ''
-          ),
+        ),
       source = case_when(
         source == 'sms_share' ~ 'sms',
         grepl('niche', source_details) ~ 'partner',
@@ -196,13 +196,13 @@ processReferralColumn <- function(dat) {
 getQuasarAttributes <- function(queryObjects) {
   q <- paste0(
     "SELECT
-      u.northstar_id AS nsid,
-      u.created_at AS ds_registration_date,
-      u.source AS user_source,
-      u.subscribed_member AS active_member,
-      c.signup_id,
-      c.campaign_run_id,
-      max(CASE WHEN c.post_id <> -1 THEN 1 ELSE 0 END) as reportedback
+    u.northstar_id AS nsid,
+    u.created_at AS ds_registration_date,
+    u.source AS user_source,
+    u.subscribed_member AS active_member,
+    c.signup_id,
+    c.campaign_run_id,
+    max(CASE WHEN c.post_id <> -1 THEN 1 ELSE 0 END) as reportedback
     FROM public.users u
     LEFT JOIN public.campaign_activity c ON c.northstar_id = u.northstar_id
     WHERE u.northstar_id IN ",queryObjects,"
@@ -279,7 +279,7 @@ addFields <- function(dat) {
       ,
       updated_at = as.POSIXct(ifelse(
         nsid=='', updated_at, max(updated_at)
-        ), origin = '1970-01-01'),
+      ), origin = '1970-01-01'),
       created_at = as.POSIXct(ifelse(
         nsid=='', created_at, max(created_at)
       ), origin = '1970-01-01')
@@ -301,7 +301,7 @@ prepData <- function(...) {
       nsid = case_when(
         nsid %in% c('5a84b01ea0bfad5dc71768a2','null') | is.na(nsid) ~ '',
         TRUE ~ nsid
-        )
+      )
     )
 
   dupes <-
@@ -341,7 +341,7 @@ prepData <- function(...) {
   vr %<>%
     filter(
       !duplicated(nsid) |
-      nsid %in% c('','null')
+        nsid %in% c('','null')
     ) %>%
     left_join(cioConv) %>%
     mutate(
@@ -376,7 +376,7 @@ if(dbExistsTable(pg,c("public", "turbovote_file"))) {
   q <- "truncate public.turbovote_file"
   runQuery(q,'pg')
 
-  }
+}
 dbWriteTable(pg,c("public", "turbovote_file"), vr, append = TRUE, row.names=F)
 
 # Analysis ----------------------------------------------------------------
@@ -433,7 +433,7 @@ camp <-
   summarise(
     Signups = mean(signups),
     Reportbacks = mean(reportbacks)
-    ) %>%
+  ) %>%
   melt(value.var='meanRBs') %>% as.tibble()
 
 dens <-
