@@ -119,8 +119,11 @@ processReferralColumn <- function(dat) {
           TRUE ~ ''
         ),
       campaignRunId = sapply(strsplit(campaignRunId, '\\:'), "[", 2),
-      campaignId = ifelse(is.na(campaignRunId) & is.na(campaignId), '8017',
-                          ifelse(is.na(campaignId) & campaignRunId=='8022', '8017', campaignId)),
+      campaignId =
+        ifelse(
+          (is.na(campaignRunId) & is.na(campaignId)) |
+            campaignId=='{campaignId}' , '8017',
+          ifelse(is.na(campaignId) & campaignRunId=='8022', '8017', campaignId)),
       source =
         case_when(
           grepl('source:', B) ~ B,
@@ -135,6 +138,8 @@ processReferralColumn <- function(dat) {
           TRUE ~ ''
           ),
       source = case_when(
+        source == 'sms_share' ~ 'sms',
+        grepl('niche', source_details) ~ 'partner',
         source_details %in% c('twitter','facebook') ~ 'social',
         source_details == '11_facts' | source == 'dosomething' ~ 'web',
         is.na(source) | source=='{source}' ~ 'no_attribution',
@@ -175,6 +180,11 @@ processReferralColumn <- function(dat) {
           grepl('redirect', source_details) ~ 'redirect',
         source == 'web' &
           grepl('sms', source_details) ~ 'sms',
+        source == 'web' &
+          grepl('Social', source_details) ~ 'Social Referral',
+        source == 'web' &
+          grepl('typeform', source_details) ~ 'survey',
+        source == 'sms' & grepl('2018', source_details) ~ 'sms_tests',
         is.na(source_details) | source_details == '' ~ 'blank',
         TRUE ~ source_details
       )
@@ -189,20 +199,19 @@ getQuasarAttributes <- function(queryObjects) {
       u.northstar_id AS nsid,
       u.created_at AS ds_registration_date,
       u.source AS user_source,
-      CASE WHEN u.customer_io_subscription_status = 'subscribed' OR
-        u.sms_status = 'active' THEN 1 ELSE 0 END AS active_member,
+      u.subscribed_member AS active_member,
       c.signup_id,
       c.campaign_run_id,
       max(CASE WHEN c.post_id <> -1 THEN 1 ELSE 0 END) as reportedback
-    FROM quasar.users u
-    LEFT JOIN quasar.campaign_activity c ON c.northstar_id = u.northstar_id
+    FROM public.users u
+    LEFT JOIN public.campaign_activity c ON c.northstar_id = u.northstar_id
     WHERE u.northstar_id IN ",queryObjects,"
-    GROUP BY u.northstar_id, c.signup_id
+    GROUP BY 1,2,3,4,5,6
     "
   )
 
   nsrDat <-
-    runQuery(q, 'mysql') %>%
+    runQuery(q, 'pg') %>%
     group_by(nsid) %>%
     summarise(
       ds_registration_date = max(ds_registration_date),
@@ -380,7 +389,10 @@ npPivot <- function(pivot) {
   out <-
     vr %>%
     filter(!is.na(!!pivot) & (!!pivot)!='') %>%
-    group_by(ds_vr_status, !!pivot) %>%
+    mutate(
+      status = ifelse(grepl('register', ds_vr_status), 'registered', ds_vr_status)
+    ) %>%
+    group_by(status, !!pivot) %>%
     summarise(Count=n()) %>%
     mutate(Proportion=Count/sum(Count))  %>%
     melt(value.var='Proportion') %>% as.tibble() %>%
@@ -400,7 +412,10 @@ detSource <- npPivot(source_details)
 sourceStep <-
   vr %>%
   filter(source != '') %>%
-  group_by(ds_vr_status, source, details) %>%
+  mutate(
+    status = ifelse(grepl('register', ds_vr_status), 'registered', ds_vr_status)
+  ) %>%
+  group_by(status, source, details) %>%
   summarise(Count=n()) %>%
   mutate(Proportion=Count/sum(Count)) %>%
   melt(value.var='Proportion') %>% as.tibble() %>%
@@ -498,7 +513,8 @@ MoM.Source <-
   mutate(
     date = as.Date(created_at),
     Source = case_when(
-      source %in% c('no_attribution','partner','social') ~ 'Other',
+      source %in% c('no_attribution') ~ 'Other',
+      source == 'sms_share' ~ 'sms',
       TRUE ~ source
     )
   ) %>%

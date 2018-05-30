@@ -3,7 +3,7 @@ title: ""
 output: html_notebook
 ---
 #### Month over Month Pacing
-* This month is pacing between March and April rates
+* We're pacing better than March!
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(MoM, aes(x=dayOfMonth, value)) +
   geom_line(aes(color=month)) + 
@@ -28,11 +28,11 @@ library(scales)
 sumIf <- function(x) {
   val <- ifelse(sum(x)>1, sum(x), NA)
 }
-leg <- 'Confirmed: Self-Reported (RB); Unknown: Dropped Off; Register-form: Completed Form; Register-OVR: Completed Online'
-ggplot(uSource, aes(x=ds_vr_status, y=value, fill=reorder(user_source, value))) +
+leg <- 'Confirmed: Self-Reported (RB); Unknown: Dropped Off; Register: Voter Registration'
+ggplot(uSource, aes(x=status, y=value, fill=reorder(user_source, value))) +
   geom_bar(stat='identity', position='stack') +
   geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
-  stat_summary(fun.y = sumIf, aes(label = ..y.., group = ds_vr_status), geom = "text", vjust=-.2) +
+  stat_summary(fun.y = sumIf, aes(label = ..y.., group = status), geom = "text", vjust=-.2) +
   facet_wrap(~variable, scales='free') +
   scale_fill_brewer(palette = 'Set2') +
   scale_y_continuous(breaks=pretty_breaks(10)) + 
@@ -47,10 +47,13 @@ ggplot(uSource, aes(x=ds_vr_status, y=value, fill=reorder(user_source, value))) 
 #### Referral Source
 * Unsurprisingly, web also makes up the bulk of referral sources
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
-ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
+ggplot(Source, aes(x=status, y=value, fill=reorder(source, value))) +
   geom_bar(stat='identity', position='stack') +
-  geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
-  stat_summary(fun.y = sumIf, aes(label = ..y.., group = ds_vr_status), geom = "text", vjust=-.2) +
+  geom_text(
+    position=position_stack(vjust = 0.5), size=3, 
+    aes(label=ifelse(value/sum(value)>.01 | (value<1 & value>.02),label,NA))
+    ) +
+  stat_summary(fun.y = sumIf, aes(label = ..y.., group = status), geom = "text", vjust=-.2) +
   facet_wrap(~variable, scales='free') +
   labs(y='') +
   scale_y_continuous(breaks=pretty_breaks(10)) +
@@ -74,8 +77,7 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
   
 **SMS**
 
-  - This won't become useful until we find a way to add more source details
-  - I believe better attribution is on the horizon with Bert.ly
+  - Starting to get some traction from SMS Tests
   
 **Social**
 
@@ -85,28 +87,21 @@ ggplot(Source, aes(x=ds_vr_status, y=value, fill=reorder(source, value))) +
 
   - Campaign pages and Hellobar are dominating 
   - We have full phoenix funnels, and so can start report conversions here too
-```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
-# ggplot(detSource.t, aes(x=ds_vr_status, y=value, fill=source_details)) +
-#   geom_bar(stat='identity', position='stack') +
-#   labs(y='') +
-#   geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
-#   scale_y_continuous(breaks=pretty_breaks(10)) +
-#   facet_wrap(~variable, scales='free')  + 
-#   labs(
-#     x='Confirmed: Self-Reported (RB, Not Registration), Unknown: Dropped Off, Registration: Completed Form, Ineligible: Ineligible',
-#     y='',
-#     title='Counts and Proportions of Form Status split by Source Details'
-#     ) +
-#   theme(plot.title = element_text(hjust=.5)) + 
-#   guides(fill=guide_legend(title='Source Details'))
-```
-```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=24}
+  
+**Partners**
+
+  - Starting to get traction, primarily from quizlet
+
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=10, fig.height=30}
 library(gridExtra)
 ss <- split(sourceStep, f=sourceStep$source)
-p1 <- ggplot(ss$email, aes(x=ds_vr_status, y=value, fill=reorder(details, value))) +
+p1 <- ggplot(ss$email, aes(x=status, y=value, fill=reorder(details, value))) +
   geom_bar(stat='identity', position='stack') +
-  geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
-  stat_summary(fun.y = sumIf, aes(label = ..y.., group = ds_vr_status), geom = "text", vjust=-.2) +
+  geom_text(
+    position=position_stack(vjust = 0.5), size=3,
+    aes(label=ifelse(value/sum(value)>.005 | (value<1 & value>.02),label,NA))
+    ) +
+  stat_summary(fun.y = sumIf, aes(label = ..y.., group = status), geom = "text", vjust=-.2) +
   scale_y_continuous(breaks=pretty_breaks(10)) +
   facet_wrap(~variable, scales='free')  + 
   labs(x='',y='') +
@@ -116,8 +111,9 @@ p2 <- p1 %+% ss$sms %+% ggtitle('SMS')
 p3 <- p1 %+% ss$social %+% ggtitle('Social')
 p4 <- p1 %+% ss$web %+% ggtitle('Web')
 p1 <- p1 %+% ss$email %+% ggtitle('Email')
+p5 <- p1 %+% ss$partner %+% ggtitle('Partner')
 grid.arrange(
-  p1,p2,p3,p4,ncol=1,
+  p1,p2,p3,p4,p5,ncol=1,
   top='Counts and Proportions of Form Status split by Source and Details',
   bottom=leg
   )
