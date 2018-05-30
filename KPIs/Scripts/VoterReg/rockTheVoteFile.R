@@ -76,8 +76,23 @@ processTrackingSource <- function(dat) {
           grepl('_details:',tolower(E)) ~ gsub(".*:",'',E),
           TRUE ~ ''
         ),
-      campaignId = ifelse(campaignRunId=='' & campaignId=='', '8017',
-                          ifelse(campaignId=='' & campaignRunId=='8022', '8017', campaignId))
+      campaignId =
+        ifelse(campaignRunId=='' & campaignId=='', '8017',
+               ifelse(campaignId=='' & campaignRunId=='8022', '8017', campaignId)),
+      newsletter = case_when(
+        source == 'email' & grepl('newsletter', source_details) ~
+          gsub('newsletter_', '', source_details),
+        TRUE ~ ''
+      ),
+      details = case_when(
+        newsletter != '' & !is.na(newsletter) ~ newsletter,
+        source == 'web' &
+          grepl('redirect', source_details) ~ 'redirect',
+        source == 'web' &
+          grepl('hellobar', source_details) ~ 'hellobar',
+        source == 'web' &
+          grepl('affirmation', source_details) ~ 'affirmation'
+      )
     )
 
 }
