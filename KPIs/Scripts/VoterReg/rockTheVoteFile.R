@@ -45,7 +45,40 @@ processTrackingSource <- function(dat) {
       Tracking_Source = gsub('iframe\\?r=','',Tracking_Source),
       Tracking_Source = gsub('iframe','',Tracking_Source)
     ) %>%
-    separate(Tracking_Source, LETTERS[1:maxSep], ',',remove = F)
+    separate(Tracking_Source, LETTERS[1:maxSep], ',',remove = F) %>%
+    mutate(
+      nsid =
+        case_when(
+          substr(A, 1, 4)=='user' ~ substr(A, 6, nchar(A)),
+          TRUE ~ ''
+        ),
+      campaignId =
+        case_when(
+          grepl('campaignid',tolower(A)) ~ gsub(".*:",'',A),
+          grepl('campaignid',tolower(B)) ~ gsub(".*:",'',B),
+          TRUE ~ ''
+        ),
+      campaignRunId =
+        case_when(
+          grepl('campaignrunid',tolower(B)) ~ gsub(".*:",'',B),
+          grepl('campaignrunid',tolower(C)) ~ gsub(".*:",'',C),
+          TRUE ~ ''
+        ),
+      source =
+        case_when(
+          grepl('source:',tolower(C)) ~ gsub(".*:",'',C),
+          grepl('source:',tolower(D)) ~ gsub(".*:",'',D),
+          TRUE ~ ''
+        ),
+      source_details =
+        case_when(
+          grepl('_details:',tolower(D)) ~ gsub(".*:",'',D),
+          grepl('_details:',tolower(E)) ~ gsub(".*:",'',E),
+          TRUE ~ ''
+        ),
+      campaignId = ifelse(campaignRunId=='' & campaignId=='', '8017',
+                          ifelse(campaignId=='' & campaignRunId=='8022', '8017', campaignId))
+    )
 
 }
 
