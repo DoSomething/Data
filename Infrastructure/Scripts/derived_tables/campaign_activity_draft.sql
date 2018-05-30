@@ -1,4 +1,4 @@
-DROP MATERIALIZED VIEW IF EXISTS public.signups_test ;
+DROP MATERIALIZED VIEW IF EXISTS public.signups_test CASCADE;
 CREATE MATERIALIZED VIEW public.signups_test AS 
     (SELECT 
         sd.northstar_id AS northstar_id,
@@ -84,40 +84,46 @@ CREATE INDEX reported_back_testi ON public.reported_back_test (signup_id);
 
 DROP MATERIALIZED VIEW IF EXISTS public.campaign_activity_testing;
 CREATE MATERIALIZED VIEW public.campaign_activity_testing AS 
-    (SELECT  
-        a.northstar_id AS northstar_id,
-        a.id AS signup_id,
-        b.id AS post_id,
-        a.campaign_id AS campaign_id,
-        a.campaign_run_id AS campaign_run_id,
-        b."type" AS post_type,
-        b."action" AS post_action,
-        CASE WHEN a.campaign_id = '822' AND a.created_at >= '2018-05-01' 
-        		 THEN 'voter-reg - ground'
-        		 ELSE CONCAT(b."type", ' - ', b."action") END AS post_class,
-        	CASE WHEN b.id IS NULL THEN NULL
-        		 WHEN a.campaign_id = '822' AND a.created_at >= '2018-05-01' AND b.status = 'accepted' THEN b.quantity
-        		 ELSE 1 END AS reportback_volume,
-        b.status AS post_status,
-        a.why_participated AS why_participated,
-        b.quantity AS quantity,
-        a."source" AS signup_source,
-        b."source" AS post_source,
-        a.created_at AS signup_created_at,
-        b.created_at AS post_created_at,
-        c.reported_back AS reported_back,
-        b.url AS url
+    (
+    SELECT 
+    		ca.*,
+    		min(ca.post_created_at) OVER (PARTITION BY ca.signup_id, ca.post_class) AS post_attribution_date
     FROM 
-        public.signups_test a
-    LEFT JOIN 
-        public.posts_test b
-        ON b.signup_id = a.id
-    LEFT JOIN 
-        public.reported_back_test c
-        ON c.signup_id = a.id
-    )
+	    (SELECT  
+	        a.northstar_id AS northstar_id,
+	        a.id AS signup_id,
+	        b.id AS post_id,
+	        a.campaign_id AS campaign_id,
+	        a.campaign_run_id AS campaign_run_id,
+	        b."type" AS post_type,
+	        b."action" AS post_action,
+	        CASE WHEN a.campaign_id = '822' AND a.created_at >= '2018-05-01' 
+	        		 THEN 'voter-reg - ground'
+	        		 ELSE CONCAT(b."type", ' - ', b."action") END AS post_class,
+	        	CASE WHEN b.id IS NULL THEN NULL
+	        		 WHEN a.campaign_id = '822' AND a.created_at >= '2018-05-01' AND b.status = 'accepted' THEN b.quantity
+	        		 ELSE 1 END AS reportback_volume,
+	        b.status AS post_status,
+	        a.why_participated AS why_participated,
+	        b.quantity AS quantity,
+	        a."source" AS signup_source,
+	        b."source" AS post_source,
+	        a.created_at AS signup_created_at,
+	        b.created_at AS post_created_at,
+	        c.reported_back AS reported_back,
+	        b.url AS url
+	    FROM 
+	        public.signups_test a
+	    LEFT JOIN 
+	        public.posts_test b
+	        ON b.signup_id = a.id
+	    LEFT JOIN 
+	        public.reported_back_test c
+	        ON c.signup_id = a.id
+	    ) ca
+	 )
     ;
-CREATE INDEX ON public.campaign_activity_testing (northstar_id, signup_id, post_id, post_created_at);
+CREATE INDEX ON public.campaign_activity_testing (northstar_id, signup_id, post_id, post_created_at, post_attribution_date);
 GRANT SELECT ON public.campaign_activity_testing TO looker;
 GRANT SELECT ON public.campaign_activity_testing TO jjensen;
 GRANT SELECT ON public.campaign_activity_testing TO jli;
