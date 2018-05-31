@@ -59,7 +59,8 @@ processTrackingSource <- function(dat) {
     mutate(
       nsid =
         case_when(
-          substr(A, 1, 4)=='user' ~ substr(A, 6, nchar(A)),
+          grepl('user',tolower(A)) ~ gsub(".*:",'',A),
+          grepl('user',tolower(B)) ~ gsub(".*:",'',B),
           TRUE ~ ''
         ),
       campaignId =
@@ -78,7 +79,7 @@ processTrackingSource <- function(dat) {
         case_when(
           grepl('source:',tolower(C)) ~ gsub(".*:",'',C),
           grepl('source:',tolower(D)) ~ gsub(".*:",'',D),
-          TRUE ~ ''
+          TRUE ~ 'no_attribution'
         ),
       source_details =
         case_when(
@@ -108,6 +109,8 @@ processTrackingSource <- function(dat) {
           grepl('hellobar', source_details) ~ 'hellobar',
         source == 'web' &
           grepl('affirmation', source_details) ~ 'affirmation',
+        source == 'web' &
+          grepl('VoterBlock', source_details) ~ 'voter_block',
         source == 'web' &
           grepl('campaign', source_details) ~ 'campaigns_page',
         source == 'web' &
@@ -170,7 +173,7 @@ addRTVFields <- function(dat) {
         case_when(
           nsid=='' ~ ds_vr_status.record,
           max(ds_vr_status.record=='register-form')==1 ~ 'register-form',
-          max(ds_vr_status.record=='register-OVR')=3=1 ~ 'register-OVR',
+          max(ds_vr_status.record=='register-OVR')==1 ~ 'register-OVR',
           max(ds_vr_status.record=='ineligible')==1 ~ 'ineligible',
           max(ds_vr_status.record=='uncertain')==1 ~ 'uncertain',
           TRUE ~ ''
@@ -189,7 +192,6 @@ addRTVFields <- function(dat) {
 
 }
 
-
 alignNames <- function(data) {
 
   data %<>%
@@ -203,7 +205,10 @@ alignNames <- function(data) {
       dob=date_of_birth, language_preference=language, created_at,
       referral_code=tracking_source, nsid, source, source_details,
       campaignId, campaignRunId, newsletter, details, month, week,
-      ds_vr_status, reportback, status, finish_with_state
+      ds_vr_status, reportback
+    ) %>%
+    mutate(
+      dob = as.integer(substr(dob, nchar(dob)-4, nchar(dob)))
     )
 
   return(data)
@@ -231,19 +236,34 @@ prepData <- function(...) {
     left_join(nsrDat)
 
   vr <- addRTVFields(vr)
-  browser()
+
+  cioConv <-
+    getSheet('Voter Registration Source Details Buckets', 'Conversions') %>%
+    select(source_details, type, category) %>%
+    rename(newsletter = source_details) %>%
+    filter(type=='email')
+
   vr <-
-    alignNames(vr) #%>%
-    # group_by(email) %>%
-    # filter(
-    #   nsid != '' |
-    #   grepl('register', ds_vr_status) |
-    #   created_at == max(created_at)
-    #)
+    alignNames(vr) %>%
+    left_join(cioConv) %>%
+    mutate(
+      details = case_when(
+        newsletter != '' & !is.na(newsletter) ~ category,
+        TRUE ~ details
+      ),
+      file = 'RockTheVote'
+    ) %>%
+    select(-type, -category) %>%
+    group_by(email) %>%
+    filter(
+      nsid != '' |
+      grepl('register', ds_vr_status) |
+      created_at == max(created_at)
+    ) %>%
+    ungroup()
 
   return(vr)
 
 }
 
-rtv <- prepData('Data/RockTheVote/rock_the_vote_05222018.csv')
-
+rtv <- prepData('Data/RockTheVote/rock_the_vote_05312018.csv')
