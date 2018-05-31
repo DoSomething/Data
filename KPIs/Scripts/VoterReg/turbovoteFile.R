@@ -1,6 +1,6 @@
 source('config/init.R')
-source('config/mySQLConfig.R')
 source('config/pgConnect.R')
+library(glue)
 library(googlesheets)
 pg <- pgConnect()
 
@@ -194,20 +194,23 @@ processReferralColumn <- function(dat) {
 }
 
 getQuasarAttributes <- function(queryObjects) {
-  q <- paste0(
+
+  q <- glue_sql(
     "SELECT
-    u.northstar_id AS nsid,
-    u.created_at AS ds_registration_date,
-    u.source AS user_source,
-    u.subscribed_member AS active_member,
-    c.signup_id,
-    c.campaign_run_id,
-    max(CASE WHEN c.post_id <> -1 THEN 1 ELSE 0 END) as reportedback
+      u.northstar_id AS nsid,
+      u.created_at AS ds_registration_date,
+      u.source AS user_source,
+      u.subscribed_member AS active_member,
+      c.signup_id,
+      c.campaign_run_id,
+      max(CASE WHEN c.post_id <> -1 THEN 1 ELSE 0 END) as reportedback
     FROM public.users u
     LEFT JOIN public.campaign_activity c ON c.northstar_id = u.northstar_id
-    WHERE u.northstar_id IN ",queryObjects,"
+    WHERE u.northstar_id IN ({nsids*})
     GROUP BY 1,2,3,4,5,6
-    "
+    ",
+    nsids = queryObjects,
+    .con = pg
   )
 
   nsrDat <-
@@ -320,8 +323,7 @@ prepData <- function(...) {
   nsids <-
     vr %>%
     filter(nsid != '') %$%
-    nsid %>%
-    prepQueryObjects()
+    nsid
 
   nsrDat <- getQuasarAttributes(nsids)
 
