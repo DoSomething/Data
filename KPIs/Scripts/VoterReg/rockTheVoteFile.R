@@ -94,42 +94,6 @@ processTrackingSource <- function(dat) {
         source == 'email' & grepl('newsletter', source_details) ~
           gsub('newsletter_', '', source_details),
         TRUE ~ ''
-      ),
-      details = case_when(
-        newsletter != '' & !is.na(newsletter) ~ newsletter,
-        source == 'social' &
-          grepl('twitter', source_details) ~ 'twitter',
-        source == 'social' &
-          grepl('facebook', source_details) | grepl('fb',source_details) ~ 'facebook',
-        source == 'social' &
-          grepl('dsaboutgvp', source_details) ~ 'ds_share',
-        source == 'web' &
-          grepl('11_facts', source_details) ~ '11_facts',
-        source == 'web' &
-          grepl('hellobar', source_details) ~ 'hellobar',
-        source == 'web' &
-          grepl('affirmation', source_details) ~ 'affirmation',
-        source == 'web' &
-          grepl('VoterBlock', source_details) ~ 'voter_block',
-        source == 'web' &
-          grepl('campaign', source_details) ~ 'campaigns_page',
-        source == 'web' &
-          grepl('quiz', source_details) ~ 'quiz',
-        source == 'web' &
-          grepl('homepage', source_details) ~ 'homepage',
-        source == 'web' &
-          grepl('landingpage', source_details) ~ 'landing_page',
-        source == 'web' &
-          grepl('redirect', source_details) ~ 'redirect',
-        source == 'web' &
-          grepl('sms', source_details) ~ 'sms',
-        source == 'web' &
-          grepl('Social', source_details) ~ 'Social Referral',
-        source == 'web' &
-          grepl('typeform', source_details) ~ 'survey',
-        source == 'sms' & grepl('2018', source_details) ~ 'sms_tests',
-        is.na(source_details) | source_details == '' ~ 'blank',
-        TRUE ~ source_details
       )
     ) %>%
     select(-A,-B,-C,-D,-E)
@@ -224,6 +188,8 @@ prepData <- function(...) {
     d %>%
     select(-tracking_source) %>%
     left_join(refParsed)
+
+  vr <- addDetails(vr)
 
   nsids <-
     vr %>%

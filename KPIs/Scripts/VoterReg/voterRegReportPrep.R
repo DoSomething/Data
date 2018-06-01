@@ -1,5 +1,6 @@
 source('Scripts/VoterReg/turbovoteFile.R')
 source('Scripts/VoterReg/rockTheVoteFile.R')
+source('Scripts/VoterReg/schoolTheVote.R')
 
 library(reshape2)
 
@@ -14,6 +15,11 @@ if(dbExistsTable(pg,c("public", "turbovote_file"))) {
 
 }
 dbWriteTable(pg,c("public", "turbovote_file"), vr, append = TRUE, row.names=F)
+
+vr <-
+  rtv %>%
+  bind_rows(tv) %>%
+  bind_rows(stv)
 
 npPivot <- function(pivot) {
 
@@ -40,6 +46,17 @@ npPivot <- function(pivot) {
 uSource <- npPivot(user_source)
 Source <- npPivot(source)
 detSource <- npPivot(source_details)
+
+fileSource <-
+  vr %>%
+  filter(grepl('register', ds_vr_status)) %>%
+  group_by(file) %>%
+  count() %>%
+  ungroup() %>%
+  arrange(-n) %>%
+  mutate(
+    pos = cumsum(n) - n/2
+  )
 
 sourceStep <-
   vr %>%
@@ -145,7 +162,7 @@ MoM.Source <-
   mutate(
     date = as.Date(created_at),
     Source = case_when(
-      source %in% c('no_attribution') ~ 'Other',
+      source %in% c('no_attribution','social') ~ 'Other',
       source == 'sms_share' ~ 'sms',
       TRUE ~ source
     )
