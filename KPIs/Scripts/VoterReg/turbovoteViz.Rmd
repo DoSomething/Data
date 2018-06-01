@@ -1,8 +1,8 @@
 ---
-title: ""
+title: "Weekly Voter Registration Report"
 output: html_notebook
 ---
-#### Totals
+
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(fileSource, aes(x="", y=n, fill=file)) + 
   geom_bar(stat='identity', width=1) + 
