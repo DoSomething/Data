@@ -2,6 +2,23 @@
 title: ""
 output: html_notebook
 ---
+#### Totals
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+ggplot(fileSource, aes(x="", y=n, fill=file)) + 
+  geom_bar(stat='identity', width=1) + 
+  geom_text(aes(x="",y=pos, label = n), size=5) + 
+  coord_polar("y", start=0) +
+  theme_minimal() +
+  scale_fill_brewer(palette = 'Set2') +
+  labs(y='',x='',title=paste0('Total = ',sum(fileSource$n))) +
+  scale_y_continuous(breaks=pretty_breaks(5)) +
+  theme(
+    plot.title = element_text(hjust=.5, size=20),
+    legend.title = element_blank(),
+    legend.position = "bottom"
+    ) 
+```
+
 #### Month over Month Pacing
 * We're pacing better than March!
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
@@ -20,30 +37,6 @@ ggplot(MoM.Source, aes(x=dayOfMonth, value)) +
   theme(plot.title = element_text(hjust=.5))
 ```
 
-#### Northstar Source
-* Web users disproportionately represent all those going through the flow 
-* Similar proportions of statuses across user channels
-```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
-library(scales)
-sumIf <- function(x) {
-  val <- ifelse(sum(x)>1, sum(x), NA)
-}
-leg <- 'Confirmed: Self-Reported (RB); Unknown: Dropped Off; Register: Voter Registration'
-ggplot(uSource, aes(x=status, y=value, fill=reorder(user_source, value))) +
-  geom_bar(stat='identity', position='stack') +
-  geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
-  stat_summary(fun.y = sumIf, aes(label = ..y.., group = status), geom = "text", vjust=-.2) +
-  facet_wrap(~variable, scales='free') +
-  scale_fill_brewer(palette = 'Set2') +
-  scale_y_continuous(breaks=pretty_breaks(10)) + 
-  labs(
-    x=leg,
-    y='',
-    title='Counts and Proportions of Form Status split by User Source'
-    ) +
-  theme(plot.title = element_text(hjust=.5)) + 
-  guides(fill=guide_legend(title='User Source'))
-```
 #### Referral Source
 * Unsurprisingly, web also makes up the bulk of referral sources
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
@@ -120,6 +113,30 @@ grid.arrange(
 
 ```
 
+#### Northstar Source
+* Web users disproportionately represent all those going through the flow 
+* Similar proportions of statuses across user channels
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+library(scales)
+sumIf <- function(x) {
+  val <- ifelse(sum(x)>1, sum(x), NA)
+}
+leg <- 'Confirmed: Self-Reported (RB); Unknown: Dropped Off; Register: Voter Registration'
+ggplot(uSource, aes(x=status, y=value, fill=reorder(user_source, value))) +
+  geom_bar(stat='identity', position='stack') +
+  geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +
+  stat_summary(fun.y = sumIf, aes(label = ..y.., group = status), geom = "text", vjust=-.2) +
+  facet_wrap(~variable, scales='free') +
+  scale_fill_brewer(palette = 'Set2') +
+  scale_y_continuous(breaks=pretty_breaks(10)) + 
+  labs(
+    x=leg,
+    y='',
+    title='Counts and Proportions of Form Status split by User Source'
+    ) +
+  theme(plot.title = element_text(hjust=.5)) + 
+  guides(fill=guide_legend(title='User Source'))
+```
 
 #### Signups & Reportbacks
 * The fact that online completers also have more reportbacks is very interesting. Could this mean that this is a cohort of people who is just generally more comfortable doing activities on the web and so are both more likely to submit photo reportbacks and submit forms online? Does this mean more people could be doing the process online than currently are? If so, how can we make it easier for people to know what they are can and can't do?

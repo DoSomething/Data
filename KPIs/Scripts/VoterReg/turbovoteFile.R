@@ -153,7 +153,16 @@ processReferralColumn <- function(dat) {
       newsletter = case_when(
         source == 'email' & grepl('newsletter', source_details) ~ gsub('newsletter_', '', source_details),
         TRUE ~ ''
-      ),
+      )
+    ) %>%
+    select(-A,-B,-C,-D,-E)
+  return(parsedSep)
+}
+
+addDetails <- function(dat) {
+
+  dat %<>%
+    mutate(
       details = case_when(
         newsletter != '' & !is.na(newsletter) ~ newsletter,
         source == 'social' &
@@ -162,6 +171,10 @@ processReferralColumn <- function(dat) {
           grepl('facebook', source_details) | grepl('fb',source_details) ~ 'facebook',
         source == 'social' &
           grepl('dsaboutgvp', source_details) ~ 'ds_share',
+        source == 'social' &
+          grepl('tumblr', source_details) ~ 'tumblr',
+        source == 'social' &
+          grepl('survey', source_details) ~ 'survey',
         source == 'web' &
           grepl('11_facts', source_details) ~ '11_facts',
         source == 'web' &
@@ -190,9 +203,10 @@ processReferralColumn <- function(dat) {
         is.na(source_details) | source_details == '' ~ 'blank',
         TRUE ~ source_details
       )
-    ) %>%
-    select(-A,-B,-C,-D,-E)
-  return(parsedSep)
+    )
+
+  return(dat)
+
 }
 
 getQuasarAttributes <- function(queryObjects) {
@@ -308,6 +322,8 @@ prepData <- function(...) {
         TRUE ~ nsid
       )
     )
+
+  vr <- addDetails(vr)
 
   dupes <-
     vr %>%
