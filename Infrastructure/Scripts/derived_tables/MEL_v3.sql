@@ -49,7 +49,8 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
                 pd.created_at,
                 pd.id,
                 pd."source",
-                pd.deleted_at
+                pd.deleted_at,
+                pd."type"
             FROM 
 				(SELECT 
                     ptemp.id,
@@ -60,6 +61,7 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
             ON pd.id = p_maxupt.id AND pd.updated_at = p_maxupt.updated_at
                 ) p
         WHERE p.deleted_at IS NULL
+        AND p."type" IS DISTINCT FROM 'voter-reg'
 	UNION ALL -- SITE ACCESS
         SELECT DISTINCT 
             u_access.id AS northstar_id,
