@@ -17,7 +17,7 @@ web <-
   filter(!is.na(northstar_id)) %>%
   mutate(
     nps=as.double(nps),
-    date_submit = as.POSIXct(date_submit, format='%Y-%m-%d %H:%M:%S'),
+    date_submit = as.POSIXct(date_submit, format='%Y-%m-%d %H:%M:%S',tz = 'UTC'),
     responseDist = 1/sqrt(as.numeric(Sys.Date() - as.Date(date_submit) + 1))
   )
 

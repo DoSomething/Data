@@ -1,6 +1,6 @@
 source('config/init.R')
-source('config/mySQLConfig.R')
 source('config/pgConnect.R')
+library(glue)
 library(googlesheets)
 pg <- pgConnect()
 
@@ -119,8 +119,11 @@ processReferralColumn <- function(dat) {
           TRUE ~ ''
         ),
       campaignRunId = sapply(strsplit(campaignRunId, '\\:'), "[", 2),
-      campaignId = ifelse(is.na(campaignRunId) & is.na(campaignId), '8017',
-                          ifelse(is.na(campaignId) & campaignRunId=='8022', '8017', campaignId)),
+      campaignId =
+        ifelse(
+          (is.na(campaignRunId) & is.na(campaignId)) |
+            campaignId=='{campaignId}' , '8017',
+          ifelse(is.na(campaignId) & campaignRunId=='8022', '8017', campaignId)),
       source =
         case_when(
           grepl('source:', B) ~ B,
@@ -133,8 +136,10 @@ processReferralColumn <- function(dat) {
         case_when(
           grepl('content', E) ~ gsub('utm_content:','',E),
           TRUE ~ ''
-          ),
+        ),
       source = case_when(
+        source == 'sms_share' ~ 'sms',
+        grepl('niche', source_details) ~ 'partner',
         source_details %in% c('twitter','facebook') ~ 'social',
         source_details == '11_facts' | source == 'dosomething' ~ 'web',
         is.na(source) | source=='{source}' ~ 'no_attribution',
@@ -148,7 +153,16 @@ processReferralColumn <- function(dat) {
       newsletter = case_when(
         source == 'email' & grepl('newsletter', source_details) ~ gsub('newsletter_', '', source_details),
         TRUE ~ ''
-      ),
+      )
+    ) %>%
+    select(-A,-B,-C,-D,-E)
+  return(parsedSep)
+}
+
+addDetails <- function(dat) {
+
+  dat %<>%
+    mutate(
       details = case_when(
         newsletter != '' & !is.na(newsletter) ~ newsletter,
         source == 'social' &
@@ -157,12 +171,18 @@ processReferralColumn <- function(dat) {
           grepl('facebook', source_details) | grepl('fb',source_details) ~ 'facebook',
         source == 'social' &
           grepl('dsaboutgvp', source_details) ~ 'ds_share',
+        source == 'social' &
+          grepl('tumblr', source_details) ~ 'tumblr',
+        source == 'social' &
+          grepl('survey', source_details) ~ 'survey',
         source == 'web' &
           grepl('11_facts', source_details) ~ '11_facts',
         source == 'web' &
           grepl('hellobar', source_details) ~ 'hellobar',
         source == 'web' &
           grepl('affirmation', source_details) ~ 'affirmation',
+        source == 'web' &
+          grepl('VoterBlock', source_details) ~ 'voter_block',
         source == 'web' &
           grepl('campaign', source_details) ~ 'campaigns_page',
         source == 'web' &
@@ -175,34 +195,42 @@ processReferralColumn <- function(dat) {
           grepl('redirect', source_details) ~ 'redirect',
         source == 'web' &
           grepl('sms', source_details) ~ 'sms',
+        source == 'web' &
+          grepl('Social', source_details) ~ 'Social Referral',
+        source == 'web' &
+          grepl('typeform', source_details) ~ 'survey',
+        source == 'sms' & grepl('2018', source_details) ~ 'sms_tests',
         is.na(source_details) | source_details == '' ~ 'blank',
         TRUE ~ source_details
       )
-    ) %>%
-    select(-A,-B,-C,-D,-E)
-  return(parsedSep)
+    )
+
+  return(dat)
+
 }
 
 getQuasarAttributes <- function(queryObjects) {
-  q <- paste0(
+
+  q <- glue_sql(
     "SELECT
       u.northstar_id AS nsid,
       u.created_at AS ds_registration_date,
       u.source AS user_source,
-      CASE WHEN u.customer_io_subscription_status = 'subscribed' OR
-        u.sms_status = 'active' THEN 1 ELSE 0 END AS active_member,
+      u.subscribed_member AS active_member,
       c.signup_id,
       c.campaign_run_id,
       max(CASE WHEN c.post_id <> -1 THEN 1 ELSE 0 END) as reportedback
-    FROM quasar.users u
-    LEFT JOIN quasar.campaign_activity c ON c.northstar_id = u.northstar_id
-    WHERE u.northstar_id IN ",queryObjects,"
-    GROUP BY u.northstar_id, c.signup_id
-    "
+    FROM public.users u
+    LEFT JOIN public.campaign_activity c ON c.northstar_id = u.northstar_id
+    WHERE u.northstar_id IN ({nsids*})
+    GROUP BY 1,2,3,4,5,6
+    ",
+    nsids = queryObjects,
+    .con = pg
   )
 
   nsrDat <-
-    runQuery(q, 'mysql') %>%
+    runQuery(q, 'pg') %>%
     group_by(nsid) %>%
     summarise(
       ds_registration_date = max(ds_registration_date),
@@ -270,7 +298,7 @@ addFields <- function(dat) {
       ,
       updated_at = as.POSIXct(ifelse(
         nsid=='', updated_at, max(updated_at)
-        ), origin = '1970-01-01'),
+      ), origin = '1970-01-01'),
       created_at = as.POSIXct(ifelse(
         nsid=='', created_at, max(created_at)
       ), origin = '1970-01-01')
@@ -292,8 +320,10 @@ prepData <- function(...) {
       nsid = case_when(
         nsid %in% c('5a84b01ea0bfad5dc71768a2','null') | is.na(nsid) ~ '',
         TRUE ~ nsid
-        )
+      )
     )
+
+  vr <- addDetails(vr)
 
   dupes <-
     vr %>%
@@ -311,8 +341,7 @@ prepData <- function(...) {
   nsids <-
     vr %>%
     filter(nsid != '') %$%
-    nsid %>%
-    prepQueryObjects()
+    nsid
 
   nsrDat <- getQuasarAttributes(nsids)
 
@@ -332,14 +361,15 @@ prepData <- function(...) {
   vr %<>%
     filter(
       !duplicated(nsid) |
-      nsid %in% c('','null')
+        nsid %in% c('','null')
     ) %>%
     left_join(cioConv) %>%
     mutate(
       details = case_when(
         newsletter != '' & !is.na(newsletter) ~ category,
         TRUE ~ details
-      )
+      ),
+      file = 'TurboVote'
     ) %>% select(-type, -category)
 
   out <- list(vr, dupes)
@@ -353,189 +383,4 @@ vfile <-
 
 out <- prepData(path=paste0(vfile,latest_file,'.csv'))
 
-vr <- out[[1]]
-dupes <- out[[2]]
-
-powerUsers <-
-  dupes %>%
-  group_by(nsid) %>%
-  filter(max(recordCounter)>=5) %>%
-  bind_rows(vr %>% filter(nsid=='5a84b01ea0bfad5dc71768a2'))
-
-if(dbExistsTable(pg,c("public", "turbovote_file"))) {
-
-  q <- "truncate public.turbovote_file"
-  runQuery(q,'pg')
-
-  }
-dbWriteTable(pg,c("public", "turbovote_file"), vr, append = TRUE, row.names=F)
-
-# Analysis ----------------------------------------------------------------
-library(reshape2)
-
-##For Visuals
-npPivot <- function(pivot) {
-
-  pivot <- enquo(pivot)
-  out <-
-    vr %>%
-    filter(!is.na(!!pivot) & (!!pivot)!='') %>%
-    group_by(ds_vr_status, !!pivot) %>%
-    summarise(Count=n()) %>%
-    mutate(Proportion=Count/sum(Count))  %>%
-    melt(value.var='Proportion') %>% as.tibble() %>%
-    mutate(
-      label = case_when(
-        variable=='Count' ~ as.character(value),
-        TRUE ~ paste0(round(value*100,1),'%')
-      )
-    )
-  return(out)
-}
-
-uSource <- npPivot(user_source)
-Source <- npPivot(source)
-detSource <- npPivot(source_details)
-
-sourceStep <-
-  vr %>%
-  filter(source != '') %>%
-  group_by(ds_vr_status, source, details) %>%
-  summarise(Count=n()) %>%
-  mutate(Proportion=Count/sum(Count)) %>%
-  melt(value.var='Proportion') %>% as.tibble() %>%
-  mutate(
-    label = case_when(
-      variable=='Count' ~ as.character(value),
-      TRUE ~ paste0(round(value*100,1),'%')
-    )
-  )
-
-camp <-
-  vr %>%
-  filter(!is.na(signups)) %>%
-  group_by(ds_vr_status) %>%
-  summarise(
-    Signups = mean(signups),
-    Reportbacks = mean(reportbacks)
-    ) %>%
-  melt(value.var='meanRBs') %>% as.tibble()
-
-dens <-
-  vr %>%
-  filter(signups < quantile(signups, .95, na.rm=T))
-
-## For Pacing Doc
-
-all <-
-  vr %>%
-  group_by(week) %>%
-  summarise(
-    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
-    rbs = sum(reportback),
-    complete_form = grepl('form', ds_vr_status) %>% sum(),
-    complete_online = grepl('OVR', ds_vr_status) %>% sum(),
-    self_report = sum(ds_vr_status=='confirmed')
-  )
-
-bySource <-
-  vr %>%
-  group_by(week, source) %>%
-  summarise(
-    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
-    rbs = sum(reportback),
-    complete_form = grepl('form', ds_vr_status) %>% sum(),
-    complete_online = grepl('OVR', ds_vr_status) %>% sum(),
-    self_report = sum(ds_vr_status=='confirmed')
-  ) %>%
-  melt(value.var =
-         c('tot_vot_reg','rbs','complete_form',
-           'complete_online','self_report')) %>%
-  dcast(week ~ source + variable, value.var='value') %>%
-  replace(is.na(.), 0) %>%
-  select(week, starts_with('web'), starts_with('email'), starts_with('sms'),
-         starts_with('social'),starts_with('part'), starts_with('no_attr'))
-
-## For Asterisks Doc
-
-aster <-
-  vr %>%
-  group_by(month, campaignId) %>%
-  summarise(
-    rbs = sum(reportback),
-    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
-    self_report = sum(ds_vr_status=='confirmed')
-  )
-
-## Month over month view
-
-MoM <-
-  vr %>%
-  filter(created_at >= '2018-01-01') %>%
-  mutate(
-    date = as.Date(created_at)
-  ) %>%
-  group_by(date) %>%
-  summarise(
-    Registrations = length(which(grepl('register', ds_vr_status)))
-  ) %>%
-  mutate(
-    month = month(date)
-  ) %>%
-  group_by(month) %>%
-  mutate(
-    registerToDate = cumsum(Registrations),
-    dayOfMonth = as.numeric(format(date, "%d"))
-  ) %>%
-  ungroup() %>%
-  select(dayOfMonth, month, registerToDate) %>%
-  melt(id.var=c('dayOfMonth','month')) %>%
-  mutate(month = as.factor(month))
-
-MoM.Source <-
-  vr %>%
-  filter(created_at >= '2018-01-01') %>%
-  mutate(
-    date = as.Date(created_at),
-    Source = case_when(
-      source %in% c('no_attribution','partner','social') ~ 'Other',
-      TRUE ~ source
-    )
-  ) %>%
-  group_by(date, Source) %>%
-  summarise(
-    Registrations = length(which(grepl('register', ds_vr_status)))
-  ) %>%
-  mutate(
-    month = month(date)
-  ) %>%
-  group_by(month, Source) %>%
-  mutate(
-    registerToDate = cumsum(Registrations),
-    dayOfMonth = as.numeric(format(date, "%d"))
-  ) %>%
-  ungroup() %>%
-  select(dayOfMonth, month, registerToDate, Source) %>%
-  melt(id.var=c('dayOfMonth','month','Source')) %>%
-  mutate(month = as.factor(month))
-
-## Excel output
-
-library(openxlsx)
-
-wb <- createWorkbook()
-
-addWorksheet(wb, 'rawData')
-writeData(wb, 'rawData', vr, rowNames = F)
-addWorksheet(wb, 'AllSources')
-writeData(wb, 'AllSources', all, rowNames=F)
-addWorksheet(wb, 'bySource')
-writeData(wb, 'bySource', bySource, rowNames=F)
-addWorksheet(wb, 'RBAsterisk')
-writeData(wb, 'RBAsterisk', aster, rowNames=F)
-
-saveWorkbook(
-  wb,
-  paste0('Data/Turbovote/output_',Sys.Date(),'.xlsx'),
-  overwrite = TRUE
-)
+tv <- out[[1]]
