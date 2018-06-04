@@ -4,6 +4,11 @@ output: html_notebook
 ---
 
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+library(scales)
+sumIf <- function(x) {
+  val <- ifelse(sum(x)>1, sum(x), NA)
+}
+leg <- 'Confirmed: Self-Reported (RB); Unknown: Dropped Off; Register: Voter Registration'
 ggplot(fileSource, aes(x="", y=n, fill=file)) + 
   geom_bar(stat='identity', width=1) + 
   geom_text(aes(x="",y=pos, label = n), size=5) + 
@@ -20,7 +25,7 @@ ggplot(fileSource, aes(x="", y=n, fill=file)) +
 ```
 
 #### Month over Month Pacing
-* We're pacing better than March!
+* Adding Rock the vote and school the vote shows that we improved sigificantly in March
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(MoM, aes(x=dayOfMonth, value)) +
   geom_line(aes(color=month)) + 
@@ -28,11 +33,11 @@ ggplot(MoM, aes(x=dayOfMonth, value)) +
   theme(plot.title = element_text(hjust=.5))
 ```
 
-* Web is showing strongest performance to date. Other channels are lagging
-```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+* Lots of sources, which is great, but web is both the strongest performer, and the most consistently improving
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=9}
 ggplot(MoM.Source, aes(x=dayOfMonth, value)) +
   geom_line(aes(color=month)) + 
-  facet_wrap(~Source) +
+  facet_wrap(~source) +
   labs(title='Voters Registered Month over Month by Source', x='Day of Month', y='Voters Registered') +
   theme(plot.title = element_text(hjust=.5))
 ```
@@ -50,7 +55,6 @@ ggplot(Source, aes(x=status, y=value, fill=reorder(source, value))) +
   facet_wrap(~variable, scales='free') +
   labs(y='') +
   scale_y_continuous(breaks=pretty_breaks(10)) +
-  scale_fill_brewer(palette = 'Set2') + 
   labs(
     x=leg,
     y='',
@@ -117,11 +121,6 @@ grid.arrange(
 * Web users disproportionately represent all those going through the flow 
 * Similar proportions of statuses across user channels
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
-library(scales)
-sumIf <- function(x) {
-  val <- ifelse(sum(x)>1, sum(x), NA)
-}
-leg <- 'Confirmed: Self-Reported (RB); Unknown: Dropped Off; Register: Voter Registration'
 ggplot(uSource, aes(x=status, y=value, fill=reorder(user_source, value))) +
   geom_bar(stat='identity', position='stack') +
   geom_text(position=position_stack(vjust = 0.5), aes(label=label), size=3) +

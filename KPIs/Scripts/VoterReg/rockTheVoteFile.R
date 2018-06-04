@@ -232,4 +232,4 @@ prepData <- function(...) {
 
 }
 
-rtv <- prepData('Data/RockTheVote/rock_the_vote_05312018.csv')
+rtv <- prepData(paste0('Data/RockTheVote/rock_the_vote_',latest_file,'.csv'))

@@ -160,28 +160,23 @@ MoM.Source <-
   vr %>%
   filter(created_at >= '2018-01-01') %>%
   mutate(
-    date = as.Date(created_at),
-    Source = case_when(
-      source %in% c('no_attribution','social') ~ 'Other',
-      source == 'sms_share' ~ 'sms',
-      TRUE ~ source
-    )
-  ) %>%
-  group_by(date, Source) %>%
+    date = as.Date(created_at)
+    ) %>%
+  group_by(date, source) %>%
   summarise(
     Registrations = length(which(grepl('register', ds_vr_status)))
   ) %>%
   mutate(
     month = month(date)
   ) %>%
-  group_by(month, Source) %>%
+  group_by(month, source) %>%
   mutate(
     registerToDate = cumsum(Registrations),
     dayOfMonth = as.numeric(format(date, "%d"))
   ) %>%
   ungroup() %>%
-  select(dayOfMonth, month, registerToDate, Source) %>%
-  melt(id.var=c('dayOfMonth','month','Source')) %>%
+  select(dayOfMonth, month, registerToDate, source) %>%
+  melt(id.var=c('dayOfMonth','month','source')) %>%
   mutate(month = as.factor(month))
 
 ## Excel output
