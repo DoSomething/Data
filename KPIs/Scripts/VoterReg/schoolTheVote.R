@@ -1,6 +1,5 @@
 source('config/init.R')
 library(glue)
-pg <- pgConnect()
 
 q <-
   glue_sql(
@@ -35,7 +34,18 @@ for (i in 1:nrow(qres)) {
       source = rep('school_the_vote', row$quantity),
       source_details = rep('school_the_vote', row$quantity),
       ds_vr_status = rep('register', row$quantity),
-      file = rep('OnTheGround')
+      month = month(created_at),
+      week = case_when(
+        created_at < '2018-02-06' ~ as.character('2018-01-26'),
+        TRUE ~
+          cut(
+            as.Date(created_at),
+            breaks=
+              seq.Date(as.Date('2018-02-06'),as.Date('2019-01-01'),by = '7 days')
+          ) %>% as.character()
+      ),
+      file = rep('OnTheGround'),
+      campaignId = '822'
       )
 
   stv <-
