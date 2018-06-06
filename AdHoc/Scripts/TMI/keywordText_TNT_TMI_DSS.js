@@ -1,4 +1,5 @@
 // Requires official MongoShell 3.6+
+// https://trello.com/c/OVxJ4KvR/1297-data-request-dss-newsletter-text-sign-ups
 use conversations-api;
 db.getCollection("messages").find(
     { 

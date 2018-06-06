@@ -1,3 +1,4 @@
+# https://trello.com/c/OVxJ4KvR/1297-data-request-dss-newsletter-text-sign-ups
 source('config/init.R')
 source('config/pgConnect.R')
 library(glue)
