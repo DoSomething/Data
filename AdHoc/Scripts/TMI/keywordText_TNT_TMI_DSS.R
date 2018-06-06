@@ -25,3 +25,5 @@ qres <- runQuery(q, 'pg')
 out <- 
   tmi %>% 
   left_join(qres, by = c('userId' = 'northstar_id'))
+
+saveCSV(out)
