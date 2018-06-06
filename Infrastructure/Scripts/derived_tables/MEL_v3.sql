@@ -151,7 +151,7 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
 	UNION ALL 
     		SELECT -- SMS LINK CLICKS FROM BERTLY
     			b.northstar_id AS northstar_id,
-    			b.click_time AS "timstamp",
+    			b.click_time AS "timestamp",
     			'sms_link_click' AS "action",
     			'10' AS action_id,
     			'bertly' AS "source",
