@@ -97,11 +97,12 @@ CREATE MATERIALIZED VIEW public.campaign_activity AS
 	        a.campaign_run_id AS campaign_run_id,
 	        b."type" AS post_type,
 	        b."action" AS post_action,
-	        CASE WHEN a.campaign_id = '822' AND a.created_at >= '2018-05-01' 
+	        CASE WHEN b.id IS NULL THEN NULL 
+	        		 WHEN a.campaign_id = '822' AND a.created_at >= '2018-05-01' 
 	        		 THEN 'voter-reg - ground'
 	        		 ELSE CONCAT(b."type", ' - ', b."action") END AS post_class,
 	        	CASE WHEN b.id IS NULL THEN NULL
-	        		 WHEN a.campaign_id = '822' AND a.created_at >= '2018-05-01' AND b.status = 'accepted' THEN b.quantity
+	        		 WHEN a.campaign_id in ('822','8119') AND a.created_at >= '2018-05-01' AND b.status = 'accepted' THEN b.quantity
 	        		 ELSE 1 END AS reportback_volume,
 	        b.status AS post_status,
 	        a.why_participated AS why_participated,
