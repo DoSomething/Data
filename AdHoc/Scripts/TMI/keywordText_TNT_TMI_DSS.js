@@ -5,7 +5,7 @@ db.getCollection("messages").find(
     { 
         "direction" : "inbound", 
         "createdAt" : {
-            "$gte" : ISODate("2018-05-01T04:00:00.000+0000")
+            "$gte" : ISODate("2018-03-01T04:00:00.000+0000")
         }, 
         "$or" : [
             {
