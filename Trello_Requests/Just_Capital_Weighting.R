@@ -1,6 +1,7 @@
 library(tidyverse)
 library(data.table)
 library(plyr)
+library(magrittr)
 
 #create race function
 collapseRace <- function(dat) {
@@ -34,7 +35,7 @@ collapseRace <- function(dat) {
 #####################################################################################################
 drivers1 <- read_excel("~/Documents/Just Capital /Data/Weighting/JUST CAPITAL Survey 1 Factors.xls")
 drivers2 <- read_excel("~/Documents/Just Capital /Data/Weighting/JUST CAPITAL Survey 2 Factors.xls")
-drivers <- rbind(factors1,factors2)
+drivers <- rbind(drivers1,drivers2)
 #identify race
 drivers_race <- collapseRace(drivers) %>%
   select(Response_ID, race)
@@ -257,3 +258,19 @@ drivers_final %>% group_by(race) %>% summarise(sum(weight))
 table(drivers$race)
 drivers_final %>% group_by(age) %>% summarise(sum(weight))
 table(drivers$age)
+
+write.csv(drivers_final, file = "Drivers.csv")
+
+customers_weights <- addSurveyWeights(customers)
+#join race variable to dataset
+customers_final <-merge(x=customers, y=customers_weights, by ="Response_ID", all=TRUE)
+#Check weights
+customers_final %>% group_by(sex) %>% summarise(sum(weight))
+table(customers$sex)
+drivers_final %>% group_by(race) %>% summarise(sum(weight))
+table(customers$race)
+drivers_final %>% group_by(age) %>% summarise(sum(weight))
+table(customers$age)
+
+write.csv(customers_final, file = "Customers.csv")
+          

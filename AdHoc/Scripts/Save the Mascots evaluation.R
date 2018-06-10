@@ -2,6 +2,7 @@ source('config/init.R')
 library(httr)
 library(jsonlite)
 library(gmodels)
+library(dplyr)
 
 ### Grab API key from environment var
 key <- Sys.getenv('TYPEFORM_KEY')
@@ -65,11 +66,14 @@ control_smoking <- control_smoking%>%
          quit_groups=as.numeric(quit_groups))
 
 #Check freqs
-control_smoking%>%count(gender)
-policy <- table(control_smoking$policy_knowledge)
-prop.table(policy)
-CrossTable(control_smoking$tobacco_free, control_smoking$secondsmoke, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-           
+control_smoking%>%count(policy_knowledge)%>% mutate(p=n/sum(n))
+# control_smoking%>%count(writtenpolicy)%>% mutate(p=n/sum(n))
+# control_smoking%>%count(gender)%>% mutate(p=n/sum(n))
+
+# policy <- table(control_smoking$policy_knowledge)
+# prop.table(policy)
+# CrossTable(control_smoking$tobacco_free, control_smoking$secondsmoke, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+#            
 # control_smoking <- read.csv('~/Documents/Data Requests/Save the Mascots/DS Smoking Survey.csv')
 
 # Get a list of all our typeforms and their unique IDs
@@ -134,7 +138,9 @@ smoking_eval <- rbind(control_smoking, save_the_mascots)
 CrossTable(smoking_eval$policy_knowledge, smoking_eval$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
 CrossTable(smoking_eval$writtenpolicy, smoking_eval$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
 CrossTable(smoking_eval$tobacco_free, smoking_eval$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
 CrossTable(smoking_eval$best_policy, smoking_eval$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
 CrossTable(smoking_eval$ecigg, smoking_eval$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
 CrossTable(smoking_eval$secondsmoke, smoking_eval$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
 t.test(smoking_eval$secondsmoke~smoking_eval$group)

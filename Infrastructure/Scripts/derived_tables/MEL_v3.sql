@@ -49,7 +49,8 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
                 pd.created_at,
                 pd.id,
                 pd."source",
-                pd.deleted_at
+                pd.deleted_at,
+                pd."type"
             FROM 
 				(SELECT 
                     ptemp.id,
@@ -60,6 +61,7 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
             ON pd.id = p_maxupt.id AND pd.updated_at = p_maxupt.updated_at
                 ) p
         WHERE p.deleted_at IS NULL
+        AND p."type" IS DISTINCT FROM 'voter-reg'
 	UNION ALL -- SITE ACCESS
         SELECT DISTINCT 
             u_access.id AS northstar_id,
@@ -146,6 +148,16 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
             pe.event_name IN ('share action completed', 'facebook share posted')
         AND pe.northstar_id IS NOT NULL
         AND pe.northstar_id <> ''
+	UNION ALL 
+    	SELECT DISTINCT -- SMS LINK CLICKS FROM BERTLY
+    		b.northstar_id AS northstar_id,
+    		b.click_time AS "timestamp",
+    		'sms_link_click' AS "action",
+    		'10' AS action_id,
+    		'bertly' AS "source",
+    		b.click_id AS action_serial_id
+    	FROM public.bertly_clicks b	
+    	WHERE b.northstar_id IS NOT NULL 
 		) AS a 
 	); 
 

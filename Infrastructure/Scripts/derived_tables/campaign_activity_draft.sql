@@ -1,5 +1,5 @@
-DROP MATERIALIZED VIEW IF EXISTS public.signups CASCADE;
-CREATE MATERIALIZED VIEW public.signups AS 
+DROP MATERIALIZED VIEW IF EXISTS public.signups_test CASCADE;
+CREATE MATERIALIZED VIEW public.signups_test AS 
     (SELECT 
         sd.northstar_id AS northstar_id,
         sd.id AS id,
@@ -16,16 +16,16 @@ CREATE MATERIALIZED VIEW public.signups AS
         WHERE stemp.deleted_at IS NULL
         AND stemp."source" IS DISTINCT FROM 'runscope'
         AND stemp."source" IS DISTINCT FROM 'runscope-oauth'
-        AND stemp.why_participated IS DISTINCT FROM 'why_participated_ghost'
+        AND stemp.why_participated IS DISTINCT FROM 'why_participated_ghost_test'
         GROUP BY stemp.id) s_maxupt
         INNER JOIN rogue.signups sd
             ON sd.id = s_maxupt.id AND sd.updated_at = s_maxupt.updated_at
     )
     ; 
-CREATE INDEX signupsi ON public.signups (id, created_at); 
+CREATE INDEX signups_testi ON public.signups_test (id, created_at); 
 
-DROP MATERIALIZED VIEW IF EXISTS public.latest_post CASCADE;
-CREATE MATERIALIZED VIEW public.latest_post AS
+DROP MATERIALIZED VIEW IF EXISTS public.latest_post_test CASCADE;
+CREATE MATERIALIZED VIEW public.latest_post_test AS
     (SELECT 
         pd.id AS id,
         pd."type" AS "type",
@@ -49,10 +49,10 @@ CREATE MATERIALIZED VIEW public.latest_post AS
             ON pd.id = p_maxupt.id AND pd.updated_at = p_maxupt.updated_at  
     )
     ;
-CREATE INDEX latest_posti ON public.latest_post (id, created_at); 
+CREATE INDEX latest_post_testi ON public.latest_post_test (id, created_at); 
 
-DROP MATERIALIZED VIEW IF EXISTS public.posts CASCADE;
-CREATE MATERIALIZED VIEW public.posts AS 
+DROP MATERIALIZED VIEW IF EXISTS public.posts_test CASCADE;
+CREATE MATERIALIZED VIEW public.posts_test AS 
     (SELECT 
             pd.id AS id,
             pd."type" AS "type",
@@ -63,27 +63,27 @@ CREATE MATERIALIZED VIEW public.posts AS
             COALESCE(tv.created_at, pd.created_at) AS created_at,
             pd.url AS url,
             pd.signup_id AS signup_id
-    FROM public.latest_post pd
+    FROM public.latest_post_test pd
     LEFT JOIN rogue.turbovote tv ON tv.post_id::bigint = pd.id)
 ;
-CREATE INDEX posti ON public.posts (id, created_at); 
+CREATE INDEX post_testi ON public.posts_test (id, created_at); 
 
-DROP MATERIALIZED VIEW IF EXISTS public.reported_back CASCADE;
-CREATE MATERIALIZED VIEW public.reported_back AS 
+DROP MATERIALIZED VIEW IF EXISTS public.reported_back_test CASCADE;
+CREATE MATERIALIZED VIEW public.reported_back_test AS 
     (SELECT 
         temp_posts.signup_id,
         MAX(CASE WHEN temp_posts.id <> -1 THEN 1 ELSE 0 END) AS reported_back
     FROM 
-        public.posts temp_posts
+        public.posts_test temp_posts
     WHERE temp_posts.signup_id IS NOT NULL
     GROUP BY 
         temp_posts.signup_id
     ) 
     ; 
-CREATE INDEX reported_backi ON public.reported_back (signup_id);
+CREATE INDEX reported_back_testi ON public.reported_back_test (signup_id);
 
-DROP MATERIALIZED VIEW IF EXISTS public.campaign_activity;
-CREATE MATERIALIZED VIEW public.campaign_activity AS 
+DROP MATERIALIZED VIEW IF EXISTS public.campaign_activity_testing;
+CREATE MATERIALIZED VIEW public.campaign_activity_testing AS 
     (
     SELECT 
     		ca.*,
@@ -97,12 +97,11 @@ CREATE MATERIALIZED VIEW public.campaign_activity AS
 	        a.campaign_run_id AS campaign_run_id,
 	        b."type" AS post_type,
 	        b."action" AS post_action,
-	        CASE WHEN b.id IS NULL THEN NULL 
-	        		 WHEN a.campaign_id IN ('822','8119') AND a.created_at >= '2018-05-01' 
+	        CASE WHEN a.campaign_id = '822' AND a.created_at >= '2018-05-01' 
 	        		 THEN 'voter-reg - ground'
 	        		 ELSE CONCAT(b."type", ' - ', b."action") END AS post_class,
 	        	CASE WHEN b.id IS NULL THEN NULL
-	        		 WHEN a.campaign_id IN ('822','8119') AND a.created_at >= '2018-05-01' AND b.status = 'accepted' THEN b.quantity
+	        		 WHEN a.campaign_id = '822' AND a.created_at >= '2018-05-01' AND b.status = 'accepted' THEN b.quantity
 	        		 ELSE 1 END AS reportback_volume,
 	        b.status AS post_status,
 	        a.why_participated AS why_participated,
@@ -114,18 +113,18 @@ CREATE MATERIALIZED VIEW public.campaign_activity AS
 	        c.reported_back AS reported_back,
 	        b.url AS url
 	    FROM 
-	        public.signups a
+	        public.signups_test a
 	    LEFT JOIN 
-	        public.posts b
+	        public.posts_test b
 	        ON b.signup_id = a.id
 	    LEFT JOIN 
-	        public.reported_back c
+	        public.reported_back_test c
 	        ON c.signup_id = a.id
 	    ) ca
 	 )
     ;
-CREATE INDEX ON public.campaign_activity (northstar_id, signup_id, post_id, post_created_at, post_attribution_date);
-GRANT SELECT ON public.campaign_activity TO looker;
-GRANT SELECT ON public.campaign_activity TO jjensen;
-GRANT SELECT ON public.campaign_activity TO jli;
-GRANT SELECT ON public.campaign_activity TO shasan;
+CREATE INDEX ON public.campaign_activity_testing (northstar_id, signup_id, post_id, post_created_at, post_attribution_date);
+GRANT SELECT ON public.campaign_activity_testing TO looker;
+GRANT SELECT ON public.campaign_activity_testing TO jjensen;
+GRANT SELECT ON public.campaign_activity_testing TO jli;
+GRANT SELECT ON public.campaign_activity_testing TO shasan;
