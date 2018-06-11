@@ -551,10 +551,3 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
   return(out)
 
 }
-
-ana <-
-  styleSelectMultiple(
-    set,
-    'which_issues_taken_action_12mo.',
-    pivots=c(Group, sex, fam_finances, age, race)
-  )
