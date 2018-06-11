@@ -320,7 +320,7 @@ selectMultiOvrPlot <- function(dat, questionSuffix, corDat) {
 
   ovr <-
     dat %>%
-    select(starts_with(questionSuffix)) %>%
+    select(starts_with(questionSuffix),weight) %>%
     summarise_all(funs(weighted.mean(.,weight=weight))) %>%
     melt() %>%
     mutate(
@@ -348,21 +348,15 @@ selectMultiOvrPlot <- function(dat, questionSuffix, corDat) {
 
 }
 
-getTopCors <- function(dat, vars, pivots) {
-
-
-
-}
-
-getNumAssociation <- function(dat, pivot, outcomePrefix) {
+getNumAssociation <- function(dat, pivot, questionSuffix) {
   require(gridExtra)
 
   mDat <-
     dat %>%
-    select(starts_with(outcomePrefix), pivot) %>%
+    select(starts_with(questionSuffix), pivot) %>%
     melt(id.var=pivot) %>%
     mutate(
-      variable = gsub(outcomePrefix, '', variable)
+      variable = gsub(questionSuffix, '', variable)
     )%>%
     as.tibble()
 
@@ -406,11 +400,76 @@ getNumAssociation <- function(dat, pivot, outcomePrefix) {
   outPlot <-
     arrangeGrob(
       grobs=myplots, ncol=2,
-      top = paste('Relationship between', pivot, 'and', outcomePrefix)
+      top = paste('Relationship between', pivot, 'and', questionSuffix)
       )
 
   return(outPlot)
 
+}
+
+getCategAssociation <- function(dat, questionSuffix, pivot) {
+
+  forCorr <- dat %>% select(starts_with(questionSuffix))
+  names(forCorr) <- gsub(questionSuffix, '', names(forCorr))
+  forCorr <- bind_cols(forCorr, dat[,pivot])
+
+  vals <- unlist(unique(forCorr[,pivot]))
+
+  corDat <- tibble()
+
+  for (i in 1:length(vals)) {
+
+    t <-
+      forCorr %>%
+      filter(get(pivot)==vals[[i]]) %>%
+      select(-pivot) %>%
+      cor(.) %>%
+      melt() %>%
+      filter(value < 1) %>%
+      group_by(Var1) %>%
+      filter(value == max(value)) %>%
+      setNames(c('variable','top_cor','cor')) %>%
+      mutate(pivot=vals[[i]])
+
+    corDat <- bind_rows(corDat, t)
+
+  }
+
+  browser()
+  ovr <-
+    dat %>%
+    select(starts_with(questionSuffix), weight, pivot) %>%
+    group_by(get(pivot)) %>%
+    summarise_at(
+      vars(starts_with(questionSuffix)),
+      funs(weighted.mean(.,weight=weight))
+      )
+
+    names(ovr)[1] <- pivot
+
+    ovr %<>%
+    melt(id.var=pivot) %>%
+    mutate(
+      variable = str_replace_all(variable, questionSuffix, '')
+    ) %>%
+    left_join(corDat) %>%
+    mutate(pos = pmax(value/2, .2))
+
+
+    ovr.p <-
+      ggplot(ovr, aes(x=reorder(variable, -value), y=value, fill=cor)) +
+      geom_bar(stat='identity') +
+      geom_text(
+        aes(y=pos,label=paste('Top Corr: ',top_cor, ' = ', round(cor, 2))),
+        size=3, angle=90
+      ) +
+      facet_wrap(~pivot) +
+      labs(title=questionSuffix,y='Percentage Ticked') +
+      theme(
+        axis.text.x = element_text(angle = 30, hjust = 1),
+        plot.title = element_text(hjust = .5)
+      ) +
+      scale_fill_gradientn(colours=rev(terrain.colors(2)))
 }
 
 
@@ -434,10 +493,12 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
 
   ovr.p <- selectMultiOvrPlot(thisQuestionSet, questionSuffix, corDat)
 
-  keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
-  # keyPivots <- c('Group', 'sex', 'fam_finances', 'age', 'race')
+  # keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
+  keyPivots <- c('Group', 'sex', 'fam_finances', 'age', 'race')
 
   agePlot <- getNumAssociation(thisQuestionSet, 'age', questionSuffix)
+
+  finPlot <- getCategAssociation(thisQuestionSet, questionSuffix, 'fam_finances')
 
   out <- list(corPlot, ovr.p, agePlot)
 
@@ -445,9 +506,9 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
 
 }
 
-# ana <-
-#   styleSelectMultiple(
-#     set,
-#     'which_issues_taken_action_12mo.',
-#     pivots=c(Group, sex, fam_finances, age, race)
-#   )
+ana <-
+  styleSelectMultiple(
+    set,
+    'which_issues_taken_action_12mo.',
+    pivots=c(Group, sex, fam_finances, age, race)
+  )
