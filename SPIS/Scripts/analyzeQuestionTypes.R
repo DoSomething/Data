@@ -428,14 +428,13 @@ getCategAssociation <- function(dat, questionSuffix, pivot) {
       filter(value < 1) %>%
       group_by(Var1) %>%
       filter(value == max(value)) %>%
-      setNames(c('variable','top_cor','cor')) %>%
-      mutate(pivot=vals[[i]])
+      mutate(pivot=vals[[i]]) %>%
+      setNames(c('variable','top_cor','cor',pivot))
 
     corDat <- bind_rows(corDat, t)
 
   }
 
-  browser()
   ovr <-
     dat %>%
     select(starts_with(questionSuffix), weight, pivot) %>%
@@ -455,7 +454,7 @@ getCategAssociation <- function(dat, questionSuffix, pivot) {
     left_join(corDat) %>%
     mutate(pos = pmax(value/2, .2))
 
-
+    browser()
     ovr.p <-
       ggplot(ovr, aes(x=reorder(variable, -value), y=value, fill=cor)) +
       geom_bar(stat='identity') +
@@ -463,13 +462,19 @@ getCategAssociation <- function(dat, questionSuffix, pivot) {
         aes(y=pos,label=paste('Top Corr: ',top_cor, ' = ', round(cor, 2))),
         size=3, angle=90
       ) +
-      facet_wrap(~pivot) +
-      labs(title=questionSuffix,y='Percentage Ticked') +
+      facet_wrap(~get(pivot)) +
+      labs(
+        x=paste0('Pivoted by ',pivot),
+        title=questionSuffix,y='Percentage Ticked'
+        ) +
       theme(
         axis.text.x = element_text(angle = 30, hjust = 1),
         plot.title = element_text(hjust = .5)
       ) +
       scale_fill_gradientn(colours=rev(terrain.colors(2)))
+
+    return(ovr.p)
+
 }
 
 
