@@ -115,7 +115,6 @@ rfPivotSelection <- function(tree, outcome, pivots) {
 
 }
 
-
 getFrequencyPlot <- function(dat, toPlot, levels, title) {
 
   toPlot <- enquo(toPlot)
@@ -250,6 +249,10 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
   analysis <- list(freqPlot, pivPlot, groupPivPlot)
 
+  names(analysis)[1] <- 'frequencyPlot'
+  names(analysis)[2] <- 'pivotPlot'
+  names(analysis)[3] <- 'groupedPivotPlot'
+
   return(analysis)
 
 }
@@ -322,6 +325,7 @@ selectMultiOvrPlot <- function(dat, questionSuffix, corDat) {
     dat %>%
     select(starts_with(questionSuffix),weight) %>%
     summarise_all(funs(weighted.mean(.,weight=weight))) %>%
+    select(-weight) %>%
     melt() %>%
     mutate(
       variable = str_replace_all(variable, questionSuffix, '')
@@ -348,7 +352,7 @@ selectMultiOvrPlot <- function(dat, questionSuffix, corDat) {
 
 }
 
-getNumAssociation <- function(dat, pivot, questionSuffix) {
+getNumAssociation <- function(dat, questionSuffix, pivot) {
   require(gridExtra)
 
   mDat <-
@@ -451,10 +455,24 @@ getCategAssociation <- function(dat, questionSuffix, pivot) {
     mutate(
       variable = str_replace_all(variable, questionSuffix, '')
     ) %>%
-    left_join(corDat) %>%
+    left_join(corDat, by=c(pivot,'variable')) %>%
     mutate(pos = pmax(value/2, .2))
 
-    browser()
+    sums <-
+      ovr %>%
+      group_by(get(pivot)) %>%
+      summarise(
+        num_ticked = sum(value)
+      ) %>%
+      setNames(c(pivot,'num_ticked'))
+
+    ovr %<>%
+      left_join(sums) %>%
+      mutate(
+        fac_labs =
+          paste0(get(pivot), ': Avg # Ticked = ', round(num_ticked,2))
+      )
+
     ovr.p <-
       ggplot(ovr, aes(x=reorder(variable, -value), y=value, fill=cor)) +
       geom_bar(stat='identity') +
@@ -462,7 +480,7 @@ getCategAssociation <- function(dat, questionSuffix, pivot) {
         aes(y=pos,label=paste('Top Corr: ',top_cor, ' = ', round(cor, 2))),
         size=3, angle=90
       ) +
-      facet_wrap(~get(pivot)) +
+      facet_wrap(~fac_labs, labeller = label_value) +
       labs(
         x=paste0('Pivoted by ',pivot),
         title=questionSuffix,y='Percentage Ticked'
@@ -476,7 +494,6 @@ getCategAssociation <- function(dat, questionSuffix, pivot) {
     return(ovr.p)
 
 }
-
 
 styleSelectMultiple <- function(dat, questionSuffix, pivots) {
   require(reshape2)
@@ -499,13 +516,38 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
   ovr.p <- selectMultiOvrPlot(thisQuestionSet, questionSuffix, corDat)
 
   # keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
-  keyPivots <- c('Group', 'sex', 'fam_finances', 'age', 'race')
+  keyPivots <- c('Group','race','sex','fam_finances','age')
 
-  agePlot <- getNumAssociation(thisQuestionSet, 'age', questionSuffix)
+  pivotPlots <- list()
 
-  finPlot <- getCategAssociation(thisQuestionSet, questionSuffix, 'fam_finances')
+    for (i in 1:length(keyPivots)) {
 
-  out <- list(corPlot, ovr.p, agePlot)
+      if (
+        class(unlist(thisQuestionSet[,keyPivots[i]])) %in% c('numeric','integer')
+      ) {
+
+        p <- grid.arrange(
+          getNumAssociation(thisQuestionSet, questionSuffix, keyPivots[i])
+          )
+
+      } else {
+
+        p <- print(
+          getCategAssociation(thisQuestionSet, questionSuffix, keyPivots[i])
+          )
+
+      }
+
+      pivotPlots[[i]] <- p
+      names(pivotPlots)[[i]] <- keyPivots[i]
+
+    }
+
+  out <- list(corPlot, ovr.p, pivotPlots)
+
+  names(out)[[1]] <- 'corPlot'
+  names(out)[[2]] <- 'overall'
+  names(out)[[3]] <- 'pivotPlots'
 
   return(out)
 
