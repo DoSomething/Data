@@ -515,8 +515,7 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
 
   ovr.p <- selectMultiOvrPlot(thisQuestionSet, questionSuffix, corDat)
 
-  # keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
-  keyPivots <- c('Group','race','sex','fam_finances','age')
+  keyPivots <- rfPivotSelection(thisQuestionSet, quo(outcome), pivots)
 
   pivotPlots <- list()
 
