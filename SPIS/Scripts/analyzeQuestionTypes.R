@@ -520,23 +520,23 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
 
   pivotPlots <- list()
 
-    for (i in 1:length(keyPivots)) {
+  for (i in 1:length(keyPivots)) {
 
-      if (
-        class(unlist(thisQuestionSet[,keyPivots[i]])) %in% c('numeric','integer')
-      ) {
+    if (
+      class(unlist(thisQuestionSet[,keyPivots[i]])) %in% c('numeric','integer')
+    ) {
 
-        p <- grid.arrange(
-          getNumAssociation(thisQuestionSet, questionSuffix, keyPivots[i])
-          )
+      p <- grid.arrange(
+        getNumAssociation(thisQuestionSet, questionSuffix, keyPivots[i])
+      )
 
-      } else {
+    } else {
 
-        p <- print(
-          getCategAssociation(thisQuestionSet, questionSuffix, keyPivots[i])
-          )
+      p <- print(
+        getCategAssociation(thisQuestionSet, questionSuffix, keyPivots[i])
+      )
 
-      }
+    }
 
       pivotPlots[[i]] <- p
       names(pivotPlots)[[i]] <- keyPivots[i]
