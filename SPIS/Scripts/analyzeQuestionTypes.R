@@ -439,6 +439,9 @@ getCategAssociation <- function(dat, questionSuffix, pivot) {
 
   }
 
+  corDat %<>%
+    filter(!duplicated(paste(get(pivot), variable, cor)))
+
   ovr <-
     dat %>%
     select(starts_with(questionSuffix), weight, pivot) %>%
@@ -456,7 +459,7 @@ getCategAssociation <- function(dat, questionSuffix, pivot) {
       variable = str_replace_all(variable, questionSuffix, '')
     ) %>%
     left_join(corDat, by=c(pivot,'variable')) %>%
-    mutate(pos = pmax(value/2, .2))
+    mutate(pos = pmax(value/3, .05))
 
     sums <-
       ovr %>%
@@ -478,18 +481,16 @@ getCategAssociation <- function(dat, questionSuffix, pivot) {
       geom_bar(stat='identity') +
       geom_text(
         aes(y=pos,label=paste('Top Corr: ',top_cor, ' = ', round(cor, 2))),
-        size=3, angle=90
+        size=3, hjust=0
       ) +
-      facet_wrap(~fac_labs, labeller = label_value) +
+      facet_wrap(~fac_labs, labeller = label_value, scale='free_x', ncol=2) +
       labs(
         x=paste0('Pivoted by ',pivot),
         title=questionSuffix,y='Percentage Ticked'
         ) +
-      theme(
-        axis.text.x = element_text(angle = 30, hjust = 1),
-        plot.title = element_text(hjust = .5)
-      ) +
-      scale_fill_gradientn(colours=rev(terrain.colors(2)))
+      theme(plot.title = element_text(hjust = .5)) +
+      scale_fill_gradientn(colours=rev(terrain.colors(2))) +
+      coord_flip()
 
     return(ovr.p)
 
