@@ -1,4 +1,4 @@
-https://trello.com/c/LgSDsmM7/1288-data-request-grab-the-mic-member-engagement
+#https://trello.com/c/LgSDsmM7/1288-data-request-grab-the-mic-member-engagement
 
 source('config/init.R')
 source('config/pgConnect.R')
@@ -6,6 +6,7 @@ library(glue)
 library(dplyr)
 library(RMySQL)
 library(ggthemes)
+library(lubridate)
 pg <- pgConnect()
 
 
@@ -142,6 +143,51 @@ q11_bytype <-
   group_by(post_type) %>%
   tally %>%
   arrange(desc(n))
+
+## 12. Breakdown of actions by month 
+
+q12 <- "select 
+	c.northstar_id,
+	c.post_id,
+	c.post_type,
+	c.post_action,
+	c.post_created_at
+from public.campaign_activity c
+where c.campaign_run_id=8022 
+	AND post_created_at IS NOT NULL "
+
+qres12 <- runQuery(q12, "pg")
+
+qres_2018$month <- month(qres12$post_created_at)
+
+qres_2018_actiontype <- 
+  qres12 %>% 
+  mutate(month = month(qres12$post_created_at)) %>%
+  filter(year(qres12$post_created_at) == 2018) %>% 
+  group_by(month, post_action) %>%
+  tally 
+
+qres_2018_posttype <- 
+  qres12 %>% 
+  mutate(month = month(qres12$post_created_at)) %>%
+  filter(year(qres12$post_created_at) == 2018) %>% 
+  group_by(month, post_type) %>%
+  tally 
+
+
+# 16. How many members have gone on to complete an action on another campaign (NOT GTM)? 
+
+nrow(gtm_followup_action) # from question 3
+
+
+
+
+
+
+
+
+
+
   
 
 
