@@ -127,3 +127,12 @@ productsUsed <-
              political_party, political_view, attend_religious_services_freq,
              grade_level)
   )
+
+partyRaceAge <-
+  stylePickOneList(set, political_party, race, Group)
+
+finRaceSex <-
+  stylePickOneList(set, fam_finances, race, sex)
+
+regionEduParty <-
+  stylePickOneList(set, political_party, parental_education, region)

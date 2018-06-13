@@ -272,9 +272,8 @@ getSimpleFrequency <- function(dat, outcome) {
 
 }
 
-getBivarFrequency <- function(dat, outcome, pivot) {
+getGroupedComposition <- function(dat, outcome, pivot) {
   require(scales)
-  browser()
 
   bivarDat <-
     dat %>%
@@ -303,26 +302,64 @@ getBivarFrequency <- function(dat, outcome, pivot) {
     guides(fill=guide_legend(title=quo_text(pivot))) +
     scale_fill_brewer(palette="Set2")
 
+  return(biFreq)
+
 }
 
-stylePickOneList <- function(dat, outcome, firstPiv, secondPiv) {
+getFacetComposition <- function(dat, outcome, pivot, facet) {
+
+  pDat <-
+    dat %>%
+    group_by(!!facet, !!outcome, !!pivot) %>%
+    summarise(n = n()) %>%
+    mutate(p=n/sum(n))
+
+  names(pDat) <- c('facet','outcome','pivot','n','p')
+
+  facetFreq <-
+    ggplot(
+      pDat,
+      aes(x=outcome, y=p, fill=reorder(pivot,p))
+    ) +
+    geom_bar(stat='identity', width = .65, position='stack') +
+    geom_text(
+      position=position_stack(vjust = 0.5),
+      aes(label=ifelse(p>.01,percent(p),'')),
+      size=2.5
+    ) +
+    facet_wrap(~facet,ncol=2) +
+    labs(
+      title=paste0(outcome, ' by ', pivot)[2],
+      x='', y=''
+    ) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    guides(fill=guide_legend(title=quo_text(pivot))) +
+    scale_fill_brewer(palette="Set2")
+
+}
+
+stylePickOneList <- function(dat, outcome, pivot, facet) {
 
   outcome <- enquo(outcome)
-  firstPiv <- enquo(firstPiv)
-  secondPiv <- enquo(secondPiv)
+  pivot <- enquo(pivot)
+  facet <- enquo(facet)
 
   thisQuestionSet <-
     dat %>%
-    select(!!outcome, !!firstPiv, !!secondPiv)
+    select(!!outcome, !!pivot, !!facet)
 
   simpleFreq <- getSimpleFrequency(thisQuestionSet, outcome)
-  bivarFreq <- getBivarFrequency(thisQuestionSet, outcome, firstPiv)
+  bivarFreq <- getGroupedComposition(thisQuestionSet, outcome, pivot)
+  facetComp <- getFacetComposition(thisQuestionSet, outcome, pivot, facet)
 
-  return(bivarFreq)
+  out <- list(simpleFreq, bivarFreq, facetComp)
+  names(out)[[1]] <- 'Frequency'
+  names(out)[[2]] <- 'Composition'
+  names(out)[[3]] <- 'Facetted'
+
+  return(out)
 
 }
-
-partyRaceAge <- stylePickOneList(set, political_party, race, age)
 
 # Select Multiple ---------------------------------------------------------
 
