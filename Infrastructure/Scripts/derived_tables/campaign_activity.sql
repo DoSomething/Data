@@ -64,7 +64,7 @@ CREATE MATERIALIZED VIEW public.posts AS
             pd.url AS url,
             pd.signup_id AS signup_id
     FROM public.latest_post pd
-    LEFT JOIN rogue.turbovote tv ON tv.post_id::bigint = pd.id)
+    LEFT JOIN rogue.turbovote tv ON tv.post_id::bigint = pd.id::bigint)
 ;
 CREATE INDEX posti ON public.posts (id, created_at); 
 
@@ -72,7 +72,7 @@ DROP MATERIALIZED VIEW IF EXISTS public.reported_back CASCADE;
 CREATE MATERIALIZED VIEW public.reported_back AS 
     (SELECT 
         temp_posts.signup_id,
-        MAX(CASE WHEN temp_posts.id <> -1 THEN 1 ELSE 0 END) AS reported_back
+        MAX(CASE WHEN temp_posts.id IS NOT NULL THEN 1 ELSE 0 END) AS reported_back
     FROM 
         public.posts temp_posts
     WHERE temp_posts.signup_id IS NOT NULL
@@ -98,11 +98,14 @@ CREATE MATERIALIZED VIEW public.campaign_activity AS
 	        b."type" AS post_type,
 	        b."action" AS post_action,
 	        CASE WHEN b.id IS NULL THEN NULL 
-	        		 WHEN a.campaign_id IN ('822','8119') AND a.created_at >= '2018-05-01' 
+	        		 WHEN a.campaign_id IN ('822','8119') 
+	        		 AND a.created_at >= '2018-05-01' 
 	        		 THEN 'voter-reg - ground'
 	        		 ELSE CONCAT(b."type", ' - ', b."action") END AS post_class,
 	        	CASE WHEN b.id IS NULL THEN NULL
-	        		 WHEN a.campaign_id IN ('822','8119') AND a.created_at >= '2018-05-01' AND b.status = 'accepted' THEN b.quantity
+	        		 WHEN a.campaign_id IN ('822','8119','8129') 
+	        		 AND a.created_at >= '2018-05-01' 
+	        		 AND b.status = 'accepted' THEN b.quantity
 	        		 ELSE 1 END AS reportback_volume,
 	        b.status AS post_status,
 	        a.why_participated AS why_participated,
