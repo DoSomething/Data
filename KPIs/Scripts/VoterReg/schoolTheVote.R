@@ -5,7 +5,9 @@ q <-
   glue_sql(
     "SELECT
       c.northstar_id,
-      u.source AS user_source,
+      CASE WHEN u.source = 'niche' THEN 'niche'
+           WHEN u.source = 'sms' THEN 'sms'
+           ELSE 'web' END AS user_source,
       c.post_id AS id,
       c.post_created_at AS created_at,
       c.campaign_run_id::varchar,
