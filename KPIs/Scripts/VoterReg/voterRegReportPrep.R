@@ -75,20 +75,6 @@ sourceStep <-
     )
   )
 
-camp <-
-  vr %>%
-  filter(!is.na(signups)) %>%
-  group_by(ds_vr_status) %>%
-  summarise(
-    Signups = mean(signups),
-    Reportbacks = mean(reportbacks)
-  ) %>%
-  melt(value.var='meanRBs') %>% as.tibble()
-
-dens <-
-  vr %>%
-  filter(signups < quantile(signups, .95, na.rm=T))
-
 ## For Pacing Doc
 
 all <-
@@ -124,7 +110,7 @@ bySource <-
 
 aster <-
   vr %>%
-  group_by(month, campaignId) %>%
+  group_by(month, campaign_id) %>%
   summarise(
     rbs = sum(reportback),
     tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
