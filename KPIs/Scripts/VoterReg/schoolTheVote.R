@@ -45,6 +45,15 @@ for (i in 1:nrow(qres)) {
         ),
         row$quantity
       ),
+      details = rep(
+        case_when(
+          row$campaign_run_id=='8103' ~ 'school_the_vote',
+          row$campaign_run_id=='8130' ~ 'red_white_booth',
+          row$campaign_run_id=='8120' ~ 'community_partner',
+          TRUE ~ ''
+        ),
+        row$quantity
+      ),
       ds_vr_status = rep('register', row$quantity),
       campaign_run_id = rep(row$campaign_run_id, row$quantity),
       month = month(created_at),
