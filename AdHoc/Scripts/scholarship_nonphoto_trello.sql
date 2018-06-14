@@ -1,3 +1,6 @@
+-- https://trello.com/c/XYCNkQUz/1299-data-request-new-scholarship-query-to-include-non-photo-rbs
+
+
 -- social shares only on puck data 
 	-- join in puck data 
 	-- give people an entry for every report back 
