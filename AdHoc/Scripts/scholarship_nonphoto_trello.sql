@@ -74,7 +74,7 @@ FROM -- creating a winners dataset
         u.first_name,
         u.email,
         u.mobile,
-        sum(ca.quantity + COALESCE(shares.reportback_volume, 0)) AS total_shares
+        sum(ca.reportback_volume + COALESCE(shares.reportback_volume, 0)) AS total_shares
     FROM campaign_activity ca
     LEFT JOIN users u -- left joining users 
         on u.northstar_id = ca.northstar_id
@@ -96,7 +96,7 @@ FROM -- creating a winners dataset
             u.first_name,
             u.email,
             u.mobile
-    HAVING sum(ca.quantity + COALESCE(shares.reportback_volume, 0)) > 0) AS winners 
+    HAVING sum(ca.reportback_volume + COALESCE(shares.reportback_volume, 0)) > 0) AS winners 
 ORDER BY -log(random())
 LIMIT 30;
 
@@ -115,7 +115,7 @@ FROM -- creating a winners dataset
         u.first_name,
         u.email,
         u.mobile,
-        sum(ca.quantity + COALESCE(shares.reportback_volume, 0)) AS total_shares
+        sum(ca.reportback_volume + COALESCE(shares.reportback_volume, 0)) AS total_shares
     FROM campaign_activity ca
     LEFT JOIN users u -- left joining users 
         on u.northstar_id = ca.northstar_id
@@ -137,23 +137,16 @@ FROM -- creating a winners dataset
             u.first_name,
             u.email,
             u.mobile
-    HAVING sum(ca.quantity + COALESCE(shares.reportback_volume, 0)) > 0) AS winners 
-ORDER BY winners.total_shares / random() DESC 
--- multiplying total shares number by random number, ranging from 0-1.
--- This is pretty straightforward, and the 30 that come up are all those who have done 6+ shares.
--- I would recommend this approach if we want to pick a winner who is very active and has taken many actions.
+    HAVING sum(ca.reportback_volume + COALESCE(shares.reportback_volume, 0)) > 0) AS winners 
+ORDER BY winners.total_shares / random() DESC -- This gives 4-5 highly active members and then the rest are those who have done 1-4 shares.
 LIMIT 30;
 
--- another approach is dividing total shares by a random number. 
--- This gives 1 or 2 highly active members and then the rest are those who have done 1-4 shares.
 
 
-winners.total_shares * random()
 
 
-SELECT quantity 
-FROM campaign_activity
-WHERE quantity IS NOT null
+
+
 
 
 
