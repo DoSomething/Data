@@ -84,8 +84,8 @@ FROM -- creating a winners dataset
             1 AS reportback_volume
         FROM phoenix_events e
         WHERE e.event_name = 'share action completed'
-            AND e.campaign_name = 'grab-mic') shares ON shares.northstar_id = ca.northstar_id -- change 'grab-mic' for diff campaign
-    WHERE ca.campaign_run_id = 8022 -- change '8022' for diff campaign 
+            AND e.campaign_name = '****') shares ON shares.northstar_id = ca.northstar_id -- use campaign_name in place of '****'  
+    WHERE ca.campaign_run_id = **** -- use campaign_run_id in place of **** 
         AND u.first_name IS NOT NULL
         AND u.email IS NOT NULL
         AND ca.post_id IS NOT NULL 
@@ -125,8 +125,8 @@ FROM -- creating a winners dataset
             1 AS reportback_volume
         FROM phoenix_events e
         WHERE e.event_name = 'share action completed'
-            AND e.campaign_name = 'grab-mic') shares ON shares.northstar_id = ca.northstar_id -- change 'grab-mic' for diff campaign
-    WHERE ca.campaign_run_id = 8022 -- change '8022' for diff campaign 
+            AND e.campaign_name = '****') shares ON shares.northstar_id = ca.northstar_id -- use campaign_name in place of '****'  
+    WHERE ca.campaign_run_id = **** -- use campaign_run_id in place of **** 
         AND u.first_name IS NOT NULL
         AND u.email IS NOT NULL
         AND ca.post_id IS NOT NULL 
@@ -138,7 +138,7 @@ FROM -- creating a winners dataset
             u.email,
             u.mobile
     HAVING sum(ca.reportback_volume + COALESCE(shares.reportback_volume, 0)) > 0) AS winners 
-ORDER BY winners.total_shares / random() DESC -- This gives 4-5 highly active members and then the rest are those who have done 1-4 shares.
+ORDER BY log(winners.total_shares) / random() DESC -- This gives 4-5 highly active members and then the rest are those who have done 1-4 shares.
 LIMIT 30;
 
 
