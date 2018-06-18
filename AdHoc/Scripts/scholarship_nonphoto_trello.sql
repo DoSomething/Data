@@ -51,7 +51,7 @@ create temporary table winners as
 	HAVING SUM(ca.reportback_volume + COALESCE(shares.reportback_volume,0)) > 0
 
 
--- 3. create table of select 30 winners 
+-- 3. create table of select 30 winners.
 
 select 
 	winners.*
