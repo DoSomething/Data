@@ -90,6 +90,11 @@ processTrackingSource <- function(dat) {
       campaign_id =
         ifelse(campaign_run_id=='' & campaign_id=='', '8017',
                ifelse(campaign_id=='' & campaign_run_id=='8022', '8017', campaign_id)),
+      source = case_when(
+        source == 'sms_share' ~ 'sms',
+        grepl('niche', source_details) ~ 'partner',
+        TRUE ~ source
+        ),
       newsletter = case_when(
         source == 'email' & grepl('newsletter', source_details) ~
           gsub('newsletter_', '', source_details),
