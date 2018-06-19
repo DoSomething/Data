@@ -10,6 +10,10 @@ library(data.table)
 vroom_zips <- read.csv('~/Documents/Data Requests/Zip code matching TMI/Vroom_June2018_users_analysis.csv')%>%
   mutate(zipcode=as.character(zipcode))
 
+#import second Vroom zipcodes
+vroom_zips_2 <- read.csv('~/Documents/Data Requests/Zip code matching TMI/User_Zipcodes_-_Vroom_matching_user_zipcodes.csv.csv')%>%
+  mutate(zipcode=as.character(zipcode))
+
 #Pull Sohaib's zipcode/socioeconomic status code
 irs <-
   read_csv('~/Documents/Data Requests/Footlocker/IRS 2015 data.csv', col_types = list( "zipcode" = col_character())) %>%
@@ -45,9 +49,9 @@ zip<-weightedIncome%>%
 
 #Merge zipcodes and socio-economic categories with footlocker csv
 vroom_zips_joined <-
-  vroom_zips %>%
+  vroom_zips_2 %>%
   left_join(zip, by = 'zipcode')
 
-write.csv(vroom_zips_joined, file = 'Vroom matching user zipcodes.csv')
+write.csv(vroom_zips_joined, file = 'Vroom matching user zipcodes updated.csv')
 
 write.csv(zip, file = 'Zipcodes with state and socio-economic status.csv')
