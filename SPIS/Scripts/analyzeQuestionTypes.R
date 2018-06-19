@@ -659,3 +659,25 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
 
 }
 
+
+# NPS ---------------------------------------------------------------------
+
+getNPS <- function(x, maxValue=NA) {
+
+  x <- as.numeric(x)
+
+  if (!(maxValue %in% c(10,11)) | is.na(maxValue)) {
+    stop('Please provide a maximum NPS value of either 10 or 11')
+  }
+  if (maxValue==11) {
+    promotorLimit <- 10
+    detractorLimit <- 7
+  } else {
+    promotorLimit <- 9
+    detractorLimit <- 6
+  }
+  promoters <- length(which(x>=promotorLimit))/length(x)
+  detractors <- length(which(x<=detractorLimit))/length(x)
+  nps <- round((promoters - detractors)*100)
+  return(nps)
+}
