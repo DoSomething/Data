@@ -699,5 +699,3 @@ getNPSBreakdown <- function(dat, nps) {
   return(p)
 
 }
-
-getNPSBreakdown(set %>% filter(!is.na(nps)), 'nps')
