@@ -13,7 +13,7 @@ effortUnderstandPerspectives <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-mapFrom <- c("Don't know",NA,'Less than 10%','10-20%','More than 20%')
+mapFrom <- c('Dont know',NA,'Less than 10','10-20','More than 20')
 mapTo <- c('Uncertain','Uncertain','Less than 10%','10-20%','More than 20%')
 finCode <- c(0,0,1,2,3)
 willingPayMoreBrandValues <-
@@ -66,7 +66,7 @@ volunteerInformal <-
   )
 
 mapFrom <- c('Not very likely','Not likely','Neutral',
-             "Don't know, it would depend on the issue",'Likely','Very likely','Very Likely')
+             'Dont know it would depend on the issue','Likely','Very likely','Very Likely')
 mapTo <- c('Not Very Likely','Not Likely','Neutral','Neutral','Likely',
            'Very Likely','Very Likely')
 finCode <- c(-2,-1,0,0,1,2,2)
@@ -127,3 +127,14 @@ productsUsed <-
              political_party, political_view, attend_religious_services_freq,
              grade_level)
   )
+
+partyRaceAge <-
+  stylePickOneList(set, political_party, race, Group)
+
+finRaceSex <-
+  stylePickOneList(set, fam_finances, race, sex)
+
+regionEduParty <-
+  stylePickOneList(set, political_party, parental_education, region)
+
+npsBreakdown <- getNPSBreakdown(set %>% filter(!is.na(nps)), 'nps')

@@ -1,3 +1,6 @@
+
+# Pick One Ordinal --------------------------------------------------------
+
 buildMapping <- function(replace, inCode, outCode) {
 
   mapping <- exprs()
@@ -64,7 +67,7 @@ rfPivotSelection <- function(tree, outcome, pivots) {
       rand3 = runif(nrow(.), 0, 1),
       rand4 = runif(nrow(.), 0, 1),
       rand5 = runif(nrow(.), 0, 1)
-      ) %>%
+    ) %>%
     mutate_if(is.character, as.factor)
 
   if (length(unique(tree$outcome)) < 3) {
@@ -74,7 +77,7 @@ rfPivotSelection <- function(tree, outcome, pivots) {
   f <-
     as.formula(
       paste0('outcome ~ ',pivots.form,'+rand1+rand2+rand3+rand4+rand5')
-      )
+    )
 
   rf <- randomForest(f, data=tree, importance=T, ntree=500)
 
@@ -96,9 +99,9 @@ rfPivotSelection <- function(tree, outcome, pivots) {
   Imp %<>%
     filter(
       imp > cut1 & imp > cut2 &
-      imp > cut3 & imp > cut4 &
-      imp > cut5 & imp > 4
-      )
+        imp > cut3 & imp > cut4 &
+        imp > cut5 & imp > 4
+    )
 
   keyPivots <- c()
   for (i in 1:length(pivots)) {
@@ -194,7 +197,7 @@ getPivotPlots <- function(dat, pivots, specialPivot=NULL) {
               aes(x=as.numeric(get(pivots[i])), y=avgVal,
                   color=get(specialPivot)),
               method='lm', se=F, linetype='dashed', size=.75
-              )
+            )
 
         }
 
@@ -210,7 +213,7 @@ getPivotPlots <- function(dat, pivots, specialPivot=NULL) {
             geom_smooth(
               aes(x=as.numeric(get(pivots[i])), y=avgVal),
               method='lm', se=F, color='black', linetype='dashed', size=.75
-              )
+            )
 
         }
 
@@ -257,6 +260,109 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
 }
 
+# Pick One List -----------------------------------------------------------
+
+getSimpleFrequency <- function(dat, outcome) {
+
+  simpleFreq <-
+    ggplot(dat, aes_string(x=quo_text(outcome))) +
+    geom_bar(stat='count', width = .65, fill='skyblue2') +
+    ggtitle(outcome) +
+    theme(plot.title = element_text(hjust = 0.5))
+
+}
+
+getGroupedComposition <- function(dat, outcome, pivot) {
+  require(scales)
+
+  bivarDat <-
+    dat %>%
+    group_by(!!outcome, !!pivot) %>%
+    summarise(n = n()) %>%
+    mutate(p=n/sum(n))
+
+  names(bivarDat) <- c('outcome','pivot','n','p')
+
+  biFreq <-
+    ggplot(
+      bivarDat,
+      aes(x=outcome, y=p, fill=reorder(pivot,p))
+    ) +
+    geom_bar(stat='identity', width = .65, position='stack') +
+    geom_text(
+      position=position_stack(vjust = 0.5),
+      aes(label=ifelse(p>.01,percent(p),'')),
+      size=2.5
+    ) +
+    labs(
+      title=paste0(outcome, ' by ', pivot)[2],
+      x='', y=''
+      ) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    guides(fill=guide_legend(title=quo_text(pivot))) +
+    scale_fill_brewer(palette="Set2")
+
+  return(biFreq)
+
+}
+
+getFacetComposition <- function(dat, outcome, pivot, facet) {
+
+  pDat <-
+    dat %>%
+    group_by(!!facet, !!outcome, !!pivot) %>%
+    summarise(n = n()) %>%
+    mutate(p=n/sum(n))
+
+  names(pDat) <- c('facet','outcome','pivot','n','p')
+
+  facetFreq <-
+    ggplot(
+      pDat,
+      aes(x=outcome, y=p, fill=reorder(pivot,p))
+    ) +
+    geom_bar(stat='identity', width = .65, position='stack') +
+    geom_text(
+      position=position_stack(vjust = 0.5),
+      aes(label=ifelse(p>.01,percent(p),'')),
+      size=2.5
+    ) +
+    facet_wrap(~facet,ncol=2) +
+    labs(
+      title=paste0(outcome, ' by ', pivot)[2],
+      x='', y=''
+    ) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    guides(fill=guide_legend(title=quo_text(pivot))) +
+    scale_fill_brewer(palette="Set2")
+
+}
+
+stylePickOneList <- function(dat, outcome, pivot, facet) {
+
+  outcome <- enquo(outcome)
+  pivot <- enquo(pivot)
+  facet <- enquo(facet)
+
+  thisQuestionSet <-
+    dat %>%
+    select(!!outcome, !!pivot, !!facet)
+
+  simpleFreq <- getSimpleFrequency(thisQuestionSet, outcome)
+  bivarFreq <- getGroupedComposition(thisQuestionSet, outcome, pivot)
+  facetComp <- getFacetComposition(thisQuestionSet, outcome, pivot, facet)
+
+  out <- list(simpleFreq, bivarFreq, facetComp)
+  names(out)[[1]] <- 'Frequency'
+  names(out)[[2]] <- 'Composition'
+  names(out)[[3]] <- 'Facetted'
+
+  return(out)
+
+}
+
+# Select Multiple ---------------------------------------------------------
+
 selectMultiCorPlot <- function(dat, questionSuffix) {
 
   get_upper_tri <- function(cormat){
@@ -301,7 +407,7 @@ selectMultiCorPlot <- function(dat, questionSuffix) {
       legend.position = c(0.6, 0.7),
       legend.direction = "horizontal",
       axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
-      ) +
+    ) +
     guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
                                  title.position = "top", title.hjust = 0.5))
 
@@ -405,7 +511,7 @@ getNumAssociation <- function(dat, questionSuffix, pivot) {
     arrangeGrob(
       grobs=myplots, ncol=2,
       top = paste('Relationship between', pivot, 'and', questionSuffix)
-      )
+    )
 
   return(outPlot)
 
@@ -439,6 +545,9 @@ getCategAssociation <- function(dat, questionSuffix, pivot) {
 
   }
 
+  corDat %<>%
+    filter(!duplicated(paste(get(pivot), variable, cor)))
+
   ovr <-
     dat %>%
     select(starts_with(questionSuffix), weight, pivot) %>%
@@ -446,52 +555,50 @@ getCategAssociation <- function(dat, questionSuffix, pivot) {
     summarise_at(
       vars(starts_with(questionSuffix)),
       funs(weighted.mean(.,weight=weight))
-      )
+    )
 
-    names(ovr)[1] <- pivot
+  names(ovr)[1] <- pivot
 
-    ovr %<>%
+  ovr %<>%
     melt(id.var=pivot) %>%
     mutate(
       variable = str_replace_all(variable, questionSuffix, '')
     ) %>%
     left_join(corDat, by=c(pivot,'variable')) %>%
-    mutate(pos = pmax(value/2, .2))
+    mutate(pos = pmax(value/3, .05))
 
-    sums <-
-      ovr %>%
-      group_by(get(pivot)) %>%
-      summarise(
-        num_ticked = sum(value)
-      ) %>%
-      setNames(c(pivot,'num_ticked'))
+  sums <-
+    ovr %>%
+    group_by(get(pivot)) %>%
+    summarise(
+      num_ticked = sum(value)
+    ) %>%
+    setNames(c(pivot,'num_ticked'))
 
-    ovr %<>%
-      left_join(sums) %>%
-      mutate(
-        fac_labs =
-          paste0(get(pivot), ': Avg # Ticked = ', round(num_ticked,2))
-      )
+  ovr %<>%
+    left_join(sums) %>%
+    mutate(
+      fac_labs =
+        paste0(get(pivot), ': Avg # Ticked = ', round(num_ticked,2))
+    )
 
-    ovr.p <-
-      ggplot(ovr, aes(x=reorder(variable, -value), y=value, fill=cor)) +
-      geom_bar(stat='identity') +
-      geom_text(
-        aes(y=pos,label=paste('Top Corr: ',top_cor, ' = ', round(cor, 2))),
-        size=3, angle=90
-      ) +
-      facet_wrap(~fac_labs, labeller = label_value) +
-      labs(
-        x=paste0('Pivoted by ',pivot),
-        title=questionSuffix,y='Percentage Ticked'
-        ) +
-      theme(
-        axis.text.x = element_text(angle = 30, hjust = 1),
-        plot.title = element_text(hjust = .5)
-      ) +
-      scale_fill_gradientn(colours=rev(terrain.colors(2)))
+  ovr.p <-
+    ggplot(ovr, aes(x=reorder(variable, -value), y=value, fill=cor)) +
+    geom_bar(stat='identity') +
+    geom_text(
+      aes(y=pos,label=paste('Top Corr: ',top_cor, ' = ', round(cor, 2))),
+      size=3, hjust=0
+    ) +
+    facet_wrap(~fac_labs, labeller = label_value, scale='free_x', ncol=2) +
+    labs(
+      x=paste0('Pivoted by ',pivot),
+      title=questionSuffix,y='Percentage Ticked'
+    ) +
+    theme(plot.title = element_text(hjust = .5)) +
+    scale_fill_gradientn(colours=rev(terrain.colors(2))) +
+    coord_flip()
 
-    return(ovr.p)
+  return(ovr.p)
 
 }
 
@@ -519,28 +626,28 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
 
   pivotPlots <- list()
 
-    for (i in 1:length(keyPivots)) {
+  for (i in 1:length(keyPivots)) {
 
-      if (
-        class(unlist(thisQuestionSet[,keyPivots[i]])) %in% c('numeric','integer')
-      ) {
+    if (
+      class(unlist(thisQuestionSet[,keyPivots[i]])) %in% c('numeric','integer')
+    ) {
 
-        p <- grid.arrange(
-          getNumAssociation(thisQuestionSet, questionSuffix, keyPivots[i])
-          )
+      p <- grid.arrange(
+        getNumAssociation(thisQuestionSet, questionSuffix, keyPivots[i])
+      )
 
-      } else {
+    } else {
 
-        p <- print(
-          getCategAssociation(thisQuestionSet, questionSuffix, keyPivots[i])
-          )
-
-      }
-
-      pivotPlots[[i]] <- p
-      names(pivotPlots)[[i]] <- keyPivots[i]
+      p <- print(
+        getCategAssociation(thisQuestionSet, questionSuffix, keyPivots[i])
+      )
 
     }
+
+    pivotPlots[[i]] <- p
+    names(pivotPlots)[[i]] <- keyPivots[i]
+
+  }
 
   out <- list(corPlot, ovr.p, pivotPlots)
 
@@ -549,5 +656,46 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
   names(out)[[3]] <- 'pivotPlots'
 
   return(out)
+
+}
+
+
+# NPS ---------------------------------------------------------------------
+
+getNPS <- function(x, maxValue=NA) {
+
+  x <- as.numeric(x)
+
+  if (!(maxValue %in% c(10,11)) | is.na(maxValue)) {
+    stop('Please provide a maximum NPS value of either 10 or 11')
+  }
+  if (maxValue==11) {
+    promotorLimit <- 10
+    detractorLimit <- 7
+  } else {
+    promotorLimit <- 9
+    detractorLimit <- 6
+  }
+  promoters <- length(which(x>=promotorLimit))/length(x)
+  detractors <- length(which(x<=detractorLimit))/length(x)
+  nps <- round((promoters - detractors)*100)
+  return(nps)
+}
+
+getNPSBreakdown <- function(dat, nps) {
+  require(scales)
+  p <-
+    ggplot(dat, aes_string(x=nps)) +
+    geom_bar(stat='count', width = .65, fill='skyblue2') +
+    ggtitle('NPS Breakdown') +
+    geom_vline(xintercept=8.5) +
+    geom_vline(xintercept=6.5) +
+    theme(plot.title=element_text(hjust=.5)) +
+    scale_x_continuous(breaks=pretty_breaks(10)) +
+    scale_y_continuous(breaks=pretty_breaks(10)) +
+    annotate("rect", xmin=-1,xmax=6.5,ymin=0,ymax=150,fill='red',alpha=.2) +
+    annotate("rect", xmin=8.5,xmax=10.5,ymin=0,ymax=150,fill='green',alpha=.2)
+
+  return(p)
 
 }
