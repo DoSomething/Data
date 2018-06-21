@@ -53,7 +53,7 @@ CREATE MATERIALIZED VIEW public.users AS
 		u.sms_status,
 		u.source_detail,
 		CASE WHEN 
-			u.sms_status in ('active','less') OR 
+			u.sms_status in ('active','less','pending') OR 
 			email_status.event_type = 'customer_subscribed' 
 			THEN TRUE ELSE FALSE END AS subscribed_member,
 		umax.max_update AS last_updated_at
