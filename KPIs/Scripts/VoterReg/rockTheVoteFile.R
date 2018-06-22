@@ -130,7 +130,7 @@ getQuasarAttributes <-  function(queryObjects) {
   )
 
   nsrDat <-
-    runQuery(q, 'pg') %>%
+    runQuery(q) %>%
     group_by(nsid) %>%
     summarise(
       ds_registration_date = max(ds_registration_date),
