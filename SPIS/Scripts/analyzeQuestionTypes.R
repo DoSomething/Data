@@ -659,3 +659,43 @@ styleSelectMultiple <- function(dat, questionSuffix, pivots) {
 
 }
 
+
+# NPS ---------------------------------------------------------------------
+
+getNPS <- function(x, maxValue=NA) {
+
+  x <- as.numeric(x)
+
+  if (!(maxValue %in% c(10,11)) | is.na(maxValue)) {
+    stop('Please provide a maximum NPS value of either 10 or 11')
+  }
+  if (maxValue==11) {
+    promotorLimit <- 10
+    detractorLimit <- 7
+  } else {
+    promotorLimit <- 9
+    detractorLimit <- 6
+  }
+  promoters <- length(which(x>=promotorLimit))/length(x)
+  detractors <- length(which(x<=detractorLimit))/length(x)
+  nps <- round((promoters - detractors)*100)
+  return(nps)
+}
+
+getNPSBreakdown <- function(dat, nps) {
+  require(scales)
+  p <-
+    ggplot(dat, aes_string(x=nps)) +
+    geom_bar(stat='count', width = .65, fill='skyblue2') +
+    ggtitle('NPS Breakdown') +
+    geom_vline(xintercept=8.5) +
+    geom_vline(xintercept=6.5) +
+    theme(plot.title=element_text(hjust=.5)) +
+    scale_x_continuous(breaks=pretty_breaks(10)) +
+    scale_y_continuous(breaks=pretty_breaks(10)) +
+    annotate("rect", xmin=-1,xmax=6.5,ymin=0,ymax=150,fill='red',alpha=.2) +
+    annotate("rect", xmin=8.5,xmax=10.5,ymin=0,ymax=150,fill='green',alpha=.2)
+
+  return(p)
+
+}

@@ -136,3 +136,5 @@ finRaceSex <-
 
 regionEduParty <-
   stylePickOneList(set, political_party, parental_education, region)
+
+npsBreakdown <- getNPSBreakdown(set %>% filter(!is.na(nps)), 'nps')
