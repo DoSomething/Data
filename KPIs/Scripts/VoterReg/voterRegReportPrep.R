@@ -110,6 +110,13 @@ bySource <-
 
 aster <-
   vr %>%
+  mutate(
+    campaign_id =
+      case_when(
+        grepl('campaign',campaign_id) | campaign_id %in% c('','0') ~ '8017',
+        TRUE ~ campaign_id
+      )
+  ) %>%
   group_by(month, campaign_id) %>%
   summarise(
     rbs = sum(reportback),
