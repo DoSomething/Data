@@ -80,7 +80,7 @@ getData <- function() {
     )
 
   qres <-
-    runQuery(q,'pg') %>%
+    runQuery(q) %>%
     filter(!duplicated(paste0(nsid,campaign_run_id)))
 }
 

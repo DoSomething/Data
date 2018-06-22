@@ -26,7 +26,7 @@ q <-
     )
 
 qres <-
-  runQuery(q,'pg')
+  runQuery(q)
 
 stv <- tibble()
 for (i in 1:nrow(qres)) {
