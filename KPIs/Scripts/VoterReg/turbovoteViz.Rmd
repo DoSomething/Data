@@ -25,7 +25,7 @@ ggplot(fileSource, aes(x="", y=n, fill=file)) +
 ```
 
 #### Month over Month Pacing
-* Adding Rock the vote and school the vote shows that we improved sigificantly in March
+
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(MoM, aes(x=dayOfMonth, value)) +
   geom_line(aes(color=month)) + 
@@ -33,7 +33,6 @@ ggplot(MoM, aes(x=dayOfMonth, value)) +
   theme(plot.title = element_text(hjust=.5))
 ```
 
-* Lots of sources, which is great, but web is both the strongest performer, and the most consistently improving
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=9}
 ggplot(MoM.Source, aes(x=dayOfMonth, value)) +
   geom_line(aes(color=month)) + 
@@ -43,7 +42,6 @@ ggplot(MoM.Source, aes(x=dayOfMonth, value)) +
 ```
 
 #### Referral Source
-* Unsurprisingly, web also makes up the bulk of referral sources
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(Source, aes(x=status, y=value, fill=reorder(source, value))) +
   geom_bar(stat='identity', position='stack') +
@@ -63,31 +61,14 @@ ggplot(Source, aes(x=status, y=value, fill=reorder(source, value))) +
   theme(plot.title = element_text(hjust=.5)) + 
   guides(fill=guide_legend(title='Source'))
 ```
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+ggplot(sourceTime, aes(x=date, y=runningTotal, color=source)) +
+  geom_line() + 
+  labs(x='Date',y='Registrations',title='Running Total of Registrations by Source') +
+  theme(plot.title = element_text(hjust=.5))
+```
+
 #### Source Details
-
-* We've gotten access to many denominators. Planning to build into report this week
-
-**Email**
-
-  - Now with more informative buckets!
-  - We've gotten access to newsletter info in quasar and so can start getting conversion rates
-  
-**SMS**
-
-  - Starting to get some traction from SMS Tests
-  
-**Social**
-
-  - Generally isn't performing very well, but Facebook is doing better than the others. Is this because we've done more on facebook or because our efforts are smarter?
-  
-**Web**
-
-  - Campaign pages and Hellobar are dominating 
-  - We have full phoenix funnels, and so can start report conversions here too
-  
-**Partners**
-
-  - Starting to get traction, primarily from quizlet
 
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=10, fig.height=30}
 library(gridExtra)
@@ -118,8 +99,7 @@ grid.arrange(
 ```
 
 #### Northstar Source
-* Web users disproportionately represent all those going through the flow 
-* Similar proportions of statuses across user channels
+
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(uSource, aes(x=status, y=value, fill=reorder(user_source, value))) +
   geom_bar(stat='identity', position='stack') +

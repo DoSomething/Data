@@ -8,13 +8,13 @@ vr <-
   rtv %>%
   bind_rows(tv)
 
-# if(dbExistsTable(pg,c("public", "turbovote_file"))) {
-#
-#   q <- "truncate public.turbovote_file"
-#   runQuery(q,'pg')
-#
-# }
-# dbWriteTable(pg,c("public", "turbovote_file"), vr, append = TRUE, row.names=F)
+if(dbExistsTable(pg,c("public", "turbovote_file"))) {
+
+  q <- "truncate public.turbovote_file"
+  runQuery(q,'pg')
+
+}
+dbWriteTable(pg,c("public", "turbovote_file"), vr, append = TRUE, row.names=F)
 
 vr <-
   rtv %>%
@@ -46,6 +46,19 @@ npPivot <- function(pivot) {
 uSource <- npPivot(user_source)
 Source <- npPivot(source)
 detSource <- npPivot(source_details)
+
+sourceTime <-
+  vr %>%
+  mutate(date=as.Date(created_at)) %>%
+  filter(date>'2017-09-27') %>%
+  group_by(date, source) %>%
+  summarise(
+    reg=length(which(grepl('register', ds_vr_status)))
+  ) %>%
+  group_by(source) %>%
+  mutate(
+    runningTotal = cumsum(reg)
+  )
 
 fileSource <-
   vr %>%
@@ -172,23 +185,27 @@ MoM.Source <-
   melt(id.var=c('dayOfMonth','month','source')) %>%
   mutate(month = as.factor(month))
 
-## Excel output
-#
-# library(openxlsx)
-#
-# wb <- createWorkbook()
-#
-# addWorksheet(wb, 'rawData')
-# writeData(wb, 'rawData', vr, rowNames = F)
-# addWorksheet(wb, 'AllSources')
-# writeData(wb, 'AllSources', all, rowNames=F)
-# addWorksheet(wb, 'bySource')
-# writeData(wb, 'bySource', bySource, rowNames=F)
-# addWorksheet(wb, 'RBAsterisk')
-# writeData(wb, 'RBAsterisk', aster, rowNames=F)
-#
-# saveWorkbook(
-#   wb,
-#   paste0('Data/Turbovote/output_',Sys.Date(),'.xlsx'),
-#   overwrite = TRUE
-# )
+# By Week and source
+
+
+
+# Excel output
+
+library(openxlsx)
+
+wb <- createWorkbook()
+
+addWorksheet(wb, 'rawData')
+writeData(wb, 'rawData', vr, rowNames = F)
+addWorksheet(wb, 'AllSources')
+writeData(wb, 'AllSources', all, rowNames=F)
+addWorksheet(wb, 'bySource')
+writeData(wb, 'bySource', bySource, rowNames=F)
+addWorksheet(wb, 'RBAsterisk')
+writeData(wb, 'RBAsterisk', aster, rowNames=F)
+
+saveWorkbook(
+  wb,
+  paste0('Data/Turbovote/output_',Sys.Date(),'.xlsx'),
+  overwrite = TRUE
+)
