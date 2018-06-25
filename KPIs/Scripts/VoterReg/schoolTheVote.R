@@ -5,22 +5,28 @@ q <-
   glue_sql(
     "SELECT
       c.northstar_id,
-      u.source AS user_source,
+      CASE WHEN u.source = 'niche' THEN 'niche'
+           WHEN u.source = 'sms' THEN 'sms'
+           ELSE 'web' END AS user_source,
       c.post_id AS id,
       c.post_created_at AS created_at,
-      c.campaign_run_id,
+      c.campaign_run_id::varchar,
       c.quantity
     FROM campaign_activity c
     LEFT JOIN public.users u ON c.northstar_id = u.northstar_id
-    WHERE campaign_id = '822'
+    WHERE c.campaign_id IN ('822','8129','8119')
     AND c.signup_created_at>='2018-05-01'
     AND c.post_id IS NOT NULL
-    AND c.post_status='accepted';",
+    AND (
+      (c.campaign_id = '822' AND c.post_status='accepted')
+      OR (c.campaign_id IN ('8129','8119') AND c.post_status <> 'rejected')
+    )
+    ;",
     .con = pg
     )
 
 qres <-
-  runQuery(q,'pg')
+  runQuery(q)
 
 stv <- tibble()
 for (i in 1:nrow(qres)) {
@@ -31,9 +37,27 @@ for (i in 1:nrow(qres)) {
       nsid=rep(row$northstar_id,row$quantity),
       created_at = rep(row$created_at, row$quantity),
       user_source = rep(row$user_source, row$quantity),
-      source = rep('school_the_vote', row$quantity),
-      source_details = rep('school_the_vote', row$quantity),
+      source = rep('on_the_ground',row$quantity),
+      source_details = rep(
+        case_when(
+          row$campaign_run_id=='8103' ~ 'school_the_vote',
+          row$campaign_run_id=='8130' ~ 'red_white_booth',
+          row$campaign_run_id=='8120' ~ 'community_partner',
+          TRUE ~ ''
+        ),
+        row$quantity
+      ),
+      details = rep(
+        case_when(
+          row$campaign_run_id=='8103' ~ 'school_the_vote',
+          row$campaign_run_id=='8130' ~ 'red_white_booth',
+          row$campaign_run_id=='8120' ~ 'community_partner',
+          TRUE ~ ''
+        ),
+        row$quantity
+      ),
       ds_vr_status = rep('register', row$quantity),
+      campaign_run_id = rep(row$campaign_run_id, row$quantity),
       month = month(created_at),
       week = case_when(
         created_at < '2018-02-06' ~ as.character('2018-01-26'),
@@ -44,8 +68,13 @@ for (i in 1:nrow(qres)) {
               seq.Date(as.Date('2018-02-06'),as.Date('2019-01-01'),by = '7 days')
           ) %>% as.character()
       ),
-      file = rep('OnTheGround'),
-      campaignId = '822'
+      file = 'OnTheGround',
+      campaign_id = case_when(
+        campaign_run_id == '8120' ~ '8119',
+        campaign_run_id == '8130' ~ '8129',
+        campaign_run_id == '8103' ~ '822',
+        TRUE ~ ''
+        )
       )
 
   stv <-

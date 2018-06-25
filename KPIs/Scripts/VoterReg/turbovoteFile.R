@@ -55,26 +55,33 @@ getSheet <- function(workbook, sheet) {
 
 }
 
-getData <- function(path) {
+getData <- function() {
 
-  vr <-
-    suppressWarnings(suppressMessages(read_csv(path))) %>%
-    filter(
-      !grepl('thing.org', email) &
-        !grepl('testing', hostname) &
-        !grepl('@dosom', email) &
-        !grepl('Baloney', `last-name`) &
-        !grepl('turbovote', email)
+  q <-
+    glue_sql(
+      "SELECT
+        c.northstar_id as nsid,
+        c.campaign_id::varchar,
+        c.campaign_run_id::varchar,
+        CASE WHEN c.post_status IN ('rejected','pending') THEN 'uncertain'
+             ELSE c.post_status END AS ds_vr_status,
+        c.post_attribution_date AS created_at,
+        t.referral_code,
+        u.created_at AS ds_registration_date,
+        CASE WHEN u.source = 'niche' THEN 'niche'
+             WHEN u.source = 'sms' THEN 'sms'
+             ELSE 'web' END AS user_source
+        FROM public.campaign_activity c
+        LEFT JOIN rogue.turbovote t ON c.post_id::bigint = t.post_id::bigint
+        LEFT JOIN public.users u ON c.northstar_id = u.northstar_id
+        WHERE c.post_id IS NOT NULL
+        AND c.post_type = 'voter-reg'",
+      .con='pg'
     )
 
-  for (i in 1:length(names(vr))) {
-    if(grepl('-', names(vr)[i])) {
-      names(vr)[i] <- gsub('-','_',names(vr)[i])
-    } else if(grepl(' ', names(vr)[i])) {
-      names(vr)[i] <- gsub(' ','_',names(vr)[i])
-    }
-  }
-  return(vr)
+  qres <-
+    runQuery(q) %>%
+    filter(!duplicated(paste0(nsid,campaign_run_id)))
 }
 
 processReferralColumn <- function(dat) {
@@ -82,14 +89,9 @@ processReferralColumn <- function(dat) {
   maxSep <- max(as.numeric(names(table(str_count(dat$referral_code, ',')))))+1
   parsedSep <-
     dat %>%
-    select(id, referral_code) %>%
+    select(nsid, campaign_run_id, referral_code) %>%
     separate(referral_code, LETTERS[1:maxSep], ',',remove = F) %>%
     mutate(
-      nsid =
-        case_when(
-          substr(A, 1, 4)=='user' ~ substr(A, 6, nchar(A)),
-          TRUE ~ ''
-        ),
       source_details =
         case_when(
           grepl('11_facts',A) ~ '11_facts',
@@ -102,28 +104,6 @@ processReferralColumn <- function(dat) {
           TRUE ~ ''
         ),
       source_details = gsub('source_details:', '', source_details),
-      campaignId =
-        case_when(
-          grepl('campaignID',A) ~ A,
-          grepl('campaignid', tolower(B)) ~ B,
-          grepl('campaign:', D) ~ D,
-          grepl('campaignID:', D) ~ D,
-          TRUE ~ ''
-        ),
-      campaignId = sapply(strsplit(campaignId, '\\:'), "[", 2),
-      campaignRunId =
-        case_when(
-          grepl('campaignrun', tolower(C)) ~ C,
-          grepl('campaign:', tolower(B)) ~ B,
-          grepl('campaignrun', tolower(B)) ~ B,
-          TRUE ~ ''
-        ),
-      campaignRunId = sapply(strsplit(campaignRunId, '\\:'), "[", 2),
-      campaignId =
-        ifelse(
-          (is.na(campaignRunId) & is.na(campaignId)) |
-            campaignId=='{campaignId}' , '8017',
-          ifelse(is.na(campaignId) & campaignRunId=='8022', '8017', campaignId)),
       source =
         case_when(
           grepl('source:', B) ~ B,
@@ -142,12 +122,12 @@ processReferralColumn <- function(dat) {
         grepl('niche', source_details) ~ 'partner',
         source_details %in% c('twitter','facebook') ~ 'social',
         source_details == '11_facts' | source == 'dosomething' ~ 'web',
-        is.na(source) | source=='{source}' ~ 'no_attribution',
+        is.na(source) | source=='{source}' | source=='{source' ~ 'no_attribution',
         TRUE ~ source
       ),
       source_details = case_when(
         is.na(source_details) ~ '',
-        source == 'web' & source_details == '' ~ paste0('campaign_',campaignRunId),
+        source == 'web' & source_details == '' ~ paste0('campaign_',campaign_run_id),
         TRUE ~ source_details
       ),
       newsletter = case_when(
@@ -209,64 +189,11 @@ addDetails <- function(dat) {
 
 }
 
-getQuasarAttributes <- function(queryObjects) {
-
-  q <- glue_sql(
-    "SELECT
-      u.northstar_id AS nsid,
-      u.created_at AS ds_registration_date,
-      u.source AS user_source,
-      u.subscribed_member AS active_member,
-      c.signup_id,
-      c.campaign_run_id,
-      max(CASE WHEN c.post_id <> -1 THEN 1 ELSE 0 END) as reportedback
-    FROM public.users u
-    LEFT JOIN public.campaign_activity c ON c.northstar_id = u.northstar_id
-    WHERE u.northstar_id IN ({nsids*})
-    GROUP BY 1,2,3,4,5,6
-    ",
-    nsids = queryObjects,
-    .con = pg
-  )
-
-  nsrDat <-
-    runQuery(q, 'pg') %>%
-    group_by(nsid) %>%
-    summarise(
-      ds_registration_date = max(ds_registration_date),
-      user_source = max(user_source),
-      signups = n(),
-      reportbacks = sum(reportedback)
-    ) %>%
-    mutate(
-      user_source =
-        case_when(
-          user_source == 'niche' ~ 'niche',
-          user_source == 'sms' ~ 'sms',
-          TRUE ~ 'web'
-        )
-    )
-}
-
 addFields <- function(dat) {
   dat %<>%
     mutate(
-      ds_vr_status.record =
-        case_when(
-          voter_registration_status == 'initiated' ~
-            'register-form',
-          voter_registration_status == 'registered' & voter_registration_method == 'online' ~
-            'register-OVR',
-          voter_registration_status %in% c('unknown','pending','') | is.na(voter_registration_status) ~
-            'uncertain',
-          voter_registration_status %in% c('ineligible','not-required') ~
-            'ineligible',
-          voter_registration_status == 'registered' ~
-            'confirmed',
-          TRUE ~ ''
-        ),
-      reportback.record = ifelse(
-        ds_vr_status.record %in%
+      reportback = ifelse(
+        ds_vr_status %in%
           c('confirmed','register-form','register-OVR'), T, F
       ),
       month = month(created_at),
@@ -279,32 +206,7 @@ addFields <- function(dat) {
               seq.Date(as.Date('2018-02-06'),as.Date('2019-01-01'),by = '7 days')
           ) %>% as.character()
       )
-    ) %>%
-    group_by(nsid) %>%
-    mutate(
-      ds_vr_status =
-        case_when(
-          nsid=='' ~ ds_vr_status.record,
-          max(ds_vr_status.record=='register-form')==1 ~ 'register-form',
-          max(ds_vr_status.record=='register-OVR')==1 ~ 'register-OVR',
-          max(ds_vr_status.record=='confirmed')==1 ~ 'confirmed',
-          max(ds_vr_status.record=='ineligible')==1 ~ 'ineligible',
-          max(ds_vr_status.record=='uncertain')==1 ~ 'uncertain',
-          TRUE ~ ''
-        ),
-      reportback =
-        ifelse(nsid=='', reportback.record,
-               ifelse(max(reportback.record==T), T, F))
-      ,
-      updated_at = as.POSIXct(ifelse(
-        nsid=='', updated_at, max(updated_at)
-      ), origin = '1970-01-01'),
-      created_at = as.POSIXct(ifelse(
-        nsid=='', created_at, max(created_at)
-      ), origin = '1970-01-01')
-    ) %>%
-    ungroup() %>%
-    select(-reportback.record, -ds_vr_status.record)
+    )
 }
 
 prepData <- function(...) {
@@ -315,42 +217,11 @@ prepData <- function(...) {
   vr <-
     d %>%
     select(-referral_code) %>%
-    left_join(refParsed) %>%
-    mutate(
-      nsid = case_when(
-        nsid %in% c('5a84b01ea0bfad5dc71768a2','null') | is.na(nsid) ~ '',
-        TRUE ~ nsid
-      )
-    )
+    left_join(refParsed)
 
   vr <- addDetails(vr)
 
-  dupes <-
-    vr %>%
-    filter((duplicated(nsid) | duplicated(nsid, fromLast=T)) &
-             !(nsid %in% c('','null'))) %>%
-    arrange(nsid, created_at, updated_at) %>%
-    mutate(
-      nsidInd = cumsum(nsid != lag(nsid, default=""))
-    ) %>%
-    group_by(nsid) %>%
-    mutate(
-      recordCounter = 1:n()
-    )
-
-  nsids <-
-    vr %>%
-    filter(nsid != '') %$%
-    nsid
-
-  nsrDat <- getQuasarAttributes(nsids)
-
-  vr %<>%
-    left_join(nsrDat)
-
   vr <- addFields(vr)
-
-  dupes <- addFields(dupes)
 
   cioConv <-
     getSheet('Voter Registration Source Details Buckets', 'Conversions') %>%
@@ -359,10 +230,6 @@ prepData <- function(...) {
     filter(type=='email')
 
   vr %<>%
-    filter(
-      !duplicated(nsid) |
-        nsid %in% c('','null')
-    ) %>%
     left_join(cioConv) %>%
     mutate(
       details = case_when(
@@ -370,17 +237,11 @@ prepData <- function(...) {
         TRUE ~ details
       ),
       file = 'TurboVote'
-    ) %>% select(-type, -category)
+    ) %>%
+    select(-type, -category)
 
-  out <- list(vr, dupes)
-
-  return(out)
+  return(vr)
 
 }
 
-vfile <-
-  'Data/Turbovote/testing-dosomething.turbovote.org-dosomething.turbovote.org-'
-
-out <- prepData(path=paste0(vfile,latest_file,'.csv'))
-
-tv <- out[[1]]
+tv <- prepData()

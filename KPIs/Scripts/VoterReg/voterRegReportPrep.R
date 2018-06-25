@@ -47,6 +47,19 @@ uSource <- npPivot(user_source)
 Source <- npPivot(source)
 detSource <- npPivot(source_details)
 
+sourceTime <-
+  vr %>%
+  mutate(date=as.Date(created_at)) %>%
+  filter(date>'2017-09-27') %>%
+  group_by(date, source) %>%
+  summarise(
+    reg=length(which(grepl('register', ds_vr_status)))
+  ) %>%
+  group_by(source) %>%
+  mutate(
+    runningTotal = cumsum(reg)
+  )
+
 fileSource <-
   vr %>%
   filter(grepl('register', ds_vr_status)) %>%
@@ -74,20 +87,6 @@ sourceStep <-
       TRUE ~ paste0(round(value*100,1),'%')
     )
   )
-
-camp <-
-  vr %>%
-  filter(!is.na(signups)) %>%
-  group_by(ds_vr_status) %>%
-  summarise(
-    Signups = mean(signups),
-    Reportbacks = mean(reportbacks)
-  ) %>%
-  melt(value.var='meanRBs') %>% as.tibble()
-
-dens <-
-  vr %>%
-  filter(signups < quantile(signups, .95, na.rm=T))
 
 ## For Pacing Doc
 
@@ -124,7 +123,14 @@ bySource <-
 
 aster <-
   vr %>%
-  group_by(month, campaignId) %>%
+  mutate(
+    campaign_id =
+      case_when(
+        grepl('campaign',campaign_id) | campaign_id %in% c('','0') ~ '8017',
+        TRUE ~ campaign_id
+      )
+  ) %>%
+  group_by(month, campaign_id) %>%
   summarise(
     rbs = sum(reportback),
     tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
@@ -179,7 +185,11 @@ MoM.Source <-
   melt(id.var=c('dayOfMonth','month','source')) %>%
   mutate(month = as.factor(month))
 
-## Excel output
+# By Week and source
+
+
+
+# Excel output
 
 library(openxlsx)
 
