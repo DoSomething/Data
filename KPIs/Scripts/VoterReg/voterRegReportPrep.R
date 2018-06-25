@@ -11,7 +11,7 @@ vr <-
 if(dbExistsTable(pg,c("public", "turbovote_file"))) {
 
   q <- "truncate public.turbovote_file"
-  runQuery(q,'pg')
+  runQuery(q)
 
 }
 dbWriteTable(pg,c("public", "turbovote_file"), vr, append = TRUE, row.names=F)
