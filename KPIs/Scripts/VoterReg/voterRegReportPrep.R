@@ -1,3 +1,4 @@
+library(stringr)
 source('Scripts/VoterReg/turbovoteFile.R')
 source('Scripts/VoterReg/rockTheVoteFile.R')
 source('Scripts/VoterReg/schoolTheVote.R')
