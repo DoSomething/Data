@@ -1,0 +1,426 @@
+---
+title: "voter_reg_modeling"
+output: html_document
+---
+
+# 1. Sources & Libraries 
+
+```{r, quietly=TRUE}
+source('config/init.R')
+source('config/mySQLConfig.R')
+source('config/pgConnect.R')
+pg <- pgConnect()
+
+library(glue)
+library(lubridate)
+library(reshape2)
+```
+
+
+# 2. Load datasets 
+
+```{r}
+# Users dataset 
+
+users_query <- 
+"SELECT u.northstar_id,
+u.created_at,
+u.last_logged_in,
+u.last_accessed,
+u.SOURCE,
+u.email,
+u.mobile,
+u.birthdate,
+u.first_name,
+u.last_name,
+u.city,
+u.state,
+u.zipcode,
+u.cio_status,
+u.sms_status
+FROM users u
+WHERE u.subscribed_member = 'true'
+	AND u.country = 'US'
+	AND u.birthdate <= current_date - INTERVAL '18 years'" # removing underage members in users file 
+
+users <- runQuery(users_query)
+
+# phoenix_events dataset 
+
+phoenix_query <- "SELECT p.northstar_id,
+p.event_datetime,
+p.event_name,
+p.event_source,
+p.campaign_id,
+p.campaign_name,
+p.page_utm_medium,
+p.page_utm_campaign,
+p.parent_source,
+p.browser_size
+FROM phoenix_events p
+WHERE p.northstar_id IS NOT NULL"
+
+phoenix <- runQuery(phoenix_query)
+
+# campaign_activity dataset 
+
+ca_query <- "SELECT c.northstar_id,
+c.campaign_run_id,
+c.post_type,
+c.reportback_volume,
+c.post_status,
+c.quantity,
+c.signup_source,
+c.post_source,
+c.signup_created_at,
+c.reported_back,
+c.post_attribution_date
+FROM campaign_activity c
+WHERE c.northstar_id IS NOT NULL"
+
+campaign <- runQuery(ca_query)
+
+# member_event_log dataset 
+
+mel_query <- "SELECT m.northstar_id,
+m.timestamp,
+m.action_type,
+m.SOURCE
+FROM member_event_log m
+WHERE m.northstar_id IS NOT NULL"
+
+mel <- runQuery(mel_query)
+
+# email_event dataset
+
+email_query <- "SELECT e.customer_id,
+e.email_address,
+e.subject,
+e.timestamp,
+e.event_type
+FROM email_event e 
+WHERE customer_id IS NOT NULL"
+
+email <- runQuery(email_query)
+
+# gender list 
+
+gender_list <- read.csv("name_gender.csv")
+```
+
+# Save as R data files 
+
+```{r}
+saveRDS(users, "users.rds")
+saveRDS(phoenix, "phoenix.rds")
+saveRDS(campaign, "campaign.rds")
+saveRDS(mel, "mel.rds")
+saveRDS(email, "email.rds")
+```
+
+# Load R data files 
+
+```{r}
+users <- readRDS("users.rds")
+phoenix <- readRDS("phoenix.rds")
+campaign <- readRDS("campaign.rds")
+mel <- readRDS("mel.rds")
+email <- readRDS("email.rds")
+```
+
+
+# Data wrangling 
+
+## Remove records of under 18 northstar_ids in all datasets 
+
+```{r}
+phoenix1 <- 
+  phoenix %>% 
+  semi_join(users, by = "northstar_id")
+
+campaign1 <- 
+  campaign %>% 
+  semi_join(users, by = "northstar_id")
+
+mel1 <- 
+  mel %>% 
+  semi_join(users, by = "northstar_id")
+
+email1 <- 
+  email %>% 
+  rename(northstar_id = customer_id) %>%
+  semi_join(users, by = "northstar_id")
+
+users1 <- users #removed in SQL5a302d4da0bfad18491e031a
+```
+
+## Add demographic info to Users 
+
+```{r}
+# add gender column
+users1$first_name <- tolower(users1$first_name)
+gender_list$name <- tolower(gender_list$name)
+gender_list <- 
+  gender_list %>% 
+  select(name, gender) %>%
+  rename(first_name = name)
+users1$first_name <- sapply(strsplit(users1$first_name, "-|\\s"), function(x) x[[1]])
+
+users1 <- 
+  users1 %>%
+  left_join(gender_list, by = "first_name")
+
+# add age column
+users1 <- 
+  users1 %>%
+  mutate(age = as.integer(time_length(difftime(Sys.Date(), users1$birthdate), "years")))
+```
+
+
+## Removing duplicates across datasets 
+
+```{r}
+# mel1 & phoenix1 have duplicates across "signup" and "facebook share completed" values 
+# remove duplicates from mel1 b/c phoenix1 has more information 
+
+unique(phoenix$event_name)
+unique(mel$action_type)
+View(head(campaign, 50)) #campaign has post & sign-up data 
+
+toremove_mel <-
+  mel1 %>%
+  filter(action_type == "signup" | action_type == "facebook share completed") %>%
+  semi_join(filter(phoenix1, 
+                   event_name == "signup" | event_name == "share action completed" 
+                   & event_source == "phoenix-next"),
+            by = c("northstar_id" = "northstar_id", "timestamp" = "event_datetime"))
+
+mel_cleaned <-
+  mel1 %>% 
+  anti_join(toremove_mel, 
+            by = c("northstar_id" = "northstar_id", 
+                   "timestamp" = "timestamp",
+                   "action_type" = "action_type"))
+
+# mel1 & campaign1 have "post" & "signup" duplicates
+# remove duplicates from mel_cleaned b/c campaign1 has more information 
+
+toremove_mel_post <- 
+  mel_cleaned %>%
+  filter(action_type == "post") %>%
+  semi_join(campaign1, by = c("northstar_id" = "northstar_id",
+                              "timestamp" = "post_attribution_date"))
+mel_cleaned_post <-
+  mel_cleaned %>%
+  anti_join(toremove_mel_post,
+            by = c("northstar_id" = "northstar_id",
+                   "timestamp" = "timestamp"))
+
+toremove_mel_signup <- 
+  mel_cleaned_post %>%
+  filter(action_type == "signup") %>%
+  semi_join(campaign1,
+            by = c("northstar_id" = "northstar_id",
+                   "timestamp" = "signup_created_at"))
+mel_scrubbed <-
+  mel_cleaned_post %>%
+  anti_join(toremove_mel_signup,
+            by = c("northstar_id" = "nothstar_id",
+                   "timestamp" = "timestamp"))
+
+# finally, "remove" "signup" duplicates between campaign1 & phoenix1 with JOIN
+## TO DO
+
+# what other action_types might overlap between the two datasets? (FOR SOHAIB)
+
+phoenix_scrubbed <- phoenix1
+campaign_scrubbed <- campaign1 
+email_scrubbed <- email1 
+
+```
+
+## Aggregate common variables across datasets 
+
+```{r}
+# MAKE SURE TO USE SCRUBBED VERSIONS OF THE DATASETS!!!!
+
+# MEL 
+mel_common <-
+  mel1 %>%
+  mutate(action_time = hour(timestamp)) %>%
+  select(northstar_id, action_type, action_time, source) # source needs to be fixed (add source string in all sources)
+  
+# phoenix 
+phoenix_common <-
+  phoenix1 %>% 
+  mutate(action_time = hour(event_datetime)) %>%
+  rename(action_type = event_name,
+         source = event_source) %>% #phoenix-next vs. northstar?
+  select(northstar_id, action_type, action_time, source)
+
+# campaign 
+campaign_signup_common <- 
+  campaign1 %>%
+  filter(!is.na(signup_created_at)) %>% 
+  mutate(action_time = hour(signup_created_at),
+         action_type = "signup") %>% 
+  rename(source = signup_source) %>%
+  select(northstar_id, action_type, action_time, source)
+
+campaign_post_common <-
+  campaign1 %>%
+  filter(!is.na(post_attribution_date)) %>%
+  mutate(action_time = hour(post_attribution_date),
+         action_type = "post") %>% #unsuccessful vs. successful reportback? 
+  rename(source = post_source) %>%
+  select(northstar_id, action_type, action_time, source)
+
+# campaign_signup_common <-
+# campaign1 %>%
+# filter(!is.na(campaign1$signup_created_at)) %>%
+# mutate(action_time = 1,
+# action_type = "signup") %>%
+# rename(source = signup_source) %>%
+# select(northstar_id, action_type, action_time, source)
+
+# campaign_post_common <- 
+#   campaign1 %>%
+#   filter(!is.na(post_attribution_date)) %>%
+#   mutate(action_time = 2,
+#          action_type = "post") %>%
+#   rename(source = post_source) %>%
+#   select(northstar_id, action_type, action_time, source)
+
+# email 
+email_common <- 
+  email1 %>% 
+  mutate(action_time = hour(timestamp),
+         source = "email") %>%
+  rename(source = event_type,
+         action_type = event_type) %>%
+  select(northstar_id, action_type, action_time, source)
+  
+common_four <-
+  bind_rows(mel_common, 
+            phoenix_common, 
+            campaign_post_common, 
+            campaign_signup_common,
+            email_common)
+
+common_four <- dcast(common_samp, northstar_id ~ c(action_type, action_time, source)) # to be joined with users 
+
+# common_samp <-
+#   bind_rows(head(mel_common, 100),
+#             head(phoenix_common, 10000),
+#             head(campaign_post_common, 10000),
+#             head(campaign_signup_common, 10000),
+#             head(email_common, 10000))
+
+```
+
+## update individual datasets 
+### all information from email & MEL are incorporated into common_four
+
+```{r}
+# campaign_id's 
+campaign_scrubbed$campaign_id <- paste("cid", campaign1$campaign_id, sep = "-")
+phoenix_scrubbed$campaign_id <- paste("cid", phoenix_scrubbed$campaign_id, sep = "-")
+
+bind_rows(campaign_campaign, phoenix_campaign)
+
+```
+
+
+```{r}
+# phoenix data variables (use phoenix_scrubbed or the most uptodate name)
+
+phoenix_select <-
+  phoenix1 %>% 
+  select(northstar_id, campaign_id, page_utm_medium, parent_source, browser_size) #need to review with Sohaib re: variables (what's important)
+
+phoenix_four <- dcast(common_samp, northstar_id ~ c(action_type, action_time, source))
+
+```
+
+
+# Descriptive Stats 
+
+```{r}
+#gender 
+
+gender_freq <- 
+  users1 %>%
+  group_by(gender) %>% 
+  summarize(freq = n()) %>%
+  mutate(perc = freq / sum(freq))
+
+ggplot(gender_freq, aes(x = gender, y = freq, fill = gender, label = perc)) +
+  geom_bar(stat = "identity") + 
+  geom_text(size = 4, position = position_stack(vjust = 0.7))
+
+# age 
+summary(age_freq)
+
+age_freq <- 
+  users1 %>% 
+  group_by(age) %>%
+  summarise(freq = n()) %>%
+  mutate(perc = freq / sum(freq) * 100)
+
+ggplot(age_freq, aes(x = age, y = freq)) +
+  geom_bar(stat = "identity") +
+  xlim(18, 40)
+```
+
+```{r}
+# how many were active this year? 
+
+activity <- 
+  users1 %>%
+  mutate(year_active = year(last_accessed),
+            month_active = month(last_accessed)) %>%
+  filter(year_active == year(Sys.Date()) %>% 
+  select(year_active, month_active) %>% 
+  gather(`year_active`, `month_active`, key = "active_period", value = length()) %>%
+  rename(cont = "length()") %>%
+  group_by(cont) %>%
+  tally
+```
+
+```{r}
+# how many members were active this month?
+  mel1 %>%
+  mutate(year_active = year(timestamp),
+         month_active = month(timestamp)) %>%
+  filter(year_active == year(Sys.Date()) & month_active == month(Sys.Date())) %>% 
+  select(northstar_id, month_active) %>% 
+  gather(`month_active`, key = "active_month", value = length()) %>%
+  rename(month = "length()") %>%
+  summarise(n_distinct(northstar_id))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
