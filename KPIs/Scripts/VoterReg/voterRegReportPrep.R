@@ -186,8 +186,19 @@ MoM.Source <-
   melt(id.var=c('dayOfMonth','month','source')) %>%
   mutate(month = as.factor(month))
 
-# By Week and source
+# By Quarter and Source
 
+QoQ <-
+  vr %>%
+  mutate(
+    date=as.Date(created_at),
+    quarter=quarter(created_at)
+    ) %>%
+  filter(date>'2017-09-27') %>%
+  group_by(quarter, source) %>%
+  summarise(
+    reg=length(which(grepl('register', ds_vr_status)))
+  )
 
 
 # Excel output
