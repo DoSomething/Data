@@ -30,6 +30,7 @@ CREATE MATERIALIZED VIEW public.users AS
 		u.created_at,
 		umax.max_last_auth AS last_logged_in,
 		umax.max_last_access AS last_accessed,
+		umax.max_last_message AS last_messaged_at,
 		u.drupal_id AS drupal_uid,
 		u."source",
 		u.email,
@@ -41,6 +42,7 @@ CREATE MATERIALIZED VIEW public.users AS
 			THEN NULL ELSE u.birthdate END AS birthdate,
 		u.first_name,
 		u.last_name,
+		u.voter_registration_status,
 		u.addr_street1 AS address_street_1,
 		u.addr_street2 AS address_street_2,
 		u.addr_city AS city,
@@ -63,7 +65,8 @@ CREATE MATERIALIZED VIEW public.users AS
 			utemp.id,
 			max(utemp.updated_at) AS max_update,
 			max(utemp.last_accessed_at) AS max_last_access,
-			max(utemp.last_authenticated_at) AS max_last_auth
+			max(utemp.last_authenticated_at) AS max_last_auth,
+			max(utemp.last_messaged_at) AS max_last_message
 		FROM northstar.users utemp
 		GROUP BY utemp.id) umax ON umax.id = u.id AND umax.max_update = u.updated_at
 	LEFT JOIN public.cio_latest_status email_status ON email_status.customer_id = u.id
