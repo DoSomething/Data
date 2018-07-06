@@ -42,6 +42,20 @@ SELECT
 FROM phoenix_events p
 WHERE p.northstar_id IS NOT NULL 
 
+SELECT 
+	northstar_id,
+	event_datetime,
+	event_name,
+	event_source,
+	campaign_id,
+	page_utm_medium,
+	parent_source,
+	browser_size
+FROM phoenix_events
+WHERE northstar_id IS NOT NULL 
+	AND event_name IN ('view', 'visit', 'open modal')
+LIMIT 30
+
 
 -- CAMPAIGN_ACTIVITY 
 
@@ -93,8 +107,26 @@ SELECT
 FROM member_event_log m
 WHERE m.northstar_id IS NOT NULL 
 
-SELECT *
-FROM campaign_activity
-LIMIT 30
+-- SMS 
+
+SELECT 
+	northstar_id,
+	click_time AS SMS_time,
+	'SMS message' AS action_type
+FROM bertly_clicks
+WHERE northstar_id IS NOT NULL
+UNION ALL 
+	SELECT 
+		id AS northstar_id,
+		last_messaged_at AS SMS_time,
+		'SMS link click' AS action_type
+	FROM northstar.users 
+	WHERE id IS NOT NULL 
+		AND last_messaged_at IS NOT NULL 
+
+
+
+
+
 
 
