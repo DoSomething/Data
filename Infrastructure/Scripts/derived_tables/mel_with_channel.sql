@@ -1,3 +1,5 @@
+DROP MATERIALIZED VIEW IF EXISTS public.member_event_log; 
+CREATE MATERIALIZED VIEW public.member_event_log AS 
     SELECT -- CAMPAIGN SIGNUP WITH CHANNEL
         DISTINCT s.northstar_id AS northstar_id,
         s.created_at AS "timestamp",
@@ -99,3 +101,79 @@ UNION ALL
                 min(u_create.created_at) AS created_at
         FROM northstar.users u_create
         GROUP BY u_create.id) u
+UNION ALL 
+    SELECT -- LAST MESSAGED SMS 
+        DISTINCT u.id AS northstar_id,
+        u.last_messaged_at AS "timestamp",
+        'messaged_gambit' AS "action", 
+        '6' AS action_id,
+        'SMS' AS "source",
+        '0' AS action_serial_id,
+        'sms' AS "channel"
+    FROM
+        northstar.users u
+    WHERE u.last_messaged_at IS NOT NULL
+UNION ALL 
+        SELECT -- CLICKED EMAIL LINK 
+            DISTINCT cio.customer_id AS northstar_id,
+            cio."timestamp" AS "timestamp",
+            'clicked_link' AS "action",
+            '7' AS action_id,
+            cio.template_id::CHARACTER AS "source",
+            cio.event_id AS action_serial_id, 
+            'email' AS "channel"
+        FROM
+            cio.email_event cio
+        WHERE 
+            cio.event_type = 'email_clicked'
+UNION ALL
+    SELECT -- VOTER REGISTRATIONS
+        DISTINCT tv.nsid AS northstar_id,
+        tv.created_at AS "timestamp",
+        'registered' AS "action",
+        '8' AS action_id,
+        tv.source_details AS "source",
+        '0' as action_serial_id,
+        (CASE WHEN tv.source = 'email' THEN 'email'
+        WHEN tv.source = 'web' OR tv.source = 'ads' THEN 'web'
+        WHEN tv.source = 'sms' THEN 'sms'
+        WHEN tv.source NOT IN ('email', 'sms', 'ads', 'web') THEN 'other' END) AS "channel"
+    FROM
+        public.turbovote_file tv
+    WHERE
+        tv.ds_vr_status IN ('register-form', 'confirmed', 'register-OVR')
+    AND 
+        tv.nsid IS NOT NULL AND tv.nsid <> ''
+UNION ALL 
+    SELECT -- FACEBOOK SHARES FROM PHOENIX-NEXT
+        DISTINCT pe.northstar_id AS northstar_id,
+        to_timestamp(pe.ts /1000) AS "timestamp",
+        'facebook share completed' AS "action",
+        '9' AS action_id,
+        pe.event_source AS "source",
+        pe.event_id AS action_serial_id,
+        'web' AS "channel"
+    FROM 
+        public.phoenix_events pe
+    WHERE 
+        pe.event_name IN ('share action completed', 'facebook share posted')
+    AND pe.northstar_id IS NOT NULL
+    AND pe.northstar_id <> ''
+UNION ALL 
+    SELECT DISTINCT -- SMS LINK CLICKS FROM BERTLY -- is bertly still only used for sms links? 
+        b.northstar_id AS northstar_id,
+        b.click_time AS "timestamp",
+        'sms_link_click' AS "action",
+        '10' AS action_id,
+        'bertly' AS "source",
+        b.click_id AS action_serial_id,
+        'sms' AS "channel"
+    FROM public.bertly_clicks b 
+    WHERE b.northstar_id IS NOT NULL
+      ) AS a 
+    ); 
+CREATE INDEX ON public.member_event_log (event_id, northstar_id, "timestamp", action_serial_id);
+GRANT SELECT ON public.member_event_log TO looker;
+GRANT SELECT ON public.member_event_log TO jjensen;
+GRANT SELECT ON public.member_event_log TO jli;
+GRANT SELECT ON public.member_event_log TO shasan;
