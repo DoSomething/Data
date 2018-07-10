@@ -159,6 +159,7 @@ UNION ALL
         pe.event_name IN ('share action completed', 'facebook share posted')
     AND pe.northstar_id IS NOT NULL
     AND pe.northstar_id <> ''
+    AND character_length(pe.northstar_id) = 24
 UNION ALL 
     SELECT DISTINCT -- SMS LINK CLICKS FROM BERTLY -- is bertly still only used for sms links? 
         b.northstar_id AS northstar_id,
