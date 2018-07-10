@@ -14,33 +14,14 @@ replace_na_numeric <- function(data) {
   return(data)
 }
 
-# replace all other NAs in non-numeric columns with "unknown"
-replace_na_else <- function(data) {
-  non_num_cols <- sapply(data, negate(is.numeric))
-  data[, non_num_cols] <- 
-    apply(data[, non_num_cols], 2, function(x){replace(x, is.na(x), "unknown")})
-  
-  return(data)
-}
-
-
-
 ################## Predicted Feature #########################
 
-predicted <- function(users, turbovote) {
-  users <- 
+predicted <- function(users) {
+  predicted_col <- 
     users %>%
-    select(northstar_id, voter_registration_status) %>%
-    rename(voter_reg_status = voter_registration_status)
-  turbo <- 
-    turbovote %>% 
-    select(northstar_id, ds_vr_status) %>%
-    rename(voter_reg_status = ds_vr_status)
-  predicted <- 
-    bind_rows(users, turbo) %>% 
-    distinct()
+    select(northstar_id, voter_registration_status)
   
-  return(predicted)
+  return(predicted_col)
 }
 
 ################## Feature Extraction #######################
@@ -59,7 +40,6 @@ gender_feature <- function(users) {
     users %>% 
     left_join(gender, by = "first_name") %>%
     select(northstar_id, gender)
-  gender_col$gender <- as.factor(gender_col$gender)
   
   return(gender_col)
 }
@@ -146,49 +126,22 @@ total_actions_feature <- function(phoenix, campaign, email, sms) {
 
 ######################### Pre-processing ########################
 
-# removing nzv variables - returns list: 
-# 1) table with metrics of variance & near zero variance (nzv) and 
-# 2) dataframe that has eliminated nzv variables  
+# removing near zero-variance variables 
+
+nzv <- nearZeroVar(df, saveMetrics = T)
+nzv # if nzv holds true, consider eliminating 
+
+nzv2 <- nearZeroVar(df)
+
+filtered_df <- df[, -nzv2]
+
 
 remove_nzv <- function(x) {
-  nzv <- nearZeroVar(x, saveMetrics = TRUE)
-  nzv2 <- nearZeroVar(x, names = TRUE)
-  nzv2 <- nzv2[!nzv2 %in% "voter_reg_status"] # voter_reg_status = nzv 
-  filtered_df <- select(x, -nzv2)
-
-  newlist <- list(nzv, filtered_df)
+  nzv <- nearZeroVar(x)
+  filtered_df <- x[, -nzv]
   
-  return(newlist)
+  return(filtered_df)
 }
-
-# removing correlation variables- returns list:
-# 1) correlation matrix 
-# 2) names of highly correlated variables 
-# 3) dataframe htat has eliminated highly correlated variables
-
-remove_highcor <- function(x) {
-  numeric_only <- 
-    x %>%
-    select_if(is.numeric) # selects only numeric variables for correlation matrix 
-  df_corr <- cor(numeric_only) # correlation matrix 
-  high_corr <- findCorrelation(df_corr, cutoff = .75, names = TRUE) # spits out variables above the cutoff 
-  df_filtered <- df_filtered[!df_filtered %in% high_corr]
-  
-  newlist <- list(df_corr, high_corr, df_filtered)
-  
-  return(newlist) # returns list with corr matrix, names of highly corr variables, and data frame without them
-}
-
-
-
-
-
-
-
-
-
-
-
 
 
 
