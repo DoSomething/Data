@@ -41,7 +41,7 @@ for (i in 1:nrow(qres)) {
       source_details = rep(
         case_when(
           row$campaign_run_id=='8103' ~ 'school_the_vote',
-          row$campaign_run_id=='8130' ~ 'red_white_booth',
+          row$campaign_run_id %in% c('8130','8151') ~ 'red_white_booth',
           row$campaign_run_id=='8120' ~ 'community_partner',
           TRUE ~ ''
         ),
@@ -50,7 +50,7 @@ for (i in 1:nrow(qres)) {
       details = rep(
         case_when(
           row$campaign_run_id=='8103' ~ 'school_the_vote',
-          row$campaign_run_id=='8130' ~ 'red_white_booth',
+          row$campaign_run_id %in% c('8130','8151') ~ 'red_white_booth',
           row$campaign_run_id=='8120' ~ 'community_partner',
           TRUE ~ ''
         ),
