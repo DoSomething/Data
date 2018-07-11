@@ -11,7 +11,7 @@ sumIf <- function(x) {
 leg <- 'Confirmed: Self-Reported (RB); Unknown: Dropped Off; Register: Voter Registration'
 ggplot(fileSource, aes(x="", y=n, fill=file)) + 
   geom_bar(stat='identity', width=1) + 
-  geom_text(aes(x="",y=pos, label = n), size=5) + 
+  geom_text(aes(label = n), position=position_stack(vjust=.5),size=5) + 
   coord_polar("y", start=0) +
   theme_minimal() +
   scale_fill_brewer(palette = 'Set2') +
@@ -33,11 +33,22 @@ ggplot(MoM, aes(x=dayOfMonth, value)) +
   theme(plot.title = element_text(hjust=.5))
 ```
 
+#### Quarter over Quarter Pacing
+
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+ggplot(QoQ, aes(x=dayOfQuarter, value)) +
+  geom_line(aes(color=quarter)) + 
+  labs(title='Voters Registered Quarter over Quarter', x='Day of Quarter', y='Voters Registered') +
+  theme(plot.title = element_text(hjust=.5)) +
+  scale_x_continuous(breaks=pretty_breaks(10)) + 
+  scale_y_continuous(breaks=pretty_breaks(10))
+```
+
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=9}
-ggplot(MoM.Source, aes(x=dayOfMonth, value)) +
-  geom_line(aes(color=month)) + 
+ggplot(QoQ.Source, aes(x=dayOfQuarter, value)) +
+  geom_line(aes(color=quarter)) + 
   facet_wrap(~source) +
-  labs(title='Voters Registered Month over Month by Source', x='Day of Month', y='Voters Registered') +
+  labs(title='Voters Registered Quarter over Quarter by Source', x='Day of Quarter', y='Voters Registered') +
   theme(plot.title = element_text(hjust=.5))
 ```
 

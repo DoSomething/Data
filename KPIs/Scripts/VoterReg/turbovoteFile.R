@@ -121,8 +121,12 @@ processReferralColumn <- function(dat) {
         source == 'sms_share' ~ 'sms',
         grepl('niche', source_details) ~ 'partner',
         source_details %in% c('twitter','facebook') ~ 'social',
-        source_details == '11_facts' | source == 'dosomething' ~ 'web',
-        is.na(source) | source=='{source}' | source=='{source' ~ 'no_attribution',
+        source_details == '11_facts' |
+          source == 'dosomething'  |
+          grepl('referral=true', referral_code) ~ 'web',
+        is.na(source) |
+          source=='{source}' |
+          source=='{source' ~ 'no_attribution',
         TRUE ~ source
       ),
       source_details = case_when(
@@ -234,6 +238,7 @@ prepData <- function(...) {
     mutate(
       details = case_when(
         newsletter != '' & !is.na(newsletter) ~ category,
+        grepl('referral=true', referral_code) ~ 'referral',
         TRUE ~ details
       ),
       file = 'TurboVote'
