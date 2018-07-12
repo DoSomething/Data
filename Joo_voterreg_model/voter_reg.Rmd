@@ -7,9 +7,8 @@ output: html_document
 
 ```{r, quietly=TRUE}
 source('config/init.R')
-source('config/mySQLConfig.R')
 source('config/pgConnect.R')
-source('config/voter_regfunctions.R') # why is this not pulling? 
+source('config/voter_regfunctions.R') # all functions are here
 pg <- pgConnect()
 
 packages.used <- c("glue", "lubridate", "ggplot2", "caret", "reshape2", "dplyr", "randomForest")
@@ -74,6 +73,18 @@ WHERE northstar_id IS NOT NULL
 
 phoenix <- runQuery(phoenix_query)
 
+# member_event_log dataset 
+
+mel_query <- "SELECT 
+	m.northstar_id,
+	m.timestamp,
+	m.action_type,
+	m.SOURCE
+FROM member_event_log m
+WHERE m.northstar_id IS NOT NULL"
+
+mel <- runQuery(mel_query)
+
 # campaign_activity dataset 
 
 ca_query <- "SELECT c.northstar_id,
@@ -135,30 +146,28 @@ FROM turbovote_file
 WHERE nsid IS NOT null"
 
 turbo <- runQuery(turbo_query)  
-
-
 ```
 
 # Save as R data files 
 
 ```{r}
-saveRDS(users, "users.rds")
-saveRDS(phoenix, "phoenix.rds")
-saveRDS(campaign, "campaign.rds")
-saveRDS(email, "email.rds")
-saveRDS(sms, "sms.rds")
-saveRDS(turbo, "turbo.rds")
+saveRDS(users, "Rdata/users.rds")
+saveRDS(phoenix, "Rdata/phoenix.rds")
+saveRDS(campaign, "Rdata/campaign.rds")
+saveRDS(email, "Rdata/email.rds")
+saveRDS(sms, "Rdata/sms.rds")
+saveRDS(turbo, "Rdata/turbo.rds")
 ```
 
 # Load R data files 
 
 ```{r}
-users <- readRDS("users.rds")
-phoenix <- readRDS("phoenix.rds")
-campaign <- readRDS("campaign.rds")
-email <- readRDS("email.rds")
-sms <- readRDS("sms.rds")
-turbo <- readRDS("turbo.rds")
+users <- readRDS("Rdata/users.rds")
+phoenix <- readRDS("Rdata/phoenix.rds")
+campaign <- readRDS("Rdata/campaign.rds")
+email <- readRDS("Rdata/email.rds")
+sms <- readRDS("Rdata/sms.rds")
+turbo <- readRDS("Rdata/turbo.rds")
 ```
 
 
@@ -168,7 +177,7 @@ turbo <- readRDS("turbo.rds")
 
 ```{r}
 # only keep rows whose age < 18, in US, and members in relevant datasets. 
-#(y should be public.users data).
+# (y should be public.users data or any other membership data).
 
 phoenix1 <- remove18(phoenix, users)
 campaign1 <- remove18(campaign, users)
@@ -182,13 +191,11 @@ users1 <- users
 ## Extracting predicted feature (voter registration status)
 
 ```{r}
-# this code will soon become obsolete as Jen leading sprint to combine for all columns 
-reg_status <- predicted(users1, turbo1) # why do I have to source this every time??? 
+# this code will soon become obsolete as Jen is leading the sprint to combine for all columns 
+reg_status <- predicted(users1, turbo1)
 reg_status$voter_reg_status[reg_status$voter_reg_status == "register-form"] <- "registration_complete"
 reg_status$voter_reg_status[reg_status$voter_reg_status == "register-OVR"] <- "registration_complete"
-table(reg_status$voter_reg_status) # number still different from weekly report... 
-
-21154 - 4016
+table(reg_status$voter_reg_status)
 ```
 
 
@@ -200,6 +207,9 @@ gender <- gender_feature(users1)
 
 # age feature 
 age <- age_feature(users1)
+
+# SES feature 
+ses <- ses_feature(users1)
 ```
 
 
@@ -217,6 +227,8 @@ browser_size <- browser_size_feature(phoenix1)
 
 # returns number of total actions per northstar_id 
 total_action <- total_actions_feature(phoenix1, campaign1, email1, sms1)
+
+
 ```
 
 # Create a dataset with desired features 
@@ -240,15 +252,12 @@ df <- replace_na_else(df) # replace NAs in non-numeric columns with "unknown"
 (zero-variance variables are variables that have only a handful of unique values that occur with very low frequency - may need to be eliminated prior to modeling for fit to be stable)
 
 ```{r}
-source('config/voter_regfunctions.R')
-
-# not pulling correctly 
 df_list <- remove_nzv(df) 
 
 df_filtered <- df_list[[2]] # keeps only the dataframe
 ```
 
-## Identifying correlated predictors (NEED TO DO)
+## Identify & eliminate highly correlated predictors
 
 ```{r}
 df_list2 <- remove_highcor(df_filtered)
@@ -256,7 +265,7 @@ df_list2 <- remove_highcor(df_filtered)
 df_filtered <- df_list2[[3]] # keeps only the dataframe
 ```
 
-# Splitting into training & testing
+# Split into training & testing
 
 ## Confirmed vs. Unregistered 
 ### 1. Divide into training and testing 
@@ -268,7 +277,10 @@ df_selfreport <-
   df_filtered %>% 
   filter(voter_reg_status %in% c("confirmed", "unregistered"))
 
-df_selfreport$voter_reg_status <- as.factor(df_selfreport$voter_reg_status) # changing from character to factor variables after we've subsetted desired voter_reg_status values
+df_selfreport$voter_reg_status <- # factor to only include the selected levels 
+  factor(df_selfreport$voter_reg_status, 
+       levels = c("confirmed", "unregistered"),
+       labels = c("confirmed", "unregistered"))
 
 in_train <- createDataPartition(y = df_selfreport$voter_reg_status, p = 3 / 4, list = FALSE)
 training <- df_selfreport[in_train, ]
@@ -278,8 +290,9 @@ testing  <- df_selfreport[-in_train, ]
 The dataset is unbalanced because there are more "confirmed" than "unregistered" folks, which would bias the model into favoring predictions for those who are confirmed. I will use the caret upsample function to increase the "unregistered" values, with replacement. (May use SMOTE with larger data)
 
 ```{r}
-up_train <- upSample(x = training[, -c("voter_reg_status")],
-                     y = training$voter_reg_status)
+up_train <- upSample(x = select(training, -c(voter_reg_status, northstar_id)),
+                     y = training$voter_reg_status,
+                     yname = "voter_reg_status")
 ```
 
 Centering and scaling data ensures that some features do not dominate the algorithm AND and the features are unit-independent. 
@@ -299,44 +312,41 @@ ctrl <- trainControl(method = "cv",
                      classProbs = TRUE)
 ```
 
-Basic logistic regression to start 
+
+## Random Forest
 
 ```{r}
-logit <- glm(left ~ ., data = training, family = binomial)
-y_hat_logit <- predict(logit, newdata = testing, type = "response")
-z_logit <- as.integer(y_hat_logit > 0.5) 
-table_logit <- table(testing$left, z_logit)
-sum(diag(table_logit)) / sum(table_logit)
-
-train_transformed
-
-logit <- glm(Class ~ . - northstar_id - voter_reg_status, data = train_transformed, family = binomial)
-```
-
-```{r}
-rf_fit <- train(Class ~ . - northstar_id - voter_reg_status, 
+rf_fit <- train(voter_reg_status ~ ., 
                 data = train_transformed,
                 method = "rf",
                 trControl = ctrl,
-                metric = "Accuracy",
+                metric = "Kappa", #?
                 verbose = FALSE)
 rf_fit
-rf_fit$bestTune
 
-rf_model <- randomForest(voter_reg_status ~ . - northstar_id - voter_reg_status,
+rf_model <- randomForest(voter_reg_status ~ .,
              data = train_transformed,
-             mtry = 2, 
+             mtry = 5, # why sampling 6?
              importance = TRUE)
-
-rf_model$
+rf_model
 
 yhat_rf <- predict(rf_model, 
-                   newdata = test2, 
+                   newdata = test_transformed, 
                    type = "class")
-table_rf <- table(testing$left, yhat_rf)
-sum(diag(table_rf)) / sum(table_rf) 
-```
 
+table_rf <- table(test_transformed$voter_reg_status, yhat_rf)
+
+# simple accuracy 
+sum(diag(table_rf)) / sum(table_rf) 
+
+# AUC (true positive rate vs. false positive rate)
+test1 <- test_transformed
+test1$voter_reg_status <- ifelse(test1$voter_reg_status == "confirmed", 1, 0)
+yhat_rf1 <- yhat_rf
+yhat_rf1 <- ifelse(yhat_rf1 == "confirmed", 1, 0)
+roc_obj <- roc(test1$voter_reg_status, yhat_rf1)
+auc(roc_obj)
+```
 
 # Descriptive Stats 
 

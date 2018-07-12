@@ -1,8 +1,13 @@
+library(caret)
+
 ################## Initial Data Wrangling #######################
 
 # remove northstar_ids that are under 18, do not live in the US, and are unsubscribed
 remove18 <- function(x, y) {
-  x %>% semi_join(y, by = "northstar_id")
+  output <- x %>% semi_join(y, by = "northstar_id") 
+  # semi_join returns all rows from x where there are matching values in y, keeping just columns from x
+  
+  return(output)
 }
 
 # replace all NAs in numeric columns with 0's
@@ -14,14 +19,33 @@ replace_na_numeric <- function(data) {
   return(data)
 }
 
+# replace all other NAs in non-numeric columns (except northstar_id) with "unknown"
+replace_na_else <- function(data) {
+  non_num_cols <- sapply(data, negate(is.numeric))
+  non_num_cols["northstar_id"] <- FALSE
+  data[, non_num_cols] <- 
+    apply(data[, non_num_cols], 2, function(x){replace(x, is.na(x), "Unknown")})
+  data[, non_num_cols] <- lapply(data[, non_num_cols], factor)
+  
+  return(data)
+}
+
 ################## Predicted Feature #########################
 
-predicted <- function(users) {
-  predicted_col <- 
+predicted <- function(users, turbovote) {
+  users <- 
     users %>%
-    select(northstar_id, voter_registration_status)
+    select(northstar_id, voter_registration_status) %>%
+    rename(voter_reg_status = voter_registration_status)
+  turbo <- 
+    turbovote %>% 
+    select(northstar_id, ds_vr_status) %>%
+    rename(voter_reg_status = ds_vr_status)
+  predicted <- 
+    bind_rows(users, turbo) %>% 
+    distinct()
   
-  return(predicted_col)
+  return(predicted)
 }
 
 ################## Feature Extraction #######################
@@ -52,6 +76,17 @@ age_feature <- function(users) {
     select(northstar_id, age)
   
   return(age_col)
+}
+
+# SES feature 
+ses_feature <- function(users) {
+  ses_list <- read.csv("zipcode_ses.csv")
+  users$zipcode <- as.integer(users$zipcode)
+  ses_col <- 
+    users %>% 
+    left_join(ses_list, by = "zipcode") %>%
+    select(northstar_id, socioeconomic_status) %>%
+    rename(ses_status = socioeconomic_status)
 }
 
 # returns columns of email clicked, converted, opened, and unsubscribed per northstar_id 
@@ -89,7 +124,10 @@ browser_size_feature <- function(phoenix) {
     select(northstar_id, browser_size) %>%
     group_by(northstar_id, browser_size) %>% 
     tally %>%
-    spread(key = browser_size, value = n, fill = 0)
+    spread(key = browser_size, value = n, fill = 0) %>%
+    rename(browser_large = large,
+           browser_medium = medium,
+           browser_small = small)
   
   return(browser_col)
 }
@@ -126,24 +164,38 @@ total_actions_feature <- function(phoenix, campaign, email, sms) {
 
 ######################### Pre-processing ########################
 
-# removing near zero-variance variables 
-
-nzv <- nearZeroVar(df, saveMetrics = T)
-nzv # if nzv holds true, consider eliminating 
-
-nzv2 <- nearZeroVar(df)
-
-filtered_df <- df[, -nzv2]
-
+# removing nzv variables - returns list: 
+# 1) table with metrics of variance & near zero variance (nzv) and 
+# 2) dataframe that has eliminated nzv variables  
 
 remove_nzv <- function(x) {
-  nzv <- nearZeroVar(x)
-  filtered_df <- x[, -nzv]
+  nzv <- nearZeroVar(x, saveMetrics = TRUE)
+  nzv2 <- nearZeroVar(x, names = TRUE)
+  nzv2 <- nzv2[!nzv2 %in% "voter_reg_status"] # voter_reg_status = nzv 
+  filtered_df <- select(x, -nzv2)
   
-  return(filtered_df)
+  newlist <- list(nzv, filtered_df)
+  
+  return(newlist)
 }
 
+# removing correlation variables- returns list:
+# 1) correlation matrix 
+# 2) names of highly correlated variables 
+# 3) dataframe htat has eliminated highly correlated variables
 
+remove_highcor <- function(x) {
+  numeric_only <- 
+    x %>%
+    select_if(is.numeric) # selects only numeric variables for correlation matrix 
+  df_corr <- cor(numeric_only) # correlation matrix 
+  high_corr <- findCorrelation(df_corr, cutoff = .75, names = TRUE) # spits out variables above the cutoff 
+  df_filtered <- df_filtered[!df_filtered %in% high_corr]
+  
+  newlist <- list(df_corr, high_corr, df_filtered)
+  
+  return(newlist) # returns list with corr matrix, names of highly corr variables, and data frame without them
+}
 
 
 
