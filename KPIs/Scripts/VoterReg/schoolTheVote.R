@@ -18,8 +18,8 @@ q <-
     AND c.signup_created_at>='2018-05-01'
     AND c.post_id IS NOT NULL
     AND (
-      (c.campaign_id = '822' AND c.post_status='accepted')
-      OR (c.campaign_id IN ('8129','8119') AND c.post_status <> 'rejected')
+      (c.campaign_id IN ('822','8129') AND c.post_status='accepted')
+      OR (c.campaign_id IN ('8119') AND c.post_status <> 'rejected')
     )
     ;",
     .con = pg
@@ -41,7 +41,7 @@ for (i in 1:nrow(qres)) {
       source_details = rep(
         case_when(
           row$campaign_run_id=='8103' ~ 'school_the_vote',
-          row$campaign_run_id=='8130' ~ 'red_white_booth',
+          row$campaign_run_id %in% c('8130','8151') ~ 'red_white_booth',
           row$campaign_run_id=='8120' ~ 'community_partner',
           TRUE ~ ''
         ),
@@ -50,7 +50,7 @@ for (i in 1:nrow(qres)) {
       details = rep(
         case_when(
           row$campaign_run_id=='8103' ~ 'school_the_vote',
-          row$campaign_run_id=='8130' ~ 'red_white_booth',
+          row$campaign_run_id %in% c('8130','8151') ~ 'red_white_booth',
           row$campaign_run_id=='8120' ~ 'community_partner',
           TRUE ~ ''
         ),

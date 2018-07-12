@@ -77,8 +77,11 @@ processTrackingSource <- function(dat) {
         ),
       source =
         case_when(
+          grepl('ads',tolower(A)) ~ 'ads',
+          grepl('email',tolower(A)) ~ 'email',
           grepl('source:',tolower(C)) ~ gsub(".*:",'',C),
           grepl('source:',tolower(D)) ~ gsub(".*:",'',D),
+          grepl('source=',tolower(D)) ~ gsub(".*=",'',D),
           TRUE ~ 'no_attribution'
         ),
       source_details =
@@ -92,6 +95,7 @@ processTrackingSource <- function(dat) {
                ifelse(campaign_id=='' & campaign_run_id=='8022', '8017', campaign_id)),
       source = case_when(
         source == 'sms_share' ~ 'sms',
+        grepl('referral=true', tracking_source) ~ 'web',
         grepl('niche', source_details) ~ 'partner',
         TRUE ~ source
         ),
@@ -153,9 +157,12 @@ addRTVFields <- function(dat) {
           TRUE ~ ''
         )
       ,
-      reportback.record = ifelse(
+      reportback.record = case_when(
         ds_vr_status.record %in%
-          c('confirmed','register-form','register-OVR'), T, F
+          c('confirmed','register-form','register-OVR') ~ 1,
+        ds_vr_status.record %in%
+          c('uncertain','ineligible') ~ 0,
+        TRUE ~ NA_real_
       ),
       created_at = as.POSIXct(started_registration,tz="UTC"),
       month = month(created_at),
@@ -181,8 +188,8 @@ addRTVFields <- function(dat) {
           TRUE ~ ''
         ),
       reportback =
-        ifelse(nsid=='', reportback.record,
-               ifelse(max(reportback.record==T), T, F))
+        as.logical(ifelse(nsid=='', reportback.record,
+               ifelse(max(reportback.record==1), 1, 0)))
       ,
       created_at =
         as.POSIXct(ifelse(nsid=='', created_at, max(created_at)), origin='1970-01-01')
@@ -244,6 +251,7 @@ prepData <- function(...) {
     mutate(
       details = case_when(
         newsletter != '' & !is.na(newsletter) ~ category,
+        grepl('referral=true', referral_code) ~ 'referral',
         TRUE ~ details
       ),
       file = 'RockTheVote'

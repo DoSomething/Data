@@ -103,10 +103,10 @@ CREATE MATERIALIZED VIEW public.campaign_activity AS
 	        		 THEN 'voter-reg - ground'
 	        		 ELSE CONCAT(b."type", ' - ', b."action") END AS post_class,
 	        	CASE WHEN b.id IS NULL THEN NULL
-	        		 WHEN (a.campaign_id = '822' 
+	        		 WHEN (a.campaign_id IN ('822','8129') 
 	        		 AND a.created_at >= '2018-05-01' 
 	        		 AND b.status = 'accepted') 
-	        		 OR (a.campaign_id IN ('8119','8129')) 
+	        		 OR (a.campaign_id IN ('8119') AND b.status <> 'rejected') 
 	        		 THEN b.quantity
 	        		 ELSE 1 END AS reportback_volume,
 	        b.status AS post_status,
