@@ -95,6 +95,7 @@ processTrackingSource <- function(dat) {
                ifelse(campaign_id=='' & campaign_run_id=='8022', '8017', campaign_id)),
       source = case_when(
         source == 'sms_share' ~ 'sms',
+        grepl('referral=true', tracking_source) ~ 'web',
         grepl('niche', source_details) ~ 'partner',
         TRUE ~ source
         ),
@@ -250,6 +251,7 @@ prepData <- function(...) {
     mutate(
       details = case_when(
         newsletter != '' & !is.na(newsletter) ~ category,
+        grepl('referral=true', referral_code) ~ 'referral',
         TRUE ~ details
       ),
       file = 'RockTheVote'
