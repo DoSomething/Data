@@ -1,5 +1,15 @@
 DROP MATERIALIZED VIEW IF EXISTS public.member_event_log; 
 CREATE MATERIALIZED VIEW public.member_event_log AS 
+(SELECT
+    MD5(concat(a.northstar_id, a."timestamp", a.action_id, a.action_serial_id)) AS event_id,
+    a.northstar_id AS northstar_id,
+    a."timestamp" AS "timestamp",
+    a."action" AS action_type,
+    a.action_id AS action_id,
+    a."source" AS "source",
+    a.action_serial_id AS action_serial_id,
+    a.channel AS channel
+FROM ( 
     SELECT -- CAMPAIGN SIGNUP WITH CHANNEL
         DISTINCT s.northstar_id AS northstar_id,
         s.created_at AS "timestamp",
@@ -29,7 +39,7 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
             ON sd.id = s_maxupt.id AND sd.updated_at = s_maxupt.updated_at
         ) s 
     WHERE s.deleted_at IS NULL
-UNION ALL
+    UNION ALL
     SELECT -- CAMPAIGN POSTS WITH CHANNEL
         DISTINCT p.northstar_id AS northstar_id,
         p.created_at AS "timestamp",
@@ -61,7 +71,7 @@ UNION ALL
             ) p
     WHERE p.deleted_at IS NULL
     AND p."type" IS DISTINCT FROM 'voter-reg'
-UNION ALL -- SITE ACCESS
+    UNION ALL -- SITE ACCESS
     SELECT DISTINCT 
         u_access.id AS northstar_id,
         u_access.last_accessed_at AS "timestamp",
@@ -72,7 +82,7 @@ UNION ALL -- SITE ACCESS
         'web' AS channel
     FROM northstar.users u_access
     WHERE u_access.last_accessed_at IS NOT NULL
-UNION ALL -- SITE LOGIN
+    UNION ALL -- SITE LOGIN
     SELECT DISTINCT 
         u_login.id AS northstar_id,
         u_login.last_authenticated_at AS "timestamp",
@@ -83,7 +93,7 @@ UNION ALL -- SITE LOGIN
         'web' AS channel
     FROM northstar.users u_login
     WHERE u_login.last_authenticated_at IS NOT NULL 
-UNION ALL 
+    UNION ALL 
     SELECT -- ACCOUNT CREATION 
         DISTINCT u.id AS northstar_id,
         u.created_at AS "timestamp",
@@ -91,7 +101,7 @@ UNION ALL
         '5' AS action_id,
         u."source" AS "source",
         '0' AS action_serial_id, 
-        (CASE WHERE u."source" ILIKE '%sms%' THEN 'sms'
+        (CASE WHEN u."source" ILIKE '%sms%' THEN 'sms'
         WHEN u."source" NOT LIKE '%sms%' AND u."source" NOT LIKE '%niche%' THEN 'web'
         WHEN u."source" ILIKE '%niche%' THEN 'niche_coregistration' END) AS "channel"
     FROM
@@ -101,7 +111,7 @@ UNION ALL
                 min(u_create.created_at) AS created_at
         FROM northstar.users u_create
         GROUP BY u_create.id) u
-UNION ALL 
+    UNION ALL 
     SELECT -- LAST MESSAGED SMS 
         DISTINCT u.id AS northstar_id,
         u.last_messaged_at AS "timestamp",
@@ -113,7 +123,7 @@ UNION ALL
     FROM
         northstar.users u
     WHERE u.last_messaged_at IS NOT NULL
-UNION ALL 
+    UNION ALL 
         SELECT -- CLICKED EMAIL LINK 
             DISTINCT cio.customer_id AS northstar_id,
             cio."timestamp" AS "timestamp",
@@ -126,7 +136,7 @@ UNION ALL
             cio.email_event cio
         WHERE 
             cio.event_type = 'email_clicked'
-UNION ALL
+    UNION ALL
     SELECT -- VOTER REGISTRATIONS
         DISTINCT tv.nsid AS northstar_id,
         tv.created_at AS "timestamp",
@@ -144,7 +154,7 @@ UNION ALL
         tv.ds_vr_status IN ('register-form', 'confirmed', 'register-OVR')
     AND 
         tv.nsid IS NOT NULL AND tv.nsid <> ''
-UNION ALL 
+    UNION ALL 
     SELECT -- FACEBOOK SHARES FROM PHOENIX-NEXT
         DISTINCT pe.northstar_id AS northstar_id,
         to_timestamp(pe.ts /1000) AS "timestamp",
@@ -159,7 +169,7 @@ UNION ALL
         pe.event_name IN ('share action completed', 'facebook share posted')
     AND pe.northstar_id IS NOT NULL
     AND pe.northstar_id <> ''
-UNION ALL 
+    UNION ALL 
     SELECT DISTINCT -- SMS LINK CLICKS FROM BERTLY -- is bertly still only used for sms links? 
         b.northstar_id AS northstar_id,
         b.click_time AS "timestamp",
