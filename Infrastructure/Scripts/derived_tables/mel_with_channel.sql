@@ -7,7 +7,8 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
     a."action" AS action_type,
     a.action_id AS action_id,
     a."source" AS "source",
-    a.action_serial_id AS action_serial_id
+    a.action_serial_id AS action_serial_id,
+    a.channel AS channel
 FROM ( 
     SELECT -- CAMPAIGN SIGNUP WITH CHANNEL
         DISTINCT s.northstar_id AS northstar_id,
