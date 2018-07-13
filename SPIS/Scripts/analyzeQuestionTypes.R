@@ -268,7 +268,8 @@ getSimpleFrequency <- function(dat, outcome) {
     ggplot(dat, aes_string(x=quo_text(outcome))) +
     geom_bar(stat='count', width = .65, fill='skyblue2') +
     ggtitle(outcome) +
-    theme(plot.title = element_text(hjust = 0.5))
+    theme(plot.title = element_text(hjust = 0.5)) +
+    coord_flip()
 
 }
 
@@ -300,7 +301,8 @@ getGroupedComposition <- function(dat, outcome, pivot) {
       ) +
     theme(plot.title = element_text(hjust = 0.5)) +
     guides(fill=guide_legend(title=quo_text(pivot))) +
-    scale_fill_brewer(palette="Set2")
+    scale_fill_brewer(palette="Set2") +
+    coord_flip()
 
   return(biFreq)
 
@@ -338,7 +340,7 @@ getFacetComposition <- function(dat, outcome, pivot, facet) {
 
 }
 
-stylePickOneList <- function(dat, outcome, pivot, facet) {
+stylePickOneList <- function(dat, outcome, pivot=NULL, facet=NULL) {
 
   outcome <- enquo(outcome)
   pivot <- enquo(pivot)
@@ -349,13 +351,27 @@ stylePickOneList <- function(dat, outcome, pivot, facet) {
     select(!!outcome, !!pivot, !!facet)
 
   simpleFreq <- getSimpleFrequency(thisQuestionSet, outcome)
-  bivarFreq <- getGroupedComposition(thisQuestionSet, outcome, pivot)
-  facetComp <- getFacetComposition(thisQuestionSet, outcome, pivot, facet)
 
-  out <- list(simpleFreq, bivarFreq, facetComp)
-  names(out)[[1]] <- 'Frequency'
-  names(out)[[2]] <- 'Composition'
-  names(out)[[3]] <- 'Facetted'
+  if (!is.null(quo_squash(pivot))) {
+
+    bivarFreq <- getGroupedComposition(thisQuestionSet, outcome, pivot)
+
+    out <- list(simpleFreq, bivarFreq)
+    names(out)[[1]] <- 'Frequency'
+    names(out)[[2]] <- 'Composition'
+
+  }
+
+  if (!is.null(quo_squash(facet))) {
+
+    facetComp <- getFacetComposition(thisQuestionSet, outcome, pivot, facet)
+    out <- list(simpleFreq, bivarFreq, facetComp)
+    names(out)[[1]] <- 'Frequency'
+    names(out)[[2]] <- 'Composition'
+    names(out)[[3]] <- 'Facetted'
+
+  }
+
 
   return(out)
 
