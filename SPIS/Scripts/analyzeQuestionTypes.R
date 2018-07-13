@@ -707,11 +707,12 @@ getNPSBreakdown <- function(dat, nps) {
     geom_vline(xintercept=8.5) +
     geom_vline(xintercept=6.5) +
     theme(plot.title=element_text(hjust=.5)) +
-    scale_x_continuous(breaks=pretty_breaks(10)) +
+    scale_x_continuous(breaks=seq(0,10,1),labels = seq(0,10,1)) +
     scale_y_continuous(breaks=pretty_breaks(10)) +
-    annotate("rect", xmin=-1,xmax=6.5,ymin=0,ymax=150,fill='red',alpha=.2) +
+    annotate("rect", xmin=-.5,xmax=6.5,ymin=0,ymax=150,fill='red',alpha=.2) +
     annotate("rect", xmin=8.5,xmax=10.5,ymin=0,ymax=150,fill='green',alpha=.2)
 
   return(p)
 
 }
+
