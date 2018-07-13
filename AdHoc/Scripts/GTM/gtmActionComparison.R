@@ -7,6 +7,35 @@ pg <- pgConnect()
 
 qres <- runQuery('Scripts/gtm_action_comparison.sql')
 
+# Voter Reg ---------------------------------------------------------------
+
+voterRegGTM <- 
+  qres %>% 
+  filter(!duplicated(northstar_id) & !is.na(voter_registration_status)) %>% 
+  count(did_gtm, voter_registration_status) %>% 
+  group_by(did_gtm) %>% 
+  mutate(p=n/sum(n))
+
+saveCSV(voterRegGTM)
+
+voterRegGTM.smsActive <- 
+  qres %>% 
+  filter(!duplicated(northstar_id) & !is.na(voter_registration_status)) %>% 
+  count(did_gtm, sms_active, voter_registration_status) %>% 
+  group_by(did_gtm, sms_active) %>% 
+  mutate(p=n/sum(n))
+
+saveCSV(voterRegGTM.smsActive)
+
+voterRegGTM.smsOnly <- 
+  qres %>% 
+  filter(!duplicated(northstar_id) & !is.na(voter_registration_status)) %>% 
+  count(did_gtm, sms_only, voter_registration_status) %>% 
+  group_by(did_gtm, sms_only) %>% 
+  mutate(p=n/sum(n))
+
+saveCSV(voterRegGTM.smsOnly)
+
 # Posts -------------------------------------------------------------------
 
 set <- 

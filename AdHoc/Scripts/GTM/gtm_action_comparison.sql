@@ -6,7 +6,10 @@ SELECT
 	gtm.earliest_non_gtm_signup_month,
 	act_counts.action_month,
 	act_counts.action_type,
-	act_counts.action_count
+	act_counts.action_count,
+	u.voter_registration_status,
+	CASE WHEN u.sms_status IN ('pending','less','active') THEN 'sms_active' ELSE 'not_sms_active' END AS sms_active,
+	CASE WHEN cio_status <> 'subscribed' AND sms_status IN ('less','pending','active') THEN 'sms_only' ELSE 'not_sms_only' END AS sms_only
 FROM 
 	(SELECT 
 		c.northstar_id,
@@ -59,4 +62,5 @@ LEFT JOIN
 	GROUP BY act.northstar_id, EXTRACT('month' FROM act."timestamp"), act.action_type
 	) act_counts 
 	ON act_counts.northstar_id = gtm.northstar_id 
+LEFT JOIN public.users u ON gtm.northstar_id = u.northstar_id
 ;

@@ -106,25 +106,21 @@ byWeekSource <-
   vr %>%
   group_by(week, source) %>%
   summarise(
-    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
-    rbs = sum(reportback),
-    complete_form = grepl('form', ds_vr_status) %>% sum(),
-    complete_online = grepl('OVR', ds_vr_status) %>% sum(),
-    self_report = sum(ds_vr_status=='confirmed')
+    tot_vot_reg = grepl('register', ds_vr_status) %>% sum()
   ) %>%
-  melt(value.var =
-         c('tot_vot_reg','rbs','complete_form',
-           'complete_online','self_report')) %>%
+  melt(value.var = c('tot_vot_reg')) %>%
   dcast(week ~ source + variable, value.var='value') %>%
-  replace(is.na(.), 0) %>%
-  select(week, starts_with('web'), starts_with('email'), starts_with('sms'),
-         starts_with('social'),starts_with('part'), starts_with('no_attr'))
+  replace(is.na(.), 0)
 
 byWeekSourceDetails <-
   vr %>%
   group_by(week, source, source_details) %>%
   summarise(
-    complete_form = grepl('form', ds_vr_status) %>% sum()
+    tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
+    rbs = sum(reportback),
+    complete_form = grepl('form', ds_vr_status) %>% sum(),
+    complete_online = grepl('OVR', ds_vr_status) %>% sum(),
+    self_report = sum(ds_vr_status=='confirmed')
   )
 
 ## For Asterisks Doc
