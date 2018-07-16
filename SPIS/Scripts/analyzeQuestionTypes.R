@@ -225,7 +225,7 @@ getPivotPlots <- function(dat, pivots, specialPivot=NULL) {
 
   }
 
-  outPlot <- arrangeGrob(grobs=myplots, ncol=3)
+  outPlot <- arrangeGrob(grobs=myplots, ncol=min(length(pivots),3))
 
   return(outPlot)
 
@@ -247,14 +247,41 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
   freqPlot <- getFrequencyPlot(thisQuestionSet, recoded, mapTo, outcome)
 
-  pivPlot <- getPivotPlots(thisQuestionSet, importantPivots)
-  groupPivPlot <- getPivotPlots(thisQuestionSet, importantPivots, 'Group')
+  nSub <- dat %$% Group %>% unique(.) %>% length()
 
-  analysis <- list(freqPlot, pivPlot, groupPivPlot)
+  if (!is.null(importantPivots) & nSub > 1) {
 
-  names(analysis)[1] <- 'frequencyPlot'
-  names(analysis)[2] <- 'pivotPlot'
-  names(analysis)[3] <- 'groupedPivotPlot'
+    pivPlot <- getPivotPlots(thisQuestionSet, importantPivots)
+    groupPivPlot <- getPivotPlots(thisQuestionSet, importantPivots, 'Group')
+    analysis <- list(freqPlot, grid.arrange(pivPlot), grid.arrange(groupPivPlot))
+
+    names(analysis)[1] <- 'frequencyPlot'
+    names(analysis)[2] <- 'pivotPlot'
+    names(analysis)[3] <- 'groupedPivotPlot'
+
+  } else if (is.null(importantPivots) & nSub > 1) {
+
+    groupPivPlot <- getPivotPlots(thisQuestionSet, c('Group'))
+    analysis <- list(freqPlot, grid.arrange(groupPivPlot))
+
+    names(analysis)[1] <- 'frequencyPlot'
+    names(analysis)[2] <- 'groupedPivotPlot'
+
+  } else if (!is.null(importantPivots) & nSub == 1) {
+
+    pivPlot <- getPivotPlots(thisQuestionSet, importantPivots)
+
+    analysis <- list(freqPlot, grid.arrange(pivPlot))
+
+    names(analysis)[1] <- 'frequencyPlot'
+    names(analysis)[2] <- 'pivotPlot'
+
+  } else {
+
+    analysis <- list(freqPlot)
+    names(analysis)[1] <- 'frequencyPlot'
+
+  }
 
   return(analysis)
 
