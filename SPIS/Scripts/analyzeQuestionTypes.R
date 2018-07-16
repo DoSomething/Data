@@ -225,7 +225,7 @@ getPivotPlots <- function(dat, pivots, specialPivot=NULL) {
 
   }
 
-  outPlot <- arrangeGrob(grobs=myplots, ncol=3)
+  outPlot <- arrangeGrob(grobs=myplots, ncol=min(length(pivots),3))
 
   return(outPlot)
 
@@ -247,14 +247,41 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
   freqPlot <- getFrequencyPlot(thisQuestionSet, recoded, mapTo, outcome)
 
-  pivPlot <- getPivotPlots(thisQuestionSet, importantPivots)
-  groupPivPlot <- getPivotPlots(thisQuestionSet, importantPivots, 'Group')
+  nSub <- dat %$% Group %>% unique(.) %>% length()
 
-  analysis <- list(freqPlot, pivPlot, groupPivPlot)
+  if (!is.null(importantPivots) & nSub > 1) {
 
-  names(analysis)[1] <- 'frequencyPlot'
-  names(analysis)[2] <- 'pivotPlot'
-  names(analysis)[3] <- 'groupedPivotPlot'
+    pivPlot <- getPivotPlots(thisQuestionSet, importantPivots)
+    groupPivPlot <- getPivotPlots(thisQuestionSet, importantPivots, 'Group')
+    analysis <- list(freqPlot, grid.arrange(pivPlot), grid.arrange(groupPivPlot))
+
+    names(analysis)[1] <- 'frequencyPlot'
+    names(analysis)[2] <- 'pivotPlot'
+    names(analysis)[3] <- 'groupedPivotPlot'
+
+  } else if (is.null(importantPivots) & nSub > 1) {
+
+    groupPivPlot <- getPivotPlots(thisQuestionSet, c('Group'))
+    analysis <- list(freqPlot, grid.arrange(groupPivPlot))
+
+    names(analysis)[1] <- 'frequencyPlot'
+    names(analysis)[2] <- 'groupedPivotPlot'
+
+  } else if (!is.null(importantPivots) & nSub == 1) {
+
+    pivPlot <- getPivotPlots(thisQuestionSet, importantPivots)
+
+    analysis <- list(freqPlot, grid.arrange(pivPlot))
+
+    names(analysis)[1] <- 'frequencyPlot'
+    names(analysis)[2] <- 'pivotPlot'
+
+  } else {
+
+    analysis <- list(freqPlot)
+    names(analysis)[1] <- 'frequencyPlot'
+
+  }
 
   return(analysis)
 
@@ -268,7 +295,8 @@ getSimpleFrequency <- function(dat, outcome) {
     ggplot(dat, aes_string(x=quo_text(outcome))) +
     geom_bar(stat='count', width = .65, fill='skyblue2') +
     ggtitle(outcome) +
-    theme(plot.title = element_text(hjust = 0.5))
+    theme(plot.title = element_text(hjust = 0.5)) +
+    coord_flip()
 
 }
 
@@ -300,7 +328,8 @@ getGroupedComposition <- function(dat, outcome, pivot) {
       ) +
     theme(plot.title = element_text(hjust = 0.5)) +
     guides(fill=guide_legend(title=quo_text(pivot))) +
-    scale_fill_brewer(palette="Set2")
+    scale_fill_brewer(palette="Set2") +
+    coord_flip()
 
   return(biFreq)
 
@@ -338,7 +367,7 @@ getFacetComposition <- function(dat, outcome, pivot, facet) {
 
 }
 
-stylePickOneList <- function(dat, outcome, pivot, facet) {
+stylePickOneList <- function(dat, outcome, pivot=NULL, facet=NULL) {
 
   outcome <- enquo(outcome)
   pivot <- enquo(pivot)
@@ -349,13 +378,27 @@ stylePickOneList <- function(dat, outcome, pivot, facet) {
     select(!!outcome, !!pivot, !!facet)
 
   simpleFreq <- getSimpleFrequency(thisQuestionSet, outcome)
-  bivarFreq <- getGroupedComposition(thisQuestionSet, outcome, pivot)
-  facetComp <- getFacetComposition(thisQuestionSet, outcome, pivot, facet)
 
-  out <- list(simpleFreq, bivarFreq, facetComp)
-  names(out)[[1]] <- 'Frequency'
-  names(out)[[2]] <- 'Composition'
-  names(out)[[3]] <- 'Facetted'
+  if (!is.null(quo_squash(pivot))) {
+
+    bivarFreq <- getGroupedComposition(thisQuestionSet, outcome, pivot)
+
+    out <- list(simpleFreq, bivarFreq)
+    names(out)[[1]] <- 'Frequency'
+    names(out)[[2]] <- 'Composition'
+
+  }
+
+  if (!is.null(quo_squash(facet))) {
+
+    facetComp <- getFacetComposition(thisQuestionSet, outcome, pivot, facet)
+    out <- list(simpleFreq, bivarFreq, facetComp)
+    names(out)[[1]] <- 'Frequency'
+    names(out)[[2]] <- 'Composition'
+    names(out)[[3]] <- 'Facetted'
+
+  }
+
 
   return(out)
 
@@ -691,11 +734,12 @@ getNPSBreakdown <- function(dat, nps) {
     geom_vline(xintercept=8.5) +
     geom_vline(xintercept=6.5) +
     theme(plot.title=element_text(hjust=.5)) +
-    scale_x_continuous(breaks=pretty_breaks(10)) +
+    scale_x_continuous(breaks=seq(0,10,1),labels = seq(0,10,1)) +
     scale_y_continuous(breaks=pretty_breaks(10)) +
-    annotate("rect", xmin=-1,xmax=6.5,ymin=0,ymax=150,fill='red',alpha=.2) +
+    annotate("rect", xmin=-.5,xmax=6.5,ymin=0,ymax=150,fill='red',alpha=.2) +
     annotate("rect", xmin=8.5,xmax=10.5,ymin=0,ymax=150,fill='green',alpha=.2)
 
   return(p)
 
 }
+
