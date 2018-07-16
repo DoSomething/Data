@@ -803,7 +803,7 @@ topIssues.DrugOverdoses <-
 mapFrom <- c('Strongly Disagree','Disagree','Uncertain',
              'Unfamiliar with this topic','Agree','Strongly Agree')
 mapTo <- c('Strongly Disagree','Disagree','Neutral',
-           'Uncertain','Agree','Strongly Agree')
+           'Neutral','Agree','Strongly Agree')
 finCode <- c(-2,-1,0,0,1,2)
 
 agreePosition.RacismNotIssue <-
@@ -1102,8 +1102,6 @@ causeImportance.VoterReg <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-
-
 # Student March -----------------------------------------------------------
 
 mapFrom <- c('Not very likely','Not likely','Neutral',
@@ -1318,6 +1316,8 @@ whichAppKeepGroup <-
 
 # Which Will Occur --------------------------------------------------------
 
+mapFrom <- c(0,1)
+mapTo <- c(0,1)
 finCode <- c(0,1)
 
 willOccur.iRunForPublicOffice <-
@@ -1327,7 +1327,7 @@ willOccur.iRunForPublicOffice <-
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
-    mapFrom = finCode, mapTo = finCode, finCode=finCode
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
 willOccur.iWillLiveLong <-
@@ -1337,7 +1337,7 @@ willOccur.iWillLiveLong <-
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
-    mapFrom = finCode, mapTo = finCode, finCode=finCode
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
 willOccur.iWillChangeTheWorld <-
@@ -1347,7 +1347,7 @@ willOccur.iWillChangeTheWorld <-
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
-    mapFrom = finCode, mapTo = finCode, finCode=finCode
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
 willOccur.iWillGetRich <-
@@ -1357,7 +1357,7 @@ willOccur.iWillGetRich <-
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
-    mapFrom = finCode, mapTo = finCode, finCode=finCode
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
 willOccur.iWillHaveBetterLifeThanParents <-
@@ -1367,7 +1367,7 @@ willOccur.iWillHaveBetterLifeThanParents <-
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
-    mapFrom = finCode, mapTo = finCode, finCode=finCode
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
 # Non Profit Awareness ----------------------------------------------------
@@ -1383,7 +1383,7 @@ nonprofitAwareness.DoSomething <-
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
-    mapFrom = finCode, mapTo = finCode, finCode=finCode
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
 nonprofitAwareness.WeDotOrg <-
@@ -1393,7 +1393,7 @@ nonprofitAwareness.WeDotOrg <-
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
-    mapFrom = finCode, mapTo = finCode, finCode=finCode
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
 nonprofitAwareness.KeyClub <-
@@ -1403,7 +1403,7 @@ nonprofitAwareness.KeyClub <-
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
-    mapFrom = finCode, mapTo = finCode, finCode=finCode
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
 nonprofitAwareness.4H <-
@@ -1413,7 +1413,7 @@ nonprofitAwareness.4H <-
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
-    mapFrom = finCode, mapTo = finCode, finCode=finCode
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
 nonprofitAwareness.ChangeDotOrg <-
@@ -1423,7 +1423,7 @@ nonprofitAwareness.ChangeDotOrg <-
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
-    mapFrom = finCode, mapTo = finCode, finCode=finCode
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
 nonprofitAwareness.DonorsChoose <-
@@ -1433,7 +1433,7 @@ nonprofitAwareness.DonorsChoose <-
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
-    mapFrom = finCode, mapTo = finCode, finCode=finCode
+    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
 whereSeeDoSomething <-
