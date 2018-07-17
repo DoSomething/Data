@@ -90,6 +90,9 @@ processReferralColumn <- function(dat) {
   parsedSep <-
     dat %>%
     select(nsid, campaign_run_id, referral_code) %>%
+    mutate(
+      referral_code = gsub('sourcedetails','source_details',referral_code)
+      ) %>%
     separate(referral_code, LETTERS[1:maxSep], ',',remove = F) %>%
     mutate(
       source_details =
@@ -132,6 +135,7 @@ processReferralColumn <- function(dat) {
       source_details = case_when(
         is.na(source_details) ~ '',
         source == 'web' & source_details == '' ~ paste0('campaign_',campaign_run_id),
+        grepl('referral=true', source_details) ~ 'referral',
         TRUE ~ source_details
       ),
       newsletter = case_when(

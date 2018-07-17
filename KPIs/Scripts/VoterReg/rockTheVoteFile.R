@@ -52,6 +52,7 @@ processTrackingSource <- function(dat) {
     dat %>%
     select(id, tracking_source) %>%
     mutate(
+      tracking_source = gsub('sourcedetails','source_details',tracking_source),
       tracking_source = gsub('iframe\\?r=','',tracking_source),
       tracking_source = gsub('iframe','',tracking_source)
     ) %>%
@@ -99,6 +100,10 @@ processTrackingSource <- function(dat) {
         grepl('niche', source_details) ~ 'partner',
         TRUE ~ source
         ),
+      source_details = case_when(
+        grepl('referral=true', source_details) ~ 'referral',
+        TRUE ~ source_details
+      ),
       newsletter = case_when(
         source == 'email' & grepl('newsletter', source_details) ~
           gsub('newsletter_', '', source_details),
