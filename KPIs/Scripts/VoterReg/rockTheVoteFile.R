@@ -100,6 +100,10 @@ processTrackingSource <- function(dat) {
         grepl('niche', source_details) ~ 'partner',
         TRUE ~ source
         ),
+      source_details = case_when(
+        grepl('referral=true', source_details) ~ 'referral',
+        TRUE ~ source_details
+      ),
       newsletter = case_when(
         source == 'email' & grepl('newsletter', source_details) ~
           gsub('newsletter_', '', source_details),

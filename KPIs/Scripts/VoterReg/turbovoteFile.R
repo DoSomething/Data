@@ -135,6 +135,7 @@ processReferralColumn <- function(dat) {
       source_details = case_when(
         is.na(source_details) ~ '',
         source == 'web' & source_details == '' ~ paste0('campaign_',campaign_run_id),
+        grepl('referral=true', source_details) ~ 'referral',
         TRUE ~ source_details
       ),
       newsletter = case_when(
