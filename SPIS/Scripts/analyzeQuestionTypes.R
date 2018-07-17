@@ -727,10 +727,13 @@ getNPS <- function(x, maxValue=NA) {
 
 getNPSBreakdown <- function(dat, nps) {
   require(scales)
+
+  score <- getNPS(dat %>% filter(!is.na(nps)) %$% nps,10)
+
   p <-
     ggplot(dat, aes_string(x=nps)) +
     geom_bar(stat='count', width = .65, fill='skyblue2') +
-    ggtitle('NPS Breakdown') +
+    ggtitle(paste0('NPS Breakdown; Score = ', score)) +
     geom_vline(xintercept=8.5) +
     geom_vline(xintercept=6.5) +
     theme(plot.title=element_text(hjust=.5)) +
