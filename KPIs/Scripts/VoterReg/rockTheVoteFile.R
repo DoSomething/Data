@@ -52,6 +52,7 @@ processTrackingSource <- function(dat) {
     dat %>%
     select(id, tracking_source) %>%
     mutate(
+      tracking_source = gsub('sourcedetails','source_details',tracking_source),
       tracking_source = gsub('iframe\\?r=','',tracking_source),
       tracking_source = gsub('iframe','',tracking_source)
     ) %>%

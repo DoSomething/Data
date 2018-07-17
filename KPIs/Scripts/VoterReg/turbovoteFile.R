@@ -90,6 +90,9 @@ processReferralColumn <- function(dat) {
   parsedSep <-
     dat %>%
     select(nsid, campaign_run_id, referral_code) %>%
+    mutate(
+      referral_code = gsub('sourcedetails','source_details',referral_code)
+      ) %>%
     separate(referral_code, LETTERS[1:maxSep], ',',remove = F) %>%
     mutate(
       source_details =
