@@ -1,3 +1,5 @@
+sourcr('config/init.R')
+source('config/customFunctions.R')
 library(naniar)
 library(openxlsx)
 library(glue)
@@ -150,11 +152,11 @@ members_postgres <- runQuery(members)
 #Merge Member Survey data with db data
 merged_member_survey <-merge(x=membersurvey_dedup,y=members_postgres, by ="northstar_id", all=TRUE)
 
-merged_member_survey$created_at <-as.Date(merged_member_survey$created_at, '%Y-%m-%d %H:%M:%S')
+merged_member_survey$created_at <-as.Date(merged_member_survey$created_at, format='%Y-%m-%d %H:%M:%S')
 
 #Create Niche category
 merged_member_survey <- merged_member_survey%>%
-  mutate(last_signup_date = as.Date(last_signup, '%Y-%m-%d %H:%M:%S'),
+  mutate(last_signup_date = as.Date(last_signup, format='%Y-%m-%d %H:%M:%S'),
          source_niche=ifelse(source=='niche','Niche','Not Niche'),
          source_sms=case_when(questionpro_customvar1=='sms' ~ 'sms-only',
                               questionpro_customvar1=is.na(questionpro_customvar1) ~ 'other'))
@@ -296,7 +298,7 @@ ggplot(avgSignup, aes(x=avg_signup)) +
 
 
 #Get earliest signup date
-# minDate <- min(as.Date(substr(sample$signup_created_at, 1, 10)))
+minDate <- min(as.Date(substr(sample$signup_created_at, 1, 10)))
 
 #Group by northstar and get the average signup date per northstar
 #This required removing the time component with substr, turning it into a date,
