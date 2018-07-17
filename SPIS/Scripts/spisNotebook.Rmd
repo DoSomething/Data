@@ -1,0 +1,878 @@
+---
+title: "SPIS Results"
+output: 
+  html_notebook: 
+    code_folding: hide
+    theme: readable
+---
+### Group Comparisons
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sexGroup
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+ageGroup
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+raceGroup
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+regionGroup
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+stateGroup
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+financesGroup
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+parentEduGroup
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+partyGroup
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+politicsGroup
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+religiousGroup
+```
+
+
+### Impact Attitudes
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+effortUnderstandPerspectives$frequencyPlot
+grid.arrange(effortUnderstandPerspectives$pivotPlot)
+grid.arrange(effortUnderstandPerspectives$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+partOfSocialMovement$frequencyPlot
+grid.arrange(partOfSocialMovement$pivotPlot)
+grid.arrange(partOfSocialMovement$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+iCanSolveProblems$frequencyPlot
+grid.arrange(iCanSolveProblems$pivotPlot)
+grid.arrange(iCanSolveProblems$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+myParticipationMatters$frequencyPlot
+grid.arrange(myParticipationMatters$pivotPlot)
+grid.arrange(myParticipationMatters$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+comfortAssertingMyself$frequencyPlot
+grid.arrange(comfortAssertingMyself$pivotPlot)
+grid.arrange(comfortAssertingMyself$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+iHaveConfidence$frequencyPlot
+grid.arrange(iHaveConfidence$pivotPlot)
+grid.arrange(iHaveConfidence$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+iCanCollaborate$frequencyPlot
+grid.arrange(iCanCollaborate$pivotPlot)
+grid.arrange(iCanCollaborate$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+exposedOtherOpinions$frequencyPlot
+grid.arrange(exposedOtherOpinions$pivotPlot)
+grid.arrange(exposedOtherOpinions$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+iTakeActionsIssues$frequencyPlot
+grid.arrange(iTakeActionsIssues$pivotPlot)
+grid.arrange(iTakeActionsIssues$groupedPivotPlot)
+```
+
+### Which Action Taken and When
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+politicalEventsProtests$frequencyPlot
+grid.arrange(politicalEventsProtests$pivotPlot)
+grid.arrange(politicalEventsProtests$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+takenActionEncouragedOnline$frequencyPlot
+grid.arrange(takenActionEncouragedOnline$pivotPlot)
+grid.arrange(takenActionEncouragedOnline$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+contactedPolitician$frequencyPlot
+grid.arrange(contactedPolitician$pivotPlot)
+grid.arrange(contactedPolitician$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+signedOnlinePetition$frequencyPlot
+grid.arrange(signedOnlinePetition$pivotPlot)
+grid.arrange(signedOnlinePetition$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+participateVolunteerOrg$frequencyPlot
+grid.arrange(participateVolunteerOrg$pivotPlot)
+grid.arrange(participateVolunteerOrg$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+startedDiscussionPolitics$frequencyPlot
+grid.arrange(startedDiscussionPolitics$pivotPlot)
+grid.arrange(startedDiscussionPolitics$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+purchasedBrandToSupportIssue$frequencyPlot
+grid.arrange(purchasedBrandToSupportIssue$pivotPlot)
+grid.arrange(purchasedBrandToSupportIssue$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+boycottedBrandForIssue$frequencyPlot
+grid.arrange(boycottedBrandForIssue$pivotPlot)
+grid.arrange(boycottedBrandForIssue$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+stoodUpToBullyForSomeone$frequencyPlot
+grid.arrange(stoodUpToBullyForSomeone$pivotPlot)
+grid.arrange(stoodUpToBullyForSomeone$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+leaderInClub$frequencyPlot
+grid.arrange(leaderInClub$pivotPlot)
+grid.arrange(leaderInClub$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+collectItemsForHomeless$frequencyPlot
+grid.arrange(collectItemsForHomeless$pivotPlot)
+grid.arrange(collectItemsForHomeless$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+researchSocialIssueOutsideSchool$frequencyPlot
+grid.arrange(researchSocialIssueOutsideSchool$pivotPlot)
+grid.arrange(researchSocialIssueOutsideSchool$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+engagedCompanyToAdvocate$frequencyPlot
+grid.arrange(engagedCompanyToAdvocate$pivotPlot)
+grid.arrange(engagedCompanyToAdvocate$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+plannedSocialImpactActivity$frequencyPlot
+grid.arrange(plannedSocialImpactActivity$pivotPlot)
+grid.arrange(plannedSocialImpactActivity$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+donateTimeMoneyToCause$frequencyPlot
+grid.arrange(donateTimeMoneyToCause$pivotPlot)
+grid.arrange(donateTimeMoneyToCause$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+createdPetition$frequencyPlot
+grid.arrange(createdPetition$pivotPlot)
+grid.arrange(createdPetition$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+startedCampaignToSolveProblem$frequencyPlot
+grid.arrange(startedCampaignToSolveProblem$pivotPlot)
+grid.arrange(startedCampaignToSolveProblem$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+beenPartOfCampaign$frequencyPlot
+grid.arrange(beenPartOfCampaign$pivotPlot)
+grid.arrange(beenPartOfCampaign$groupedPivotPlot)
+```
+
+### Since Enagaging with DS...
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.considerEffectActionsOnOthers$frequencyPlot
+grid.arrange(sinceDS.considerEffectActionsOnOthers$pivotPlot)
+grid.arrange(sinceDS.considerEffectActionsOnOthers$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.amPartOfSocialMovement$frequencyPlot
+grid.arrange(sinceDS.amPartOfSocialMovement$pivotPlot)
+grid.arrange(sinceDS.amPartOfSocialMovement$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.iCanSolveProblems$frequencyPlot
+grid.arrange(sinceDS.iCanSolveProblems$pivotPlot)
+grid.arrange(sinceDS.iCanSolveProblems$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.haveToolsToTakeAction$frequencyPlot
+grid.arrange(sinceDS.haveToolsToTakeAction$pivotPlot)
+grid.arrange(sinceDS.haveToolsToTakeAction$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.easyToImpactSociety$frequencyPlot
+grid.arrange(sinceDS.easyToImpactSociety$pivotPlot)
+grid.arrange(sinceDS.easyToImpactSociety$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.iHaveConfidence$frequencyPlot
+grid.arrange(sinceDS.iHaveConfidence$pivotPlot)
+grid.arrange(sinceDS.iHaveConfidence$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.persistThroughChallenges$frequencyPlot
+grid.arrange(sinceDS.persistThroughChallenges$pivotPlot)
+grid.arrange(sinceDS.persistThroughChallenges$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.iCanAccomplishGoals$frequencyPlot
+grid.arrange(sinceDS.iCanAccomplishGoals$pivotPlot)
+grid.arrange(sinceDS.iCanAccomplishGoals$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.learnedCollaborateOthers$frequencyPlot
+grid.arrange(sinceDS.learnedCollaborateOthers$pivotPlot)
+grid.arrange(sinceDS.learnedCollaborateOthers$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.learnedAnalyzeSolveProblems$frequencyPlot
+grid.arrange(sinceDS.learnedAnalyzeSolveProblems$pivotPlot)
+grid.arrange(sinceDS.learnedAnalyzeSolveProblems$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.effortUnderstandPerspectives$frequencyPlot
+grid.arrange(sinceDS.effortUnderstandPerspectives$pivotPlot)
+grid.arrange(sinceDS.effortUnderstandPerspectives$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.thinkLocalIssuesMatter$frequencyPlot
+grid.arrange(sinceDS.thinkLocalIssuesMatter$pivotPlot)
+grid.arrange(sinceDS.thinkLocalIssuesMatter$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.passionateNewCause$frequencyPlot
+grid.arrange(sinceDS.passionateNewCause$pivotPlot)
+grid.arrange(sinceDS.passionateNewCause$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.startedSocialJusticeOrg$frequencyPlot
+grid.arrange(sinceDS.startedSocialJusticeOrg$pivotPlot)
+grid.arrange(sinceDS.startedSocialJusticeOrg$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.learnedOrganizeOthers$frequencyPlot
+grid.arrange(sinceDS.learnedOrganizeOthers$pivotPlot)
+grid.arrange(sinceDS.learnedOrganizeOthers$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.PickSchoolCourses$frequencyPlot
+grid.arrange(sinceDS.PickSchoolCourses$pivotPlot)
+grid.arrange(sinceDS.PickSchoolCourses$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.continuedActivityAfterCampaign$frequencyPlot
+grid.arrange(sinceDS.continuedActivityAfterCampaign$pivotPlot)
+grid.arrange(sinceDS.continuedActivityAfterCampaign$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+sinceDS.NoneOfThese$frequencyPlot
+grid.arrange(sinceDS.NoneOfThese$pivotPlot)
+grid.arrange(sinceDS.NoneOfThese$groupedPivotPlot)
+```
+
+### Issues Taken Action on 12mo
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=8.5, fig.width=12}
+issuesTakenAction
+```
+
+### Volunteering
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+volunteerFrequency$frequencyPlot
+grid.arrange(volunteerFrequency$pivotPlot)
+grid.arrange(volunteerFrequency$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+volunteerInformal$frequencyPlot
+grid.arrange(volunteerInformal$pivotPlot)
+grid.arrange(volunteerInformal$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+volunteerInformal$frequencyPlot
+grid.arrange(volunteerInformal$pivotPlot)
+grid.arrange(volunteerInformal$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=8.5, fig.width=12}
+volunteerReason
+```
+
+### Voting
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+planVoteIfEligible$frequencyPlot
+grid.arrange(planVoteIfEligible$pivotPlot)
+grid.arrange(planVoteIfEligible$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+voteWhenEligible$frequencyPlot
+grid.arrange(voteWhenEligible$pivotPlot)
+grid.arrange(voteWhenEligible$groupedPivotPlot)
+```
+
+### Top Issues
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.Terrorism$frequencyPlot
+grid.arrange(topIssues.Terrorism$pivotPlot)
+grid.arrange(topIssues.Terrorism$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.Education$frequencyPlot
+grid.arrange(topIssues.Education$pivotPlot)
+grid.arrange(topIssues.Education$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.RacialJustice$frequencyPlot
+grid.arrange(topIssues.RacialJustice$pivotPlot)
+grid.arrange(topIssues.RacialJustice$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.Immigration$frequencyPlot
+grid.arrange(topIssues.Immigration$pivotPlot)
+grid.arrange(topIssues.Immigration$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.ClimateChange$frequencyPlot
+grid.arrange(topIssues.ClimateChange$pivotPlot)
+grid.arrange(topIssues.ClimateChange$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.GenderEquality$frequencyPlot
+grid.arrange(topIssues.GenderEquality$pivotPlot)
+grid.arrange(topIssues.GenderEquality$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.Crime$frequencyPlot
+grid.arrange(topIssues.Crime$pivotPlot)
+grid.arrange(topIssues.Crime$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.Poverty$frequencyPlot
+grid.arrange(topIssues.Poverty$pivotPlot)
+grid.arrange(topIssues.Poverty$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.IncomeInequality$frequencyPlot
+grid.arrange(topIssues.IncomeInequality$pivotPlot)
+grid.arrange(topIssues.IncomeInequality$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.Jobs$frequencyPlot
+grid.arrange(topIssues.Jobs$pivotPlot)
+grid.arrange(topIssues.Jobs$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.Military$frequencyPlot
+grid.arrange(topIssues.Military$pivotPlot)
+grid.arrange(topIssues.Military$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.Military$frequencyPlot
+grid.arrange(topIssues.Military$pivotPlot)
+grid.arrange(topIssues.Military$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.CountryDebt$frequencyPlot
+grid.arrange(topIssues.CountryDebt$pivotPlot)
+grid.arrange(topIssues.CountryDebt$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.AccessHealthcare$frequencyPlot
+grid.arrange(topIssues.AccessHealthcare$pivotPlot)
+grid.arrange(topIssues.AccessHealthcare$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.CostsHealthcare$frequencyPlot
+grid.arrange(topIssues.CostsHealthcare$pivotPlot)
+grid.arrange(topIssues.CostsHealthcare$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.Economy$frequencyPlot
+grid.arrange(topIssues.Economy$pivotPlot)
+grid.arrange(topIssues.Economy$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.CollegeAffordability$frequencyPlot
+grid.arrange(topIssues.CollegeAffordability$pivotPlot)
+grid.arrange(topIssues.CollegeAffordability$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.TaxPolicy$frequencyPlot
+grid.arrange(topIssues.TaxPolicy$pivotPlot)
+grid.arrange(topIssues.TaxPolicy$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.CriminalJusticeReform$frequencyPlot
+grid.arrange(topIssues.CriminalJusticeReform$pivotPlot)
+grid.arrange(topIssues.CriminalJusticeReform$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.GunPolicy$frequencyPlot
+grid.arrange(topIssues.GunPolicy$pivotPlot)
+grid.arrange(topIssues.GunPolicy$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.Environment$frequencyPlot
+grid.arrange(topIssues.Environment$pivotPlot)
+grid.arrange(topIssues.Environment$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.ReligiousIntolerance$frequencyPlot
+grid.arrange(topIssues.ReligiousIntolerance$pivotPlot)
+grid.arrange(topIssues.ReligiousIntolerance$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+topIssues.DrugOverdoses$frequencyPlot
+grid.arrange(topIssues.DrugOverdoses$pivotPlot)
+grid.arrange(topIssues.DrugOverdoses$groupedPivotPlot)
+```
+
+### Agree With Position
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.RacismNotIssue$frequencyPlot
+grid.arrange(agreePosition.RacismNotIssue$pivotPlot)
+grid.arrange(agreePosition.RacismNotIssue$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.GovernmentProvideHealthcare$frequencyPlot
+grid.arrange(agreePosition.GovernmentProvideHealthcare$pivotPlot)
+grid.arrange(agreePosition.GovernmentProvideHealthcare$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.UndocumentedImmigrantsPathCitizenship$frequencyPlot
+grid.arrange(agreePosition.UndocumentedImmigrantsPathCitizenship$pivotPlot)
+grid.arrange(agreePosition.UndocumentedImmigrantsPathCitizenship$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.BackgroundChecksForGuns$frequencyPlot
+grid.arrange(agreePosition.BackgroundChecksForGuns$pivotPlot)
+grid.arrange(agreePosition.BackgroundChecksForGuns$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.SexualHarrasmentSignOffSocietalIssue$frequencyPlot
+grid.arrange(agreePosition.SexualHarrasmentSignOffSocietalIssue$pivotPlot)
+grid.arrange(agreePosition.SexualHarrasmentSignOffSocietalIssue$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.iTrustPoliceMyCommunity$frequencyPlot
+grid.arrange(agreePosition.iTrustPoliceMyCommunity$pivotPlot)
+grid.arrange(agreePosition.iTrustPoliceMyCommunity$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.WeedLawsTooStrict$frequencyPlot
+grid.arrange(agreePosition.WeedLawsTooStrict$pivotPlot)
+grid.arrange(agreePosition.WeedLawsTooStrict$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.ClimateChangeHappening$frequencyPlot
+grid.arrange(agreePosition.ClimateChangeHappening$pivotPlot)
+grid.arrange(agreePosition.ClimateChangeHappening$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.BuildTheWall$frequencyPlot
+grid.arrange(agreePosition.BuildTheWall$pivotPlot)
+grid.arrange(agreePosition.BuildTheWall$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.OnlyTwoGenders$frequencyPlot
+grid.arrange(agreePosition.OnlyTwoGenders$pivotPlot)
+grid.arrange(agreePosition.OnlyTwoGenders$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.WomenExperienceWorkplaceDiscrimination$frequencyPlot
+grid.arrange(agreePosition.WomenExperienceWorkplaceDiscrimination$pivotPlot)
+grid.arrange(agreePosition.WomenExperienceWorkplaceDiscrimination$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.MuslimsDontNeedCloseTabs$frequencyPlot
+grid.arrange(agreePosition.MuslimsDontNeedCloseTabs$pivotPlot)
+grid.arrange(agreePosition.MuslimsDontNeedCloseTabs$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.DrugsProblemInCommunity$frequencyPlot
+grid.arrange(agreePosition.DrugsProblemInCommunity$pivotPlot)
+grid.arrange(agreePosition.DrugsProblemInCommunity$groupedPivotPlot)
+```
+
+### Cause Importance
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.RacialEquality$frequencyPlot
+grid.arrange(causeImportance.RacialEquality$pivotPlot)
+grid.arrange(causeImportance.RacialEquality$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.IncomeInequality$frequencyPlot
+grid.arrange(causeImportance.IncomeInequality$pivotPlot)
+grid.arrange(causeImportance.IncomeInequality$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.Immigration$frequencyPlot
+grid.arrange(causeImportance.Immigration$pivotPlot)
+grid.arrange(causeImportance.Immigration$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.GenderEquality$frequencyPlot
+grid.arrange(causeImportance.GenderEquality$pivotPlot)
+grid.arrange(causeImportance.GenderEquality$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.Environment$frequencyPlot
+grid.arrange(causeImportance.Environment$pivotPlot)
+grid.arrange(causeImportance.Environment$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.LGBTQRight$frequencyPlot
+grid.arrange(causeImportance.LGBTQRight$pivotPlot)
+grid.arrange(causeImportance.LGBTQRight$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.SexualHarrassmentAssault$frequencyPlot
+grid.arrange(causeImportance.SexualHarrassmentAssault$pivotPlot)
+grid.arrange(causeImportance.SexualHarrassmentAssault$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.AnimalWelfare$frequencyPlot
+grid.arrange(causeImportance.AnimalWelfare$pivotPlot)
+grid.arrange(causeImportance.AnimalWelfare$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.DisasterRelief$frequencyPlot
+grid.arrange(causeImportance.DisasterRelief$pivotPlot)
+grid.arrange(causeImportance.DisasterRelief$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.Bullying$frequencyPlot
+grid.arrange(causeImportance.Bullying$pivotPlot)
+grid.arrange(causeImportance.Bullying$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.Mental_Health$frequencyPlot
+grid.arrange(causeImportance.Mental_Health$pivotPlot)
+grid.arrange(causeImportance.Mental_Health$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.PhysicalHealth$frequencyPlot
+grid.arrange(causeImportance.PhysicalHealth$pivotPlot)
+grid.arrange(causeImportance.PhysicalHealth$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.HomelessnessPoverty$frequencyPlot
+grid.arrange(causeImportance.HomelessnessPoverty$pivotPlot)
+grid.arrange(causeImportance.HomelessnessPoverty$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.GunViolence$frequencyPlot
+grid.arrange(causeImportance.GunViolence$pivotPlot)
+grid.arrange(causeImportance.GunViolence$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+causeImportance.VoterReg$frequencyPlot
+grid.arrange(causeImportance.VoterReg$pivotPlot)
+grid.arrange(causeImportance.VoterReg$groupedPivotPlot)
+```
+
+### Student March
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+howLikelyStudentMarch$frequencyPlot
+grid.arrange(howLikelyStudentMarch$pivotPlot)
+grid.arrange(howLikelyStudentMarch$groupedPivotPlot)
+```
+
+### Brand
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+purchaseInfluence.Price$frequencyPlot
+grid.arrange(purchaseInfluence.Price$pivotPlot)
+grid.arrange(purchaseInfluence.Price$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+purchaseInfluence.Quality$frequencyPlot
+grid.arrange(purchaseInfluence.Quality$pivotPlot)
+grid.arrange(purchaseInfluence.Quality$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+purchaseInfluence.Packaging$frequencyPlot
+grid.arrange(purchaseInfluence.Packaging$pivotPlot)
+grid.arrange(purchaseInfluence.Packaging$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+purchaseInfluence.Celebrity$frequencyPlot
+grid.arrange(purchaseInfluence.Celebrity$pivotPlot)
+grid.arrange(purchaseInfluence.Celebrity$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+purchaseInfluence.CompanyReputationValues$frequencyPlot
+grid.arrange(purchaseInfluence.CompanyReputationValues$pivotPlot)
+grid.arrange(purchaseInfluence.CompanyReputationValues$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+purchaseInfluence.RecommendedByKnownPerson$frequencyPlot
+grid.arrange(purchaseInfluence.RecommendedByKnownPerson$pivotPlot)
+grid.arrange(purchaseInfluence.RecommendedByKnownPerson$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+purchaseInfluence.CustomerReviews$frequencyPlot
+grid.arrange(purchaseInfluence.CustomerReviews$pivotPlot)
+grid.arrange(purchaseInfluence.CustomerReviews$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+FrequencyPurchaseBrandValues$frequencyPlot
+grid.arrange(FrequencyPurchaseBrandValues$pivotPlot)
+grid.arrange(FrequencyPurchaseBrandValues$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+brandValuesCompensate.LowerQuality$frequencyPlot
+grid.arrange(brandValuesCompensate.LowerQuality$pivotPlot)
+grid.arrange(brandValuesCompensate.LowerQuality$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+brandValuesCompensate.HigherPrice$frequencyPlot
+grid.arrange(brandValuesCompensate.HigherPrice$pivotPlot)
+grid.arrange(brandValuesCompensate.HigherPrice$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+brandValuesCompensate.DidntKnowAboutBrand$frequencyPlot
+grid.arrange(brandValuesCompensate.DidntKnowAboutBrand$pivotPlot)
+grid.arrange(brandValuesCompensate.DidntKnowAboutBrand$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+willingPayMoreBrandValues$frequencyPlot
+grid.arrange(willingPayMoreBrandValues$pivotPlot)
+grid.arrange(willingPayMoreBrandValues$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+myPurchaseSupportCauseMakesImpact$frequencyPlot
+grid.arrange(myPurchaseSupportCauseMakesImpact$pivotPlot)
+grid.arrange(myPurchaseSupportCauseMakesImpact$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+iSeekResponsibleBrands$frequencyPlot
+grid.arrange(iSeekResponsibleBrands$pivotPlot)
+grid.arrange(iSeekResponsibleBrands$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+howImportantBrandHaveSocialChangeInitiative$frequencyPlot
+grid.arrange(causeImportance.VoterReg$pivotPlot)
+grid.arrange(causeImportance.VoterReg$groupedPivotPlot)
+```
+
+### Products Used Past 12mo
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+productsUsed
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+#TODO: Get counts of using and then show proportion who would delete/keep
+whichAppDeleteGroup
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+whichAppKeepGroup
+```
+
+### Which Will Occur
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+willOccur.iRunForPublicOffice$frequencyPlot
+grid.arrange(willOccur.iRunForPublicOffice$pivotPlot)
+grid.arrange(willOccur.iRunForPublicOffice$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+willOccur.iWillLiveLong$frequencyPlot
+grid.arrange(willOccur.iWillLiveLong$pivotPlot)
+grid.arrange(willOccur.iWillLiveLong$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+willOccur.iWillChangeTheWorld$frequencyPlot
+grid.arrange(willOccur.iWillChangeTheWorld$pivotPlot)
+grid.arrange(willOccur.iWillChangeTheWorld$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+willOccur.iWillGetRich$frequencyPlot
+grid.arrange(willOccur.iWillGetRich$pivotPlot)
+grid.arrange(willOccur.iWillGetRich$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+willOccur.iWillHaveBetterLifeThanParents$frequencyPlot
+grid.arrange(willOccur.iWillHaveBetterLifeThanParents$pivotPlot)
+grid.arrange(willOccur.iWillHaveBetterLifeThanParents$groupedPivotPlot)
+```
+
+### Non Profit Awareness
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+nonprofitAwareness.DoSomething$frequencyPlot
+grid.arrange(nonprofitAwareness.DoSomething$pivotPlot)
+grid.arrange(nonprofitAwareness.DoSomething$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+nonprofitAwareness.WeDotOrg$frequencyPlot
+grid.arrange(nonprofitAwareness.WeDotOrg$pivotPlot)
+grid.arrange(nonprofitAwareness.WeDotOrg$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+nonprofitAwareness.KeyClub$frequencyPlot
+grid.arrange(nonprofitAwareness.KeyClub$pivotPlot)
+grid.arrange(nonprofitAwareness.KeyClub$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+nonprofitAwareness.4H$frequencyPlot
+grid.arrange(nonprofitAwareness.4H$pivotPlot)
+grid.arrange(nonprofitAwareness.4H$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+nonprofitAwareness.ChangeDotOrg$frequencyPlot
+grid.arrange(nonprofitAwareness.ChangeDotOrg$pivotPlot)
+grid.arrange(nonprofitAwareness.ChangeDotOrg$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+nonprofitAwareness.DonorsChoose$frequencyPlot
+grid.arrange(nonprofitAwareness.DonorsChoose$pivotPlot)
+grid.arrange(nonprofitAwareness.DonorsChoose$groupedPivotPlot)
+```
+
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+whereSeeDoSomething
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+socialMediaSeeDoSomething
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+howEngageDoSomething
+```
+
+### NPS
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+npsBreakdown
+```
