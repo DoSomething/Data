@@ -1,11 +1,20 @@
 
 # Frequencies by Group ----------------------------------------------------
 
-stateGroup <-
-  stylePickOneList(set, state, Group)
-
 sexGroup <-
   stylePickOneList(set, sex, Group)
+
+ageGroup <-
+  stylePickOneList(set, age, Group)
+
+raceGroup <-
+  stylePickOneList(set, race, Group)
+
+regionGroup <-
+  stylePickOneList(set, region, Group)
+
+stateGroup <-
+  stylePickOneList(set, state, Group)
 
 financesGroup <-
   stylePickOneList(set, fam_finances, Group)
@@ -13,12 +22,14 @@ financesGroup <-
 parentEduGroup <-
   stylePickOneList(set, parental_education, Group)
 
-religiousGroup <-
-  stylePickOneList(set, attend_religious_services_freq, Group)
+partyGroup <-
+  stylePickOneList(set, political_party, Group)
+
+politicsGroup <-
+  stylePickOneList(set, political_view, Group)
 
 religiousGroup <-
   stylePickOneList(set, attend_religious_services_freq, Group)
-
 
 # Impact Attitudes -----------------------------------------------------------------
 
@@ -528,7 +539,7 @@ volunteerFrequency <-
 mapFrom <- c('No','Yes')
 mapTo <- c('No','Yes')
 finCode <- c(0,1)
-volunteerFrequency <-
+volunteerInformal <-
   stylePickOneOrdinal(
     set,
     volunteer_informal,
@@ -538,7 +549,7 @@ volunteerFrequency <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-issuesTakenAction <-
+volunteerReason <-
   styleSelectMultiple(
     set,
     'volunteer_reason.',
@@ -1042,17 +1053,7 @@ causeImportance.Bullying <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-causeImportance.Bullying <-
-  stylePickOneOrdinal(
-    set,
-    causes_importance.Bullying,
-    pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
-               political_party, political_view, attend_religious_services_freq,
-               grade_level),
-    mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
-  )
-
-causeImportance.Bullying <-
+causeImportance.Mental_Health <-
   stylePickOneOrdinal(
     set,
     causes_importance.Mental_Health,
@@ -1463,8 +1464,6 @@ howEngageDoSomething <-
              grade_level)
   )
 
-
 # NPS ---------------------------------------------------------------------
 
 npsBreakdown <- getNPSBreakdown(set %>% filter(!is.na(nps)), 'nps')
-getNPS(set %>% filter(!is.na(nps)) %$% nps,10)
