@@ -55,19 +55,19 @@ grid.arrange(effortUnderstandPerspectives$pivotPlot)
 grid.arrange(effortUnderstandPerspectives$groupedPivotPlot)
 ```
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=8.5, fig.width=9}
 partOfSocialMovement$frequencyPlot
 grid.arrange(partOfSocialMovement$pivotPlot)
 grid.arrange(partOfSocialMovement$groupedPivotPlot)
 ```
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=8.5, fig.width=9}
 iCanSolveProblems$frequencyPlot
 grid.arrange(iCanSolveProblems$pivotPlot)
 grid.arrange(iCanSolveProblems$groupedPivotPlot)
 ```
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=8.5, fig.width=9}
 myParticipationMatters$frequencyPlot
 grid.arrange(myParticipationMatters$pivotPlot)
 grid.arrange(myParticipationMatters$groupedPivotPlot)
@@ -79,7 +79,7 @@ grid.arrange(comfortAssertingMyself$pivotPlot)
 grid.arrange(comfortAssertingMyself$groupedPivotPlot)
 ```
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=8.5, fig.width=9}
 iHaveConfidence$frequencyPlot
 grid.arrange(iHaveConfidence$pivotPlot)
 grid.arrange(iHaveConfidence$groupedPivotPlot)
@@ -217,110 +217,88 @@ grid.arrange(beenPartOfCampaign$groupedPivotPlot)
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.considerEffectActionsOnOthers$frequencyPlot
-grid.arrange(sinceDS.considerEffectActionsOnOthers$pivotPlot)
-grid.arrange(sinceDS.considerEffectActionsOnOthers$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.amPartOfSocialMovement$frequencyPlot
 grid.arrange(sinceDS.amPartOfSocialMovement$pivotPlot)
-grid.arrange(sinceDS.amPartOfSocialMovement$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.iCanSolveProblems$frequencyPlot
-grid.arrange(sinceDS.iCanSolveProblems$pivotPlot)
-grid.arrange(sinceDS.iCanSolveProblems$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.haveToolsToTakeAction$frequencyPlot
 grid.arrange(sinceDS.haveToolsToTakeAction$pivotPlot)
-grid.arrange(sinceDS.haveToolsToTakeAction$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.easyToImpactSociety$frequencyPlot
 grid.arrange(sinceDS.easyToImpactSociety$pivotPlot)
-grid.arrange(sinceDS.easyToImpactSociety$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.iHaveConfidence$frequencyPlot
 grid.arrange(sinceDS.iHaveConfidence$pivotPlot)
-grid.arrange(sinceDS.iHaveConfidence$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.persistThroughChallenges$frequencyPlot
 grid.arrange(sinceDS.persistThroughChallenges$pivotPlot)
-grid.arrange(sinceDS.persistThroughChallenges$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.iCanAccomplishGoals$frequencyPlot
 grid.arrange(sinceDS.iCanAccomplishGoals$pivotPlot)
-grid.arrange(sinceDS.iCanAccomplishGoals$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.learnedCollaborateOthers$frequencyPlot
 grid.arrange(sinceDS.learnedCollaborateOthers$pivotPlot)
-grid.arrange(sinceDS.learnedCollaborateOthers$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.learnedAnalyzeSolveProblems$frequencyPlot
-grid.arrange(sinceDS.learnedAnalyzeSolveProblems$pivotPlot)
-grid.arrange(sinceDS.learnedAnalyzeSolveProblems$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.effortUnderstandPerspectives$frequencyPlot
-grid.arrange(sinceDS.effortUnderstandPerspectives$pivotPlot)
-grid.arrange(sinceDS.effortUnderstandPerspectives$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.thinkLocalIssuesMatter$frequencyPlot
 grid.arrange(sinceDS.thinkLocalIssuesMatter$pivotPlot)
-grid.arrange(sinceDS.thinkLocalIssuesMatter$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.passionateNewCause$frequencyPlot
 grid.arrange(sinceDS.passionateNewCause$pivotPlot)
-grid.arrange(sinceDS.passionateNewCause$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.startedSocialJusticeOrg$frequencyPlot
 grid.arrange(sinceDS.startedSocialJusticeOrg$pivotPlot)
-grid.arrange(sinceDS.startedSocialJusticeOrg$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.learnedOrganizeOthers$frequencyPlot
 grid.arrange(sinceDS.learnedOrganizeOthers$pivotPlot)
-grid.arrange(sinceDS.learnedOrganizeOthers$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.PickSchoolCourses$frequencyPlot
 grid.arrange(sinceDS.PickSchoolCourses$pivotPlot)
-grid.arrange(sinceDS.PickSchoolCourses$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.continuedActivityAfterCampaign$frequencyPlot
 grid.arrange(sinceDS.continuedActivityAfterCampaign$pivotPlot)
-grid.arrange(sinceDS.continuedActivityAfterCampaign$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.NoneOfThese$frequencyPlot
 grid.arrange(sinceDS.NoneOfThese$pivotPlot)
-grid.arrange(sinceDS.NoneOfThese$groupedPivotPlot)
 ```
 
 ### Issues Taken Action on 12mo
@@ -452,7 +430,7 @@ grid.arrange(topIssues.AccessHealthcare$groupedPivotPlot)
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 topIssues.CostsHealthcare$frequencyPlot
-grid.arrange(topIssues.CostsHealthcare$pivotPlot)
+
 grid.arrange(topIssues.CostsHealthcare$groupedPivotPlot)
 ```
 
@@ -826,37 +804,31 @@ grid.arrange(willOccur.iWillHaveBetterLifeThanParents$groupedPivotPlot)
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 nonprofitAwareness.DoSomething$frequencyPlot
 grid.arrange(nonprofitAwareness.DoSomething$pivotPlot)
-grid.arrange(nonprofitAwareness.DoSomething$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 nonprofitAwareness.WeDotOrg$frequencyPlot
 grid.arrange(nonprofitAwareness.WeDotOrg$pivotPlot)
-grid.arrange(nonprofitAwareness.WeDotOrg$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 nonprofitAwareness.KeyClub$frequencyPlot
 grid.arrange(nonprofitAwareness.KeyClub$pivotPlot)
-grid.arrange(nonprofitAwareness.KeyClub$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 nonprofitAwareness.4H$frequencyPlot
 grid.arrange(nonprofitAwareness.4H$pivotPlot)
-grid.arrange(nonprofitAwareness.4H$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 nonprofitAwareness.ChangeDotOrg$frequencyPlot
 grid.arrange(nonprofitAwareness.ChangeDotOrg$pivotPlot)
-grid.arrange(nonprofitAwareness.ChangeDotOrg$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 nonprofitAwareness.DonorsChoose$frequencyPlot
 grid.arrange(nonprofitAwareness.DonorsChoose$pivotPlot)
-grid.arrange(nonprofitAwareness.DonorsChoose$groupedPivotPlot)
 ```
 
 
