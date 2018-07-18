@@ -5,6 +5,13 @@ output:
     code_folding: hide
     theme: readable
 ---
+
+```{r echo=FALSE, results='hide', warning=FALSE, message=FALSE,}
+library(scales)
+library(gridExtra)
+```
+
+
 ### Group Comparisons
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sexGroup
