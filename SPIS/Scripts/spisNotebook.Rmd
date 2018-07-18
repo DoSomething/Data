@@ -762,7 +762,7 @@ grid.arrange(causeImportance.VoterReg$groupedPivotPlot)
 
 ### Products Used Past 12mo
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=10.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=19, fig.width=16}
 productsUsed
 ```
 
