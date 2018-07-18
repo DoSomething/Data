@@ -1265,7 +1265,7 @@ finCode <- c(-2,-1,0,1,2)
 myPurchaseSupportCauseMakesImpact <-
   stylePickOneOrdinal(
     dat=set,
-    purchases_impactful_seek_good_brands.I_feel_like_my_purchases_are_making_an_impact_when_the_brand_I_buy_fr,
+    purchases_impactful_seek_good_brands.I_feel_like_my_purchases_are_making_an_impact_when_the_brand_I_buy_from_supports_a_cause_I_believe_in,
     pivots = c(Group, sex, fam_finances, age, race, region, parental_education,
                political_party, political_view, attend_religious_services_freq,
                grade_level),
