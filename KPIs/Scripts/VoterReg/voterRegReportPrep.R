@@ -154,7 +154,11 @@ MoM <-
     Registrations = length(which(grepl('register', ds_vr_status)))
   ) %>%
   mutate(
+<<<<<<< HEAD
     Month = months(date)
+=======
+    month = months(date)
+>>>>>>> 2751445b400e6958ada2d9568f7244974aea574b
   ) %>%
   group_by(Month) %>%
   mutate(
