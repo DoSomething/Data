@@ -154,17 +154,17 @@ MoM <-
     Registrations = length(which(grepl('register', ds_vr_status)))
   ) %>%
   mutate(
-    month = month(date)
+    Month = months(date)
   ) %>%
-  group_by(month) %>%
+  group_by(Month) %>%
   mutate(
     registerToDate = cumsum(Registrations),
     dayOfMonth = as.numeric(format(date, "%d"))
   ) %>%
   ungroup() %>%
-  select(dayOfMonth, month, registerToDate) %>%
-  melt(id.var=c('dayOfMonth','month')) %>%
-  mutate(month = as.factor(month))
+  select(dayOfMonth, Month, registerToDate) %>%
+  melt(id.var=c('dayOfMonth','Month')) %>%
+  mutate(Month = factor(Month, levels=month.name))
 
 # By Quarter and Source
 
