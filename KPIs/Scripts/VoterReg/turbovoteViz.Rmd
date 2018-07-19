@@ -1,5 +1,5 @@
 ---
-title: "Weekly Voter Registration Report"
+title: "Bi-Weekly Voter Registration Report"
 output: html_notebook
 ---
 
@@ -28,9 +28,10 @@ ggplot(fileSource, aes(x="", y=n, fill=file)) +
 
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(MoM, aes(x=dayOfMonth, value)) +
-  geom_line(aes(color=month)) + 
+  geom_line(aes(color=Month)) + 
   labs(title='Voters Registered Month over Month', x='Day of Month', y='Voters Registered') +
-  theme(plot.title = element_text(hjust=.5))
+  theme(plot.title = element_text(hjust=.5)) + 
+  scale_colour_brewer(palette = 'Greens') 
 ```
 
 #### Quarter over Quarter Pacing
@@ -41,7 +42,8 @@ ggplot(QoQ, aes(x=dayOfQuarter, value)) +
   labs(title='Voters Registered Quarter over Quarter', x='Day of Quarter', y='Voters Registered') +
   theme(plot.title = element_text(hjust=.5)) +
   scale_x_continuous(breaks=pretty_breaks(10)) + 
-  scale_y_continuous(breaks=pretty_breaks(10))
+  scale_y_continuous(breaks=pretty_breaks(10)) +
+  scale_colour_brewer(palette = 'Set2')
 ```
 
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=9}
@@ -49,7 +51,8 @@ ggplot(QoQ.Source, aes(x=dayOfQuarter, value)) +
   geom_line(aes(color=quarter)) + 
   facet_wrap(~source) +
   labs(title='Voters Registered Quarter over Quarter by Source', x='Day of Quarter', y='Voters Registered') +
-  theme(plot.title = element_text(hjust=.5))
+  theme(plot.title = element_text(hjust=.5))+
+  scale_colour_brewer(palette = 'Set2')
 ```
 
 #### Referral Source
@@ -70,13 +73,15 @@ ggplot(Source, aes(x=status, y=value, fill=reorder(source, value))) +
     title='Counts and Proportions of Form Status split by Source'
     ) +
   theme(plot.title = element_text(hjust=.5)) + 
-  guides(fill=guide_legend(title='Source'))
+  guides(fill=guide_legend(title='Source')) + 
+  scale_fill_brewer(palette = 'Set2')
 ```
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(sourceTime, aes(x=date, y=runningTotal, color=source)) +
   geom_line() + 
   labs(x='Date',y='Registrations',title='Running Total of Registrations by Source') +
-  theme(plot.title = element_text(hjust=.5))
+  theme(plot.title = element_text(hjust=.5))+
+  scale_colour_brewer(palette = 'Set2')
 ```
 
 #### Source Details
