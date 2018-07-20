@@ -1,3 +1,4 @@
+library(stringr)
 source('Scripts/VoterReg/turbovoteFile.R')
 source('Scripts/VoterReg/rockTheVoteFile.R')
 source('Scripts/VoterReg/schoolTheVote.R')
@@ -11,7 +12,7 @@ vr <-
 if(dbExistsTable(pg,c("public", "turbovote_file"))) {
 
   q <- "truncate public.turbovote_file"
-  runQuery(q,'pg')
+  runQuery(q)
 
 }
 dbWriteTable(pg,c("public", "turbovote_file"), vr, append = TRUE, row.names=F)
@@ -47,15 +48,28 @@ uSource <- npPivot(user_source)
 Source <- npPivot(source)
 detSource <- npPivot(source_details)
 
+sourceTime <-
+  vr %>%
+  mutate(date=as.Date(created_at)) %>%
+  filter(date>'2017-09-27') %>%
+  group_by(date, source) %>%
+  summarise(
+    reg=length(which(grepl('register', ds_vr_status)))
+  ) %>%
+  group_by(source) %>%
+  mutate(
+    runningTotal = cumsum(reg)
+  )
+
 fileSource <-
   vr %>%
   filter(grepl('register', ds_vr_status)) %>%
   group_by(file) %>%
   count() %>%
   ungroup() %>%
-  arrange(-n) %>%
+  arrange(n) %>%
   mutate(
-    pos = cumsum(n) - n/2
+    file = factor(file, levels=c('RockTheVote','TurboVote','OnTheGround'))
   )
 
 sourceStep <-
@@ -75,23 +89,9 @@ sourceStep <-
     )
   )
 
-camp <-
-  vr %>%
-  filter(!is.na(signups)) %>%
-  group_by(ds_vr_status) %>%
-  summarise(
-    Signups = mean(signups),
-    Reportbacks = mean(reportbacks)
-  ) %>%
-  melt(value.var='meanRBs') %>% as.tibble()
-
-dens <-
-  vr %>%
-  filter(signups < quantile(signups, .95, na.rm=T))
-
 ## For Pacing Doc
 
-all <-
+byWeek <-
   vr %>%
   group_by(week) %>%
   summarise(
@@ -102,29 +102,39 @@ all <-
     self_report = sum(ds_vr_status=='confirmed')
   )
 
-bySource <-
+byWeekSource <-
   vr %>%
   group_by(week, source) %>%
+  summarise(
+    tot_vot_reg = grepl('register', ds_vr_status) %>% sum()
+  ) %>%
+  melt(value.var = c('tot_vot_reg')) %>%
+  dcast(week ~ source + variable, value.var='value') %>%
+  replace(is.na(.), 0)
+
+byWeekSourceDetails <-
+  vr %>%
+  group_by(week, source, source_details) %>%
   summarise(
     tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
     rbs = sum(reportback),
     complete_form = grepl('form', ds_vr_status) %>% sum(),
     complete_online = grepl('OVR', ds_vr_status) %>% sum(),
     self_report = sum(ds_vr_status=='confirmed')
-  ) %>%
-  melt(value.var =
-         c('tot_vot_reg','rbs','complete_form',
-           'complete_online','self_report')) %>%
-  dcast(week ~ source + variable, value.var='value') %>%
-  replace(is.na(.), 0) %>%
-  select(week, starts_with('web'), starts_with('email'), starts_with('sms'),
-         starts_with('social'),starts_with('part'), starts_with('no_attr'))
+  )
 
 ## For Asterisks Doc
 
 aster <-
   vr %>%
-  group_by(month, campaignId) %>%
+  mutate(
+    campaign_id =
+      case_when(
+        grepl('campaign',campaign_id) | campaign_id %in% c('','0') ~ '8017',
+        TRUE ~ campaign_id
+      )
+  ) %>%
+  group_by(month, campaign_id) %>%
   summarise(
     rbs = sum(reportback),
     tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
@@ -144,19 +154,21 @@ MoM <-
     Registrations = length(which(grepl('register', ds_vr_status)))
   ) %>%
   mutate(
-    month = month(date)
+    Month = months(date)
   ) %>%
-  group_by(month) %>%
+  group_by(Month) %>%
   mutate(
     registerToDate = cumsum(Registrations),
     dayOfMonth = as.numeric(format(date, "%d"))
   ) %>%
   ungroup() %>%
-  select(dayOfMonth, month, registerToDate) %>%
-  melt(id.var=c('dayOfMonth','month')) %>%
-  mutate(month = as.factor(month))
+  select(dayOfMonth, Month, registerToDate) %>%
+  melt(id.var=c('dayOfMonth','Month')) %>%
+  mutate(Month = factor(Month, levels=month.name))
 
-MoM.Source <-
+# By Quarter and Source
+
+QoQ.Source <-
   vr %>%
   filter(created_at >= '2018-01-01') %>%
   mutate(
@@ -167,35 +179,79 @@ MoM.Source <-
     Registrations = length(which(grepl('register', ds_vr_status)))
   ) %>%
   mutate(
-    month = month(date)
+    quarter = quarter(date)
   ) %>%
-  group_by(month, source) %>%
+  group_by(quarter, source) %>%
   mutate(
     registerToDate = cumsum(Registrations),
-    dayOfMonth = as.numeric(format(date, "%d"))
+    dayOfQuarter = case_when(
+      quarter==1 ~ yday(date),
+      quarter==2 ~ yday(date)-90,
+      quarter==3 ~ yday(date)-180,
+      quarter==4 ~ yday(date)-270
+    )
   ) %>%
   ungroup() %>%
-  select(dayOfMonth, month, registerToDate, source) %>%
-  melt(id.var=c('dayOfMonth','month','source')) %>%
-  mutate(month = as.factor(month))
+  select(dayOfQuarter, quarter, registerToDate, source) %>%
+  melt(id.var=c('dayOfQuarter','quarter','source')) %>%
+  mutate(quarter = as.factor(quarter))
 
-## Excel output
+
+QoQ <-
+  vr %>%
+  filter(created_at >= '2018-01-01') %>%
+  mutate(
+    date = as.Date(created_at)
+  ) %>%
+  group_by(date) %>%
+  summarise(
+    Registrations = length(which(grepl('register', ds_vr_status)))
+  ) %>%
+  mutate(
+    quarter = quarter(date)
+  ) %>%
+  group_by(quarter) %>%
+  mutate(
+    registerToDate = cumsum(Registrations),
+    dayOfQuarter = case_when(
+      quarter==1 ~ yday(date),
+      quarter==2 ~ yday(date)-90,
+      quarter==3 ~ yday(date)-180,
+      quarter==4 ~ yday(date)-270
+    )
+  ) %>%
+  ungroup() %>%
+  select(dayOfQuarter, quarter, registerToDate) %>%
+  melt(id.var=c('dayOfQuarter','quarter')) %>%
+  mutate(quarter = as.factor(quarter))
+
+
+# Excel output
 
 library(openxlsx)
 
+raw <- createWorkbook()
 wb <- createWorkbook()
 
-addWorksheet(wb, 'rawData')
-writeData(wb, 'rawData', vr, rowNames = F)
-addWorksheet(wb, 'AllSources')
-writeData(wb, 'AllSources', all, rowNames=F)
-addWorksheet(wb, 'bySource')
-writeData(wb, 'bySource', bySource, rowNames=F)
+addWorksheet(raw, 'rawData')
+writeData(raw, 'rawData', vr, rowNames = F)
+addWorksheet(wb, 'byWeek')
+writeData(wb, 'byWeek', byWeek, rowNames=F)
+addWorksheet(wb, 'byWeekSource')
+writeData(wb, 'byWeekSource', byWeekSource, rowNames=F)
+addWorksheet(wb, 'byWeekSourceDetails')
+writeData(wb, 'byWeekSourceDetails', byWeekSourceDetails, rowNames=F)
 addWorksheet(wb, 'RBAsterisk')
 writeData(wb, 'RBAsterisk', aster, rowNames=F)
 
 saveWorkbook(
+  raw,
+  paste0('Data/raw_output_',Sys.Date(),'.xlsx'),
+  overwrite = TRUE
+)
+
+saveWorkbook(
   wb,
-  paste0('Data/Turbovote/output_',Sys.Date(),'.xlsx'),
+  paste0('Data/aggregate_output_',Sys.Date(),'.xlsx'),
   overwrite = TRUE
 )

@@ -52,6 +52,7 @@ processTrackingSource <- function(dat) {
     dat %>%
     select(id, tracking_source) %>%
     mutate(
+      tracking_source = gsub('sourcedetails','source_details',tracking_source),
       tracking_source = gsub('iframe\\?r=','',tracking_source),
       tracking_source = gsub('iframe','',tracking_source)
     ) %>%
@@ -63,13 +64,13 @@ processTrackingSource <- function(dat) {
           grepl('user',tolower(B)) ~ gsub(".*:",'',B),
           TRUE ~ ''
         ),
-      campaignId =
+      campaign_id =
         case_when(
           grepl('campaignid',tolower(A)) ~ gsub(".*:",'',A),
           grepl('campaignid',tolower(B)) ~ gsub(".*:",'',B),
           TRUE ~ ''
         ),
-      campaignRunId =
+      campaign_run_id =
         case_when(
           grepl('campaignrunid',tolower(B)) ~ gsub(".*:",'',B),
           grepl('campaignrunid',tolower(C)) ~ gsub(".*:",'',C),
@@ -77,8 +78,11 @@ processTrackingSource <- function(dat) {
         ),
       source =
         case_when(
+          grepl('ads',tolower(A)) ~ 'ads',
+          grepl('email',tolower(A)) ~ 'email',
           grepl('source:',tolower(C)) ~ gsub(".*:",'',C),
           grepl('source:',tolower(D)) ~ gsub(".*:",'',D),
+          grepl('source=',tolower(D)) ~ gsub(".*=",'',D),
           TRUE ~ 'no_attribution'
         ),
       source_details =
@@ -87,14 +91,19 @@ processTrackingSource <- function(dat) {
           grepl('_details:',tolower(E)) ~ gsub(".*:",'',E),
           TRUE ~ ''
         ),
-      campaignId =
-        ifelse(campaignRunId=='' & campaignId=='', '8017',
-               ifelse(campaignId=='' & campaignRunId=='8022', '8017', campaignId)),
+      campaign_id =
+        ifelse(campaign_run_id=='' & campaign_id=='', '8017',
+               ifelse(campaign_id=='' & campaign_run_id=='8022', '8017', campaign_id)),
       source = case_when(
         source == 'sms_share' ~ 'sms',
+        grepl('referral=true', tracking_source) ~ 'web',
         grepl('niche', source_details) ~ 'partner',
         TRUE ~ source
         ),
+      source_details = case_when(
+        grepl('referral=true', source_details) ~ 'referral',
+        TRUE ~ source_details
+      ),
       newsletter = case_when(
         source == 'email' & grepl('newsletter', source_details) ~
           gsub('newsletter_', '', source_details),
@@ -105,6 +114,39 @@ processTrackingSource <- function(dat) {
 
   return(parsedSep)
 
+}
+
+getQuasarAttributes <-  function(queryObjects) {
+
+  q <- glue_sql(
+    "SELECT
+    u.northstar_id AS nsid,
+    u.created_at AS ds_registration_date,
+    CASE WHEN u.source = 'niche' THEN 'niche'
+         WHEN u.source = 'sms' THEN 'sms'
+         ELSE 'web' END AS user_source,
+    u.subscribed_member AS active_member,
+    c.signup_id,
+    c.campaign_run_id,
+    max(CASE WHEN c.post_id <> -1 THEN 1 ELSE 0 END) as reportedback
+    FROM public.users u
+    LEFT JOIN public.campaign_activity c ON c.northstar_id = u.northstar_id
+    WHERE u.northstar_id IN ({nsids*})
+    GROUP BY 1,2,3,4,5,6
+    ",
+    nsids = queryObjects,
+    .con = pg
+  )
+
+  nsrDat <-
+    runQuery(q) %>%
+    group_by(nsid) %>%
+    summarise(
+      ds_registration_date = max(ds_registration_date),
+      user_source = max(user_source),
+      signups = n(),
+      reportbacks = sum(reportedback)
+    )
 }
 
 addRTVFields <- function(dat) {
@@ -120,9 +162,12 @@ addRTVFields <- function(dat) {
           TRUE ~ ''
         )
       ,
-      reportback.record = ifelse(
+      reportback.record = case_when(
         ds_vr_status.record %in%
-          c('confirmed','register-form','register-OVR'), T, F
+          c('confirmed','register-form','register-OVR') ~ 1,
+        ds_vr_status.record %in%
+          c('uncertain','ineligible') ~ 0,
+        TRUE ~ NA_real_
       ),
       created_at = as.POSIXct(started_registration,tz="UTC"),
       month = month(created_at),
@@ -148,8 +193,8 @@ addRTVFields <- function(dat) {
           TRUE ~ ''
         ),
       reportback =
-        ifelse(nsid=='', reportback.record,
-               ifelse(max(reportback.record==T), T, F))
+        as.logical(ifelse(nsid=='', reportback.record,
+               ifelse(max(reportback.record==1), 1, 0)))
       ,
       created_at =
         as.POSIXct(ifelse(nsid=='', created_at, max(created_at)), origin='1970-01-01')
@@ -165,19 +210,10 @@ alignNames <- function(data) {
 
   data %<>%
     select(
-      id, first_name, middle_name, last_name, phone, email=email_address,
-      registered_address_street=home_address, registered_address_street_2=home_unit,
-      registered_address_city=home_city, registered_address_zip=home_zip_code,
-      registered_address_state=home_state, mailing_address_street=mailing_address,
-      mailing_address_street_2=mailing_unit, mailing_address_city=mailing_city,
-      mailing_address_state=mailing_state, mailing_address_zip=mailing_zip_code,
-      dob=date_of_birth, language_preference=language, created_at,
-      referral_code=tracking_source, nsid, source, source_details,
-      campaignId, campaignRunId, newsletter, details, month, week,
-      ds_vr_status, reportback
-    ) %>%
-    mutate(
-      dob = as.integer(substr(dob, nchar(dob)-4, nchar(dob)))
+      created_at,referral_code=tracking_source, nsid, source,
+      source_details, campaign_id, campaign_run_id, newsletter, details,
+      month, week, ds_vr_status, reportback, email=email_address,
+      ds_registration_date, user_source
     )
 
   return(data)
@@ -220,6 +256,7 @@ prepData <- function(...) {
     mutate(
       details = case_when(
         newsletter != '' & !is.na(newsletter) ~ category,
+        grepl('referral=true', referral_code) ~ 'referral',
         TRUE ~ details
       ),
       file = 'RockTheVote'
@@ -231,7 +268,8 @@ prepData <- function(...) {
       grepl('register', ds_vr_status) |
       created_at == max(created_at)
     ) %>%
-    ungroup()
+    ungroup() %>%
+    select(-email)
 
   return(vr)
 

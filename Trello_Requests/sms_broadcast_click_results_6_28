@@ -1,0 +1,9 @@
+SELECT 	(regexp_split_to_array(c.target_url, 'broadcastID='))[2] AS broadcast_id,
+		count(*)
+FROM public.bertly_clicks c
+GROUP BY (regexp_split_to_array(c.target_url, 'broadcastID='))[2]; 
+
+SELECT 	(regexp_split_to_array(c.target_url, 'broadcastid='))[2] AS broadcast_id,
+		count(*)
+FROM public.bertly_clicks c
+GROUP BY (regexp_split_to_array(c.target_url, 'broadcastid='))[2];  

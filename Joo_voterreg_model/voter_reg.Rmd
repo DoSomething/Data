@@ -1,0 +1,429 @@
+---
+title: "voter_reg_modeling"
+output: html_document
+---
+
+# 1. Sources & Libraries 
+
+```{r, quietly=TRUE}
+source('config/init.R')
+source('config/pgConnect.R')
+source('config/voter_regfunctions.R') # all functions are here
+pg <- pgConnect()
+
+packages.used <- c("glue", "lubridate", "ggplot2", "caret", "reshape2", "dplyr", "randomForest")
+
+#check packages that need to be installed
+packages.needed <- setdiff(packages.used, intersect(installed.packages()[,1], packages.used))
+
+#install additional packages 
+if (length(packages.needed) > 0) {
+  install.packages(packages.needed, dependencies = TRUE)
+}
+
+library(glue)
+library(lubridate)
+library(reshape2)
+library(caret)
+library(ggplot2)
+library(dplyr)
+library(randomForest)
+```
+
+
+# 2. Load datasets 
+
+```{r}
+# Users dataset 
+
+users_query <- 
+"SELECT u.northstar_id,
+u.created_at,
+u.last_logged_in,
+u.last_accessed,
+u.SOURCE,
+u.birthdate,
+u.first_name,
+u.state,
+u.zipcode,
+u.cio_status,
+u.sms_status,
+u.voter_registration_status
+FROM users u
+WHERE u.subscribed_member = 'true'
+	AND u.country = 'US'
+	AND u.birthdate <= current_date - INTERVAL '18 years'" # removing underage members in users file 
+
+users <- runQuery(users_query)
+
+# phoenix_events dataset 
+
+phoenix_query <- "SELECT 
+	northstar_id,
+	event_datetime,
+	event_name,
+	event_source,
+	campaign_id,
+	page_utm_medium,
+	parent_source,
+	browser_size
+FROM phoenix_events
+WHERE northstar_id IS NOT NULL 
+	AND event_name IN ('view', 'visit', 'open modal')"
+
+phoenix <- runQuery(phoenix_query)
+
+# member_event_log dataset 
+
+mel_query <- "SELECT 
+	m.northstar_id,
+	m.timestamp,
+	m.action_type,
+	m.SOURCE
+FROM member_event_log m
+WHERE m.northstar_id IS NOT NULL"
+
+mel <- runQuery(mel_query)
+
+# campaign_activity dataset 
+
+ca_query <- "SELECT c.northstar_id,
+c.campaign_run_id,
+c.post_type,
+c.reportback_volume,
+c.post_status,
+c.quantity,
+c.signup_source,
+c.post_source,
+c.signup_created_at,
+c.reported_back,
+c.post_attribution_date
+FROM campaign_activity c
+WHERE c.northstar_id IS NOT NULL"
+
+campaign <- runQuery(ca_query)
+
+# email data
+
+email_query <- "SELECT customer_id AS northstar_id,
+email_address,
+subject,
+timestamp,
+event_type
+FROM email_event 
+WHERE customer_id IS NOT NULL"
+
+email <- runQuery(email_query)
+
+# SMS
+
+SMS_mes <- "SELECT 
+northstar_id,
+click_time AS SMS_time,
+'SMS message' AS action_type
+FROM bertly_clicks
+WHERE northstar_id IS NOT NULL
+UNION ALL 
+	SELECT 
+		id AS northstar_id,
+		last_messaged_at AS SMS_time,
+		'SMS link click' AS action_type
+	FROM northstar.users 
+	WHERE id IS NOT NULL 
+		AND last_messaged_at IS NOT NULL"
+
+sms <- runQuery(SMS_mes)
+
+# Turbovote file 
+turbo_query <- "SELECT 
+	nsid AS northstar_id,
+	SOURCE,
+	campaign_id,
+	ds_vr_status,
+	ds_registration_date,
+	file
+FROM turbovote_file
+WHERE nsid IS NOT null"
+
+turbo <- runQuery(turbo_query)  
+```
+
+# Save as R data files 
+
+```{r}
+saveRDS(users, "Rdata/users.rds")
+saveRDS(phoenix, "Rdata/phoenix.rds")
+saveRDS(campaign, "Rdata/campaign.rds")
+saveRDS(email, "Rdata/email.rds")
+saveRDS(sms, "Rdata/sms.rds")
+saveRDS(turbo, "Rdata/turbo.rds")
+```
+
+# Load R data files 
+
+```{r}
+users <- readRDS("Rdata/users.rds")
+phoenix <- readRDS("Rdata/phoenix.rds")
+campaign <- readRDS("Rdata/campaign.rds")
+email <- readRDS("Rdata/email.rds")
+sms <- readRDS("Rdata/sms.rds")
+turbo <- readRDS("Rdata/turbo.rds")
+```
+
+
+# Data wrangling 
+
+## Remove records of under 18 northstar_ids in all datasets 
+
+```{r}
+# only keep rows whose age < 18, in US, and members in relevant datasets. 
+# (y should be public.users data or any other membership data).
+
+phoenix1 <- remove18(phoenix, users)
+campaign1 <- remove18(campaign, users)
+email1 <- remove18(email, users)
+sms1 <- remove18(sms, users)
+turbo1 <- remove18(turbo, users)
+
+users1 <- users
+```
+
+## Extracting predicted feature (voter registration status)
+
+```{r}
+# this code will soon become obsolete as Jen is leading the sprint to combine for all columns 
+reg_status <- predicted(users1, turbo1)
+reg_status$voter_reg_status[reg_status$voter_reg_status == "register-form"] <- "registration_complete"
+reg_status$voter_reg_status[reg_status$voter_reg_status == "register-OVR"] <- "registration_complete"
+table(reg_status$voter_reg_status)
+```
+
+
+## Extracting demographic features 
+
+```{r}
+# gender feature 
+gender <- gender_feature(users1)
+
+# age feature 
+age <- age_feature(users1)
+
+# SES feature 
+ses <- ses_feature(users1)
+```
+
+
+## Extracting behavioral features 
+
+```{r}
+# returns variables of email clicked, converted, opened, unsubscribed & total number of email actions per northstar_id 
+email_count <- email_feature(email1)
+
+# returns columns of SMS action by type & total number of sms actions per northstar_id 
+sms_count <- sms_feature(sms1)
+
+# returns columns of browser size by northstar_id 
+browser_size <- browser_size_feature(phoenix1)
+
+# returns number of total actions per northstar_id 
+total_action <- total_actions_feature(phoenix1, campaign1, email1, sms1)
+
+
+```
+
+# Create a dataset with desired features 
+
+```{r}
+df <- 
+  reg_status %>% 
+  left_join(gender, by = "northstar_id") %>% 
+  left_join(age, by = "northstar_id") %>%
+  left_join(email_count, by = "northstar_id") %>% 
+  left_join(sms_count, by = "northstar_id") %>%
+  left_join(browser_size, by = "northstar_id") %>% 
+  left_join(total_action, by = "northstar_id")
+
+df <- replace_na_numeric(df) # replace NAs in numeric columns with 0's
+df <- replace_na_else(df) # replace NAs in non-numeric columns with "unknown"
+```
+
+## Identify & eliminate near zero-variance variables
+
+(zero-variance variables are variables that have only a handful of unique values that occur with very low frequency - may need to be eliminated prior to modeling for fit to be stable)
+
+```{r}
+df_list <- remove_nzv(df) 
+
+df_filtered <- df_list[[2]] # keeps only the dataframe
+```
+
+## Identify & eliminate highly correlated predictors
+
+```{r}
+df_list2 <- remove_highcor(df_filtered)
+
+df_filtered <- df_list2[[3]] # keeps only the dataframe
+```
+
+# Split into training & testing
+
+## Confirmed vs. Unregistered 
+### 1. Divide into training and testing 
+
+```{r}
+set.seed(12345)
+
+df_selfreport <- 
+  df_filtered %>% 
+  filter(voter_reg_status %in% c("confirmed", "unregistered"))
+
+df_selfreport$voter_reg_status <- # factor to only include the selected levels 
+  factor(df_selfreport$voter_reg_status, 
+       levels = c("confirmed", "unregistered"),
+       labels = c("confirmed", "unregistered"))
+
+in_train <- createDataPartition(y = df_selfreport$voter_reg_status, p = 3 / 4, list = FALSE)
+training <- df_selfreport[in_train, ]
+testing  <- df_selfreport[-in_train, ]
+```
+
+The dataset is unbalanced because there are more "confirmed" than "unregistered" folks, which would bias the model into favoring predictions for those who are confirmed. I will use the caret upsample function to increase the "unregistered" values, with replacement. (May use SMOTE with larger data)
+
+```{r}
+up_train <- upSample(x = select(training, -c(voter_reg_status, northstar_id)),
+                     y = training$voter_reg_status,
+                     yname = "voter_reg_status")
+```
+
+Centering and scaling data ensures that some features do not dominate the algorithm AND and the features are unit-independent. 
+
+```{r}
+preprocvalues <- preProcess(up_train, method = c("center", "scale")) # estimates required parameters to be centered & scaled 
+train_transformed <- predict(preprocvalues, up_train) # this function actually centers and scales based on the parameters defined above 
+test_transformed <- predict(preprocvalues, testing)
+```
+
+Using the caret package to set a 10-fold cross-validation for models with tuning parameters. 
+
+```{r}
+ctrl <- trainControl(method = "cv",
+                     number = 10,
+                     summaryFunction = twoClassSummary,
+                     classProbs = TRUE)
+```
+
+
+## Random Forest
+
+```{r}
+rf_fit <- train(voter_reg_status ~ ., 
+                data = train_transformed,
+                method = "rf",
+                trControl = ctrl,
+                metric = "Kappa", #?
+                verbose = FALSE)
+rf_fit
+
+rf_model <- randomForest(voter_reg_status ~ .,
+             data = train_transformed,
+             mtry = 5, # why sampling 6?
+             importance = TRUE)
+rf_model
+
+yhat_rf <- predict(rf_model, 
+                   newdata = test_transformed, 
+                   type = "class")
+
+table_rf <- table(test_transformed$voter_reg_status, yhat_rf)
+
+# simple accuracy 
+sum(diag(table_rf)) / sum(table_rf) 
+
+# AUC (true positive rate vs. false positive rate)
+test1 <- test_transformed
+test1$voter_reg_status <- ifelse(test1$voter_reg_status == "confirmed", 1, 0)
+yhat_rf1 <- yhat_rf
+yhat_rf1 <- ifelse(yhat_rf1 == "confirmed", 1, 0)
+roc_obj <- roc(test1$voter_reg_status, yhat_rf1)
+auc(roc_obj)
+```
+
+# Descriptive Stats 
+
+```{r}
+#gender 
+gender_freq <- 
+  users1 %>%
+  group_by(gender) %>% 
+  summarize(freq = n()) %>%
+  mutate(perc = freq / sum(freq))
+
+ggplot(gender_freq, aes(x = gender, y = freq, fill = gender, label = perc)) +
+  geom_bar(stat = "identity") + 
+  geom_text(size = 4, position = position_stack(vjust = 0.7))
+
+# age 
+summary(age_freq)
+
+age_freq <- 
+  users1 %>% 
+  group_by(age) %>%
+  summarise(freq = n()) %>%
+  mutate(perc = freq / sum(freq) * 100)
+
+ggplot(age_freq, aes(x = age, y = freq)) +
+  geom_bar(stat = "identity") +
+  xlim(18, 40)
+```
+
+```{r}
+# how many were active this year? 
+activity <- 
+  users1 %>%
+  mutate(year_active = year(last_accessed),
+            month_active = month(last_accessed)) %>%
+  filter(year_active == year(Sys.Date()) %>% 
+  select(year_active, month_active) %>% 
+  gather(`year_active`, `month_active`, key = "active_period", value = length()) %>%
+  rename(cont = "length()") %>%
+  group_by(cont) %>%
+  tally
+```
+
+```{r}
+# how many members were active this month?
+  mel1 %>%
+  mutate(year_active = year(timestamp),
+         month_active = month(timestamp)) %>%
+  filter(year_active == year(Sys.Date()) & month_active == month(Sys.Date())) %>% 
+  select(northstar_id, month_active) %>% 
+  gather(`month_active`, key = "active_month", value = length()) %>%
+  rename(month = "length()") %>%
+  summarise(n_distinct(northstar_id))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

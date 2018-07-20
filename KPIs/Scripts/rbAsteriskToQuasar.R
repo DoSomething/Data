@@ -172,8 +172,10 @@ system('scp ~/quasar/quasar/misc/reportbacks_asterisk.csv jump.d12g.co:/quasar-c
 
 channel <- pgConnect()
 if(dbExistsTable(channel,c("public", "legacy_reportbacks"))) {
-  dbRemoveTable(channel,c("public", "legacy_reportbacks"))}
-dbWriteTable(channel,c("public", "legacy_reportbacks"), reportbacks_asterisk, row.names=F)
+  q <- "truncate public.legacy_reportbacks"
+  runQuery(q)
+}
+dbWriteTable(channel,c("public", "legacy_reportbacks"), reportbacks_asterisk, append=T, row.names=F)
 
 grant <- "grant select on public.legacy_reportbacks to public;"
 dbGetQuery(channel, grant)

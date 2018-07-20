@@ -19,22 +19,22 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
         FROM 
              (
             SELECT 
-				sd.northstar_id,
-				sd.created_at,
-				sd.id,
-				sd."source",
-				sd.deleted_at
+                sd.northstar_id,
+                sd.created_at,
+                sd.id,
+                sd."source",
+                sd.deleted_at
             FROM 
-				(SELECT 
+                (SELECT 
                     stemp.id,
                     max(stemp.updated_at) AS updated_at
-  				FROM rogue.signups stemp
-				GROUP BY stemp.id) s_maxupt
+                FROM rogue.signups stemp
+                GROUP BY stemp.id) s_maxupt
             INNER JOIN rogue.signups sd
                 ON sd.id = s_maxupt.id AND sd.updated_at = s_maxupt.updated_at
             ) s
         WHERE s.deleted_at IS NULL
-	UNION ALL 
+    UNION ALL 
         SELECT -- CAMPAIGN POSTS
             DISTINCT p.northstar_id AS northstar_id,
             p.created_at AS "timestamp",
@@ -52,17 +52,17 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
                 pd.deleted_at,
                 pd."type"
             FROM 
-				(SELECT 
+                (SELECT 
                     ptemp.id,
                     max(ptemp.updated_at) AS updated_at
-				FROM rogue.posts ptemp
-				GROUP BY ptemp.id) p_maxupt
-			INNER JOIN rogue.posts pd
+                FROM rogue.posts ptemp
+                GROUP BY ptemp.id) p_maxupt
+            INNER JOIN rogue.posts pd
             ON pd.id = p_maxupt.id AND pd.updated_at = p_maxupt.updated_at
                 ) p
         WHERE p.deleted_at IS NULL
         AND p."type" IS DISTINCT FROM 'voter-reg'
-	UNION ALL -- SITE ACCESS
+    UNION ALL -- SITE ACCESS
         SELECT DISTINCT 
             u_access.id AS northstar_id,
             u_access.last_accessed_at AS "timestamp",
@@ -71,8 +71,8 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
             NULL AS "source",
             '0' AS action_serial_id
         FROM northstar.users u_access
-		WHERE u_access.last_accessed_at IS NOT NULL
-	UNION ALL -- SITE LOGIN
+        WHERE u_access.last_accessed_at IS NOT NULL
+    UNION ALL -- SITE LOGIN
         SELECT DISTINCT 
             u_login.id AS northstar_id,
             u_login.last_authenticated_at AS "timestamp",
@@ -82,7 +82,7 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
             '0' AS action_serial_id
         FROM northstar.users u_login
         WHERE u_login.last_authenticated_at IS NOT NULL 
-	UNION ALL 
+    UNION ALL 
         SELECT -- ACCOUNT CREATION 
             DISTINCT u.id AS northstar_id,
             u.created_at AS "timestamp",
@@ -92,12 +92,12 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
             '0' AS action_serial_id
         FROM
             (SELECT 
-            		u_create.id,
-            		max(u_create."source") AS "source",
-            		min(u_create.created_at) AS created_at
+                    u_create.id,
+                    max(u_create."source") AS "source",
+                    min(u_create.created_at) AS created_at
             FROM northstar.users u_create
             GROUP BY u_create.id) u
-	UNION ALL 
+    UNION ALL 
         SELECT -- LAST MESSAGED SMS 
             DISTINCT u.id AS northstar_id,
             u.last_messaged_at AS "timestamp",
@@ -108,7 +108,7 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
         FROM
             northstar.users u
         WHERE u.last_messaged_at IS NOT NULL 
-	UNION ALL 
+    UNION ALL 
         SELECT -- CLICKED EMAIL LINK 
             DISTINCT cio.customer_id AS northstar_id,
             cio."timestamp" AS "timestamp",
@@ -120,21 +120,21 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
             cio.email_event cio
         WHERE 
             cio.event_type = 'email_clicked'
-	UNION ALL
+    UNION ALL
         SELECT -- VOTER REGISTRATIONS
             DISTINCT tv.nsid AS northstar_id,
             tv.created_at AS "timestamp",
             'registered' AS "action",
             '8' AS action_id,
             tv.source_details AS "source",
-            tv.id as action_serial_id
+            '0' as action_serial_id
         FROM
             public.turbovote_file tv
         WHERE
             tv.ds_vr_status IN ('register-form', 'confirmed', 'register-OVR')
         AND 
             tv.nsid IS NOT NULL AND tv.nsid <> ''
-	UNION ALL 
+    UNION ALL 
         SELECT -- FACEBOOK SHARES FROM PHOENIX-NEXT
             DISTINCT pe.northstar_id AS northstar_id,
             to_timestamp(pe.ts /1000) AS "timestamp",
@@ -148,21 +148,19 @@ CREATE MATERIALIZED VIEW public.member_event_log AS
             pe.event_name IN ('share action completed', 'facebook share posted')
         AND pe.northstar_id IS NOT NULL
         AND pe.northstar_id <> ''
-	UNION ALL 
-    	SELECT DISTINCT -- SMS LINK CLICKS FROM BERTLY
-    		b.northstar_id AS northstar_id,
-    		b.click_time AS "timestamp",
-    		'sms_link_click' AS "action",
-    		'10' AS action_id,
-    		'bertly' AS "source",
-    		b.click_id AS action_serial_id
-    	FROM public.bertly_clicks b	
-    	WHERE b.northstar_id IS NOT NULL 
-		) AS a 
-	); 
-
+    UNION ALL 
+        SELECT DISTINCT -- SMS LINK CLICKS FROM BERTLY
+            b.northstar_id AS northstar_id,
+            b.click_time AS "timestamp",
+            'sms_link_click' AS "action",
+            '10' AS action_id,
+            'bertly' AS "source",
+            b.click_id AS action_serial_id
+        FROM public.bertly_clicks b 
+        WHERE b.northstar_id IS NOT NULL 
+        ) AS a 
+    ); 
  CREATE INDEX ON public.member_event_log (event_id, northstar_id, "timestamp", action_serial_id);
-
 GRANT SELECT ON public.member_event_log TO looker;
 GRANT SELECT ON public.member_event_log TO jjensen;
 GRANT SELECT ON public.member_event_log TO jli;
