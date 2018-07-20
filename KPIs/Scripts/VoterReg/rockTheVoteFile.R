@@ -67,13 +67,17 @@ processTrackingSource <- function(dat) {
       campaign_id =
         case_when(
           grepl('campaignid',tolower(A)) ~ gsub(".*:",'',A),
+          grepl('campaign:',tolower(A)) ~ gsub(".*:",'',A),
           grepl('campaignid',tolower(B)) ~ gsub(".*:",'',B),
+          grepl('campaign:',tolower(B)) ~ gsub(".*:",'',B),
           TRUE ~ ''
         ),
       campaign_run_id =
         case_when(
           grepl('campaignrunid',tolower(B)) ~ gsub(".*:",'',B),
+          grepl('campaignrunid',tolower(B)) ~ gsub(".*=",'',B),
           grepl('campaignrunid',tolower(C)) ~ gsub(".*:",'',C),
+          grepl('campaignrunid',tolower(C)) ~ gsub(".*=",'',C),
           TRUE ~ ''
         ),
       source =
@@ -81,6 +85,7 @@ processTrackingSource <- function(dat) {
           grepl('ads',tolower(A)) ~ 'ads',
           grepl('email',tolower(A)) ~ 'email',
           grepl('source:',tolower(C)) ~ gsub(".*:",'',C),
+          grepl('source=',tolower(C)) ~ gsub(".*=",'',C),
           grepl('source:',tolower(D)) ~ gsub(".*:",'',D),
           grepl('source=',tolower(D)) ~ gsub(".*=",'',D),
           TRUE ~ 'no_attribution'
@@ -88,7 +93,9 @@ processTrackingSource <- function(dat) {
       source_details =
         case_when(
           grepl('_details:',tolower(D)) ~ gsub(".*:",'',D),
+          grepl('_details=',tolower(D)) ~ gsub(".*=",'',D),
           grepl('_details:',tolower(E)) ~ gsub(".*:",'',E),
+          grepl('_details=',tolower(E)) ~ gsub(".*=",'',E),
           TRUE ~ ''
         ),
       campaign_id =
