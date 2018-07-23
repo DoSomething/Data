@@ -8,10 +8,7 @@ getRTVFile <- function(path) {
     filter(
       !grepl('dosomething', `Email address`) &
       !grepl('testing', `Tracking Source`) &
-      !grepl('lkpttn@gmail.com', `Email address`) &
-      !grepl('@example.com', `Email address`) &
-      !grepl('david@dfurnes.com', `Email address`) &
-      !grepl('ashleyebaldwin@gmail.com', `Email address`)
+      !grepl('@example.com', `Email address`)
     )
 
   for (i in 1:length(names(data))) {
@@ -44,6 +41,56 @@ getRTVFile <- function(path) {
 
 }
 
+
+getWebLeads <- function() {
+
+  raw <- tibble()
+
+  for (i in 1:7) {
+    a <- suppressMessages(read_csv(paste0('Data/WebLeads/leads-',i,'.csv')))
+    raw <- bind_rows(a,raw)
+  }
+
+  leads <-
+    raw %>%
+    mutate(
+      Date = as.POSIXct(Date, format='%m/%d/%Y %H:%M:%S'),
+      tracking_source_alt =
+        case_when(
+          is.na(source) ~ r,
+          is.na(r) ~ source,
+          TRUE ~ NA_character_
+        )
+    ) %>%
+    filter(Date >= '2018-06-26' & Date <= '2018-06-27') %>%
+    group_by(Email, `Zip Code`) %>%
+    filter(Date==max(Date)) %>%
+    select(email_address=Email, home_zip_code=`Zip Code`, tracking_source_alt) %>%
+    ungroup()
+
+  return(leads)
+
+}
+
+attachWebLeadTracking <- function(rtv) {
+
+  webLeads <- getWebLeads()
+
+  out <-
+    rtv %>%
+    left_join(webLeads) %>%
+    mutate(
+      tracking_source =
+        case_when(
+          tracking_source %in% c('[r]','undefined','[source]') |
+          is.na(tracking_source) ~ tracking_source_alt,
+          TRUE ~ tracking_source
+        )
+    ) %>%
+    select(-tracking_source_alt)
+
+}
+
 processTrackingSource <- function(dat) {
 
   maxSep <- max(as.numeric(names(table(str_count(dat$tracking_source, ',')))))+1
@@ -60,6 +107,7 @@ processTrackingSource <- function(dat) {
     mutate(
       nsid =
         case_when(
+          grepl('referral=true', tracking_source) ~ '',
           grepl('user',tolower(A)) ~ gsub(".*:",'',A),
           grepl('user',tolower(B)) ~ gsub(".*:",'',B),
           TRUE ~ ''
@@ -230,6 +278,7 @@ alignNames <- function(data) {
 prepData <- function(...) {
 
   d <- getRTVFile(...)
+  d <- attachWebLeadTracking(d)
   refParsed <- processTrackingSource(d)
 
   vr <-
