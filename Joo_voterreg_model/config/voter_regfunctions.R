@@ -1,5 +1,3 @@
-
-
 ################## Initial Data Wrangling #######################
 
 # remove northstar_ids that are under 18, do not live in the US, and are unsubscribed
@@ -154,7 +152,6 @@ dem_rep_feature <- function(users) {
     mutate(election_2016 = ifelse(state_list$`c(dems, reps)` %in% dems, 
                                   "democratic", "republican")) %>%
     rename(state = `c(dems, reps)`)
-  
   output <- 
     users %>% 
     select(northstar_id, state) %>% 
@@ -179,16 +176,12 @@ email_feature <- function(email) {
 
 # returns columns of SMS action by type & total number of actions per northstar_id 
 
-sms_feature <- function(sms) {
+sms_total_feature <- function(sms) {
   output <-
     sms %>% 
-    group_by(northstar_id, action_type) %>%
+    group_by(northstar_id) %>%
     tally %>%
-    spread(key = action_type, value = n, fill = 0) %>% 
-    rowwise() %>%
-    mutate(sms_total = sum(`SMS link click`, `SMS message`)) %>%
-    rename(sms_link_click = `SMS link click`,
-           sms_message = `SMS message`)
+    rename(sms_total = n)
   
   return(output)
 }
@@ -288,6 +281,7 @@ MAM_action_feature <- function(mel) {
   output <- 
     mel %>%
     select(northstar_id, action_type) %>%
+    filter(action_type != "registered") %>%
     group_by(northstar_id, action_type) %>%
     tally %>% 
     spread(key = action_type, value = n, fill = 0) %>% 
@@ -296,27 +290,59 @@ MAM_action_feature <- function(mel) {
   return(output)
 }
 
-# last accessed - when? 
+# how many months ago was their last activity? 
 
 last_action_feature <- function(mel) { 
-    output <- 
-      mel %>%
-      sample_frac(.01) %>%
-      group_by(northstar_id) %>%
-      slice(which.max(timestamp)) %>% 
-      select(northstar_id, timestamp) %>% 
-      mutate(month_diff = time_length(difftime(Sys.Date(), timestamp, units = "days"), "month"),
-           active_within_3_months = ifelse(month_diff <= 3, 1, 0),
-           active_within_6_months = ifelse(month_diff <= 6, 1, 0),
-           active_within_1_year = ifelse(month_diff <= 12, 1, 0)
-           ) %>%
-      select(-c(timestamp, month_diff))
+  output <- 
+    mel %>%
+    group_by(northstar_id) %>% 
+    dplyr::slice(which.max(timestamp)) %>% 
+    select(northstar_id, timestamp) %>% 
+    mutate(month_diff = time_length(difftime(Sys.Date(), timestamp, units = "days"), "month")) %>%
+    select(-timestamp)
   
   return(output)
-    
-}
   
+}
 
+# what cause spaces have they participated in? 
+
+cause_space_feature <- function(users, campaign, campaign_info) {
+  campaign_with_id <- 
+    campaign %>% 
+    filter(post_status == "accepted") %>% 
+    select(northstar_id, campaign_run_id) %>% 
+    left_join(campaign_info, by = "campaign_run_id") %>% 
+    select(northstar_id, campaign_cause_type) %>% 
+    filter(!is.na(campaign_cause_type)) %>%
+    mutate(cause_area = case_when(
+      grepl("Environment", campaign_cause_type) |
+        grepl("Disasters", campaign_cause_type) ~ "Environment",
+      grepl("Health", campaign_cause_type) |
+        grepl("Relationships", campaign_cause_type) |
+        grepl("Violence", campaign_cause_type) ~ "Health",
+      grepl("Animals", campaign_cause_type) ~ "Animals", 
+      grepl("Bullying", campaign_cause_type) | 
+        grepl("Education", campaign_cause_type) | 
+        grepl("Homelessness", campaign_cause_type) |
+        grepl("Poverty", campaign_cause_type) | 
+        grepl("Discrimination", campaign_cause_type) | 
+        grepl("Education", campaign_cause_type) ~ "Social",
+      TRUE ~ NA_character_
+    )) %>% 
+    select(northstar_id, cause_area) %>% 
+    filter(!is.na(cause_area)) %>% 
+    group_by(northstar_id, cause_area) %>% 
+    tally %>% 
+    spread(key = cause_area, value = n, fill = 0)
+  
+  output <- 
+    users %>% 
+    select(northstar_id) %>%
+    left_join(campaign_with_id, by = "northstar_id")
+  
+  return(output)
+}
 
 ######################### Pre-processing ########################
 
@@ -380,7 +406,7 @@ remove_highcor <- function(x) {
     select_if(is.numeric) # selects only numeric variables for correlation matrix 
   df_corr <- cor(numeric_only) # correlation matrix 
   high_corr <- findCorrelation(df_corr, cutoff = .75, names = TRUE) # spits out variables above the cutoff 
-  x_filtered <- x[!x %in% high_corr]
+  x_filtered <- select(x, -high_corr)
   
   output_list<- list(df_corr, high_corr, x_filtered)
   
@@ -392,32 +418,32 @@ remove_highcor <- function(x) {
 
 master_final <- function(master) {
   # filter the three levels of interest 
-   only_three <- 
-     master %>% 
-     filter(voter_reg_status %in% c("registration_complete", "registration_started", "any_interaction"))
-   
-   # get info we need to sample randomly from the NA category 
-   most_common <- names(which.max(table(only_three$voter_reg_status))) # get value most frequent in voter_reg_status
-   sample_size <- sum(only_three$voter_reg_status == most_common) # get its frequency 
-   
-   # randomly sample from the NA rows 
-   no_interaction_sample <- 
-     master %>% 
-     filter(is.na(voter_reg_status)) %>% 
-     sample_n(sample_size, replace = FALSE) %>% 
-     replace_na(list(voter_reg_status = "no_interaction"))
-   
-   # combine to get the final dataset 
-   combined <- 
-     bind_rows(only_three, no_interaction_sample)
-   
-   # create ordered factor levels 
-   combined$voter_reg_status <- 
-     factor(combined$voter_reg_status,
-            levels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"),
-            labels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"))
-   
-   return(combined)
+  only_three <- 
+    master %>% 
+    filter(voter_reg_status %in% c("registration_complete", "registration_started", "any_interaction"))
+  
+  # get info we need to sample randomly from the NA category 
+  most_common <- names(which.max(table(only_three$voter_reg_status))) # get value most frequent in voter_reg_status
+  sample_size <- sum(only_three$voter_reg_status == most_common) # get its frequency 
+  
+  # randomly sample from the NA rows 
+  no_interaction_sample <- 
+    master %>% 
+    filter(is.na(voter_reg_status)) %>% 
+    sample_n(sample_size, replace = FALSE) %>% 
+    replace_na(list(voter_reg_status = "no_interaction"))
+  
+  # combine to get the final dataset 
+  combined <- 
+    bind_rows(only_three, no_interaction_sample)
+  
+  # create ordered factor levels 
+  combined$voter_reg_status <- 
+    factor(combined$voter_reg_status,
+           levels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"),
+           labels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"))
+  
+  return(combined)
 }
 
 
@@ -434,7 +460,18 @@ AUC_function <- function(predictions, test_data, class) { # class must be in quo
   return(output)
 }
 
+# gbm predictions vector (make it comparable to the test data)
 
+gbm_transform_function <- function(gbm_pred) {
+  gbm_pred <- as.data.frame(gbm_pred)
+  gbm_pred <- colnames(gbm_pred)[max.col(gbm_pred)]
+  gbm_pred <- str_split(gbm_pred, "[.]" , simplify = TRUE)[, 1]
+  gbm_pred <- factor(gbm_pred,
+                     levels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"),
+                     labels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"))
+  
+  return(gbm_pred)
+}
 
 
 
