@@ -8,10 +8,7 @@ getRTVFile <- function(path) {
     filter(
       !grepl('dosomething', `Email address`) &
       !grepl('testing', `Tracking Source`) &
-      !grepl('lkpttn@gmail.com', `Email address`) &
-      !grepl('@example.com', `Email address`) &
-      !grepl('david@dfurnes.com', `Email address`) &
-      !grepl('ashleyebaldwin@gmail.com', `Email address`)
+      !grepl('@example.com', `Email address`)
     )
 
   for (i in 1:length(names(data))) {
@@ -44,6 +41,56 @@ getRTVFile <- function(path) {
 
 }
 
+
+getWebLeads <- function() {
+
+  raw <- tibble()
+
+  for (i in 1:7) {
+    a <- suppressMessages(read_csv(paste0('Data/WebLeads/leads-',i,'.csv')))
+    raw <- bind_rows(a,raw)
+  }
+
+  leads <-
+    raw %>%
+    mutate(
+      Date = as.POSIXct(Date, format='%m/%d/%Y %H:%M:%S'),
+      tracking_source_alt =
+        case_when(
+          is.na(source) ~ r,
+          is.na(r) ~ source,
+          TRUE ~ NA_character_
+        )
+    ) %>%
+    filter(Date >= '2018-06-26' & Date <= '2018-06-27') %>%
+    group_by(Email, `Zip Code`) %>%
+    filter(Date==max(Date)) %>%
+    select(email_address=Email, home_zip_code=`Zip Code`, tracking_source_alt) %>%
+    ungroup()
+
+  return(leads)
+
+}
+
+attachWebLeadTracking <- function(rtv) {
+
+  webLeads <- getWebLeads()
+
+  out <-
+    rtv %>%
+    left_join(webLeads) %>%
+    mutate(
+      tracking_source =
+        case_when(
+          tracking_source %in% c('[r]','undefined','[source]') |
+          is.na(tracking_source) ~ tracking_source_alt,
+          TRUE ~ tracking_source
+        )
+    ) %>%
+    select(-tracking_source_alt)
+
+}
+
 processTrackingSource <- function(dat) {
 
   maxSep <- max(as.numeric(names(table(str_count(dat$tracking_source, ',')))))+1
@@ -52,6 +99,7 @@ processTrackingSource <- function(dat) {
     dat %>%
     select(id, tracking_source) %>%
     mutate(
+      tracking_source = gsub('sourcedetails','source_details',tracking_source),
       tracking_source = gsub('iframe\\?r=','',tracking_source),
       tracking_source = gsub('iframe','',tracking_source)
     ) %>%
@@ -59,6 +107,7 @@ processTrackingSource <- function(dat) {
     mutate(
       nsid =
         case_when(
+          grepl('referral=true', tracking_source) ~ '',
           grepl('user',tolower(A)) ~ gsub(".*:",'',A),
           grepl('user',tolower(B)) ~ gsub(".*:",'',B),
           TRUE ~ ''
@@ -66,13 +115,17 @@ processTrackingSource <- function(dat) {
       campaign_id =
         case_when(
           grepl('campaignid',tolower(A)) ~ gsub(".*:",'',A),
+          grepl('campaign:',tolower(A)) ~ gsub(".*:",'',A),
           grepl('campaignid',tolower(B)) ~ gsub(".*:",'',B),
+          grepl('campaign:',tolower(B)) ~ gsub(".*:",'',B),
           TRUE ~ ''
         ),
       campaign_run_id =
         case_when(
           grepl('campaignrunid',tolower(B)) ~ gsub(".*:",'',B),
+          grepl('campaignrunid',tolower(B)) ~ gsub(".*=",'',B),
           grepl('campaignrunid',tolower(C)) ~ gsub(".*:",'',C),
+          grepl('campaignrunid',tolower(C)) ~ gsub(".*=",'',C),
           TRUE ~ ''
         ),
       source =
@@ -80,6 +133,7 @@ processTrackingSource <- function(dat) {
           grepl('ads',tolower(A)) ~ 'ads',
           grepl('email',tolower(A)) ~ 'email',
           grepl('source:',tolower(C)) ~ gsub(".*:",'',C),
+          grepl('source=',tolower(C)) ~ gsub(".*=",'',C),
           grepl('source:',tolower(D)) ~ gsub(".*:",'',D),
           grepl('source=',tolower(D)) ~ gsub(".*=",'',D),
           TRUE ~ 'no_attribution'
@@ -87,7 +141,9 @@ processTrackingSource <- function(dat) {
       source_details =
         case_when(
           grepl('_details:',tolower(D)) ~ gsub(".*:",'',D),
+          grepl('_details=',tolower(D)) ~ gsub(".*=",'',D),
           grepl('_details:',tolower(E)) ~ gsub(".*:",'',E),
+          grepl('_details=',tolower(E)) ~ gsub(".*=",'',E),
           TRUE ~ ''
         ),
       campaign_id =
@@ -99,6 +155,10 @@ processTrackingSource <- function(dat) {
         grepl('niche', source_details) ~ 'partner',
         TRUE ~ source
         ),
+      source_details = case_when(
+        grepl('referral=true', source_details) ~ 'referral',
+        TRUE ~ source_details
+      ),
       newsletter = case_when(
         source == 'email' & grepl('newsletter', source_details) ~
           gsub('newsletter_', '', source_details),
@@ -218,6 +278,7 @@ alignNames <- function(data) {
 prepData <- function(...) {
 
   d <- getRTVFile(...)
+  d <- attachWebLeadTracking(d)
   refParsed <- processTrackingSource(d)
 
   vr <-

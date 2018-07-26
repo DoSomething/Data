@@ -251,6 +251,16 @@ refactorPivots <- function(dat) {
 
 }
 
+recodeBinaryToCharacter <- function(dat) {
+
+  dat %<>%
+    mutate_at(
+      .vars = vars(starts_with('since_engage_DS.')),
+      .funs = funs(ifelse(.==1,'Yes','No'))
+    )
+
+}
+
 addSurveyWeights <- function(dat) {
 
   popEst <-
@@ -451,6 +461,7 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
 
   combine <-  refactorPivots(combine)
   combine <- recodeCheckAllApply(combine)
+  combine <- recodeBinaryToCharacter(combine)
   combine <- addSurveyWeights(combine)
   combine <-
     combine %>%
