@@ -21,3 +21,4 @@ Data/
 Visuals/
 .httr-oauth
 .Renviron
+**.RData

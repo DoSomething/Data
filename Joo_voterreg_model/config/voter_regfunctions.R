@@ -47,7 +47,7 @@ predicted_feature <- function(users, turbo, campaign, phoenix, email) {
     select(northstar_id, voter_reg_status)
   
   # voter reg status (any interaction) from campaign, phoenix, email 
-  voter_reg_emails <- read.csv("voter_reg_emails.csv")
+  voter_reg_emails <- read.csv("voter_reg_emails.csv") # contains template_ids of all emails re: voter reg 
   voter_reg_ids <- c("8017", "7059", "822", "8129", "7951", "7927") # campaign ids for voter registration campaigns 
   voter_reg_template_ids <- voter_reg_emails$template_id # template ids for voter registration emails 
   
@@ -71,6 +71,7 @@ predicted_feature <- function(users, turbo, campaign, phoenix, email) {
     mutate(voter_reg_status = "interaction")
   
   # combine all: registration_complete > uncertain > interaction > ineligible
+  # uncertain renamed to registration_started; interaction renamed to any_interaction
   output <- 
     users_turbo %>%
     left_join(all_interactions, by = "northstar_id") %>%
@@ -137,7 +138,7 @@ ses_feature <- function(users) {
   return(output)
 }
 
-# state + Democrat vs. Republican feature 
+# 2016 election results feature from state variable 
 
 dem_rep_feature <- function(users) {
   # from 2016 election 
@@ -155,7 +156,8 @@ dem_rep_feature <- function(users) {
   output <- 
     users %>% 
     select(northstar_id, state) %>% 
-    left_join(dems_reps_list, by = "state")
+    left_join(dems_reps_list, by = "state") %>%
+    select(-state) # removing state which has 51 categories 
   
   return(output)
   
@@ -165,11 +167,12 @@ dem_rep_feature <- function(users) {
 email_feature <- function(email) {
   output <- 
     email %>% 
+    filter(event_type != "email_converted") %>%
     group_by(northstar_id, event_type) %>%
     tally %>% 
     spread(key = event_type, value = n, fill = 0) %>%
     rowwise() %>%
-    mutate(email_total = sum(email_clicked, email_converted, email_opened)) # removes email_unsubscribed variable in email total count
+    mutate(email_total = sum(email_clicked, email_opened)) # removes email_unsubscribed variable in email total count
   
   return(output)
 }
@@ -204,76 +207,70 @@ browser_size_feature <- function(phoenix) {
 
 # returns total # of actions per northstar_id 
 
-total_actions_feature <- function(phoenix, campaign, email, sms) {
-  web <- 
-    phoenix %>% 
+total_actions_feature <- function(phoenix, mel) {
+  web_actions <- 
+    phoenix %>%
     filter(event_name %in% c("view", "visit", "open modal")) %>%
     select(northstar_id)
-  signup <- 
-    campaign %>% 
-    filter(!is.na(signup_created_at)) %>% 
-    select(northstar_id)
-  post <- 
-    campaign %>%
-    filter(!is.na(post_attribution_date)) %>%
-    select(northstar_id)
-  email_action <- 
-    email %>%
-    filter(event_type != "email_unsubscribed") %>%
-    select(northstar_id)
-  sms_action <- 
-    sms %>%
+  mel_actions <- 
+    mel %>% 
     select(northstar_id)
   output <- 
-    bind_rows(web, signup, post, email_action, sms_action) %>%
+    bind_rows(web_actions, mel) %>% 
     group_by(northstar_id) %>% 
-    summarise(total_action = n())
+    summarise(total_actions = n())
   
   return(output)
 }
 
-# whether or not someone has reportedback ever (according to campaigns) 
+# how many reportbacks a user has done 
 
 rb_feature <- function(campaign, users) {
   rb <- 
     campaign %>% 
     filter(post_status == "accepted") %>%
-    distinct(northstar_id) %>%
-    mutate(reportback_status = "Yes")
+    select(northstar_id, reportback_volume) %>%
+    group_by(northstar_id) %>% 
+    summarise(total_rbs = n())
   output <- 
     users %>%
     select(northstar_id) %>%
-    full_join(rb, by = "northstar_id") %>%
-    replace_na(list(reportback_status = "No")) # is a character vector, leave until replace_na function later to change to factor
+    left_join(rb, by = "northstar_id")
   
   return(output)  
 }
 
-# time of activity (uses member event log) 
+# when user is most active
 
-timeday_feature <- function(mel, users) {
-  time <- 
-    mel %>%
-    select(northstar_id, timestamp) %>%
-    drop_na() %>%
+time_mostactive_feature <- function(phoenix, mel) {
+  web_time <- 
+    phoenix %>% 
+    filter(event_name %in% c("view", "visit", "open modal")) %>% 
+    select(northstar_id, event_datetime) %>% 
+    rename(timestamp = event_datetime)
+  mel_time <- 
+    mel %>% 
+    select(northstar_id, timestamp)
+  most_active <- 
+    bind_rows(web_time, mel_time) %>% 
     mutate(time_active = case_when(
-      hour(timestamp) %in% c(0:5) ~ "night_activities",
-      hour(timestamp) %in% c(6:11) ~ "morning_activities",
-      hour(timestamp) %in% c(12:17) ~ "afternoon_activities",
-      hour(timestamp) %in% c(18:23) ~ "evening_activities",
+      hour(timestamp) %in% c(0:5) ~ "night",
+      hour(timestamp) %in% c(6:11) ~ "morning",
+      hour(timestamp) %in% c(12:17) ~ "afternoon",
+      hour(timestamp) %in% c(18:23) ~ "evening",
       TRUE ~ NA_character_
-    )) %>%
-    group_by(northstar_id, time_active) %>%
-    tally %>%
-    spread(key = time_active, value = n, fill = 0)
-  output <-
-    users %>%
-    select(northstar_id) %>%
-    left_join(time, by = "northstar_id")
+    )) %>% 
+    select(-timestamp) %>% 
+    group_by(northstar_id, time_active) %>% 
+    summarise(freq = n()) %>% 
+    filter(freq == max(freq)) %>% 
+    mutate(occur = n()) %>%
+    mutate(time_active = ifelse(occur > 1, "all_day", time_active)) %>% 
+    distinct(northstar_id, time_active)
   
-  return(output)
-  
+  return(most_active)
 }
+
 
 # monthly active membership eligible action count by action type 
 
@@ -290,7 +287,7 @@ MAM_action_feature <- function(mel) {
   return(output)
 }
 
-# how many months ago was their last activity? 
+# how many months ago was their last activity? (the lower the value, the most recently active the user)
 
 last_action_feature <- function(mel) { 
   output <- 
@@ -298,7 +295,7 @@ last_action_feature <- function(mel) {
     group_by(northstar_id) %>% 
     dplyr::slice(which.max(timestamp)) %>% 
     select(northstar_id, timestamp) %>% 
-    mutate(month_diff = time_length(difftime(Sys.Date(), timestamp, units = "days"), "month")) %>%
+    mutate(months_since_last_active = time_length(difftime(Sys.Date(), timestamp, units = "days"), "month")) %>%
     select(-timestamp)
   
   return(output)
@@ -317,17 +314,17 @@ cause_space_feature <- function(users, campaign, campaign_info) {
     filter(!is.na(campaign_cause_type)) %>%
     mutate(cause_area = case_when(
       grepl("Environment", campaign_cause_type) |
-        grepl("Disasters", campaign_cause_type) ~ "Environment",
+        grepl("Disasters", campaign_cause_type) ~ "cause_area_environment",
       grepl("Health", campaign_cause_type) |
         grepl("Relationships", campaign_cause_type) |
-        grepl("Violence", campaign_cause_type) ~ "Health",
-      grepl("Animals", campaign_cause_type) ~ "Animals", 
+        grepl("Violence", campaign_cause_type) ~ "cause_area_health",
+      grepl("Animals", campaign_cause_type) ~ "cause_area_animals", 
       grepl("Bullying", campaign_cause_type) | 
         grepl("Education", campaign_cause_type) | 
         grepl("Homelessness", campaign_cause_type) |
         grepl("Poverty", campaign_cause_type) | 
         grepl("Discrimination", campaign_cause_type) | 
-        grepl("Education", campaign_cause_type) ~ "Social",
+        grepl("Education", campaign_cause_type) ~ "cause_area_social",
       TRUE ~ NA_character_
     )) %>% 
     select(northstar_id, cause_area) %>% 
@@ -367,15 +364,6 @@ replace_na_else <- function(data) {
     mutate_at(vars(non_num_names), as.character) %>% 
     mutate_at(vars(non_num_names), funs(replace(., is.na(.), "Unknown"))) %>%
     mutate_at(vars(non_num_names), factor)
-  
-  return(output)
-}
-
-# multiple imputation to deal with missing data for categorical variables (something that we want to do?)
-
-multi_imput <- function(master) {
-  imp <- mice(master, m = 5, method = "polyreg", seed = 12345)
-  output <- complete(imp)
   
   return(output)
 }
@@ -459,6 +447,24 @@ AUC_function <- function(predictions, test_data, class) { # class must be in quo
   
   return(output)
 }
+
+# transforming training and testing data to appropriate class for xgboost modeling
+
+xgboost_data_transform_function <- function(data) {
+  xgboost_master <- 
+    data %>% 
+    ungroup() %>% 
+    mutate_if(is.factor, as.numeric) %>% 
+    select_if(is.numeric) # xgboost only takes integer/numeric predictors (this also removes northstar_id in test data)
+  xgboost_label <- xgboost_master$voter_reg_status # predicted variable 
+  xgboost_label <- xgboost_label - 1 # "classes" must start at 0, not 1 
+  xgboost_data <- data.matrix(xgboost_master) # xgboost only takes matrices or xgb.DMatrix 
+  xgboost_data <- xgboost_data[, !(colnames(xgboost_data) %in% "voter_reg_status")] # remove voter_reg in predictor matrix 
+  xgboost_matrix <- xgb.DMatrix(data = xgboost_data, label = xgboost_label) # construct a xgb.DMatrix object
+  
+  return(xgboost_matrix)
+}
+
 
 # gbm predictions vector (make it comparable to the test data)
 
