@@ -1,5 +1,8 @@
 source('config/init.R')
 library(rlang)
+library(glue)
+source('config/pgConnect.R')
+pg <- pgConnect()
 
 age <- function(dob, age.day = today(), units = "years", floor = TRUE) {
 
@@ -416,6 +419,57 @@ removeSpecialCharacters <- function(x) {
   x <- gsub("[^[:alnum:][:blank:]?&/\\-]", "", x)
 }
 
+addCampaignActivity <- function(data, northstars) {
+
+  q <-
+    glue_sql(
+      "SELECT
+      c.northstar_id as \"External_Reference\",
+      count(DISTINCT c.signup_id) AS signups,
+      sum(c.reportback_volume) AS reportbacks
+      FROM campaign_activity c
+      WHERE c.northstar_id IN ({nsids*})
+      GROUP BY c.northstar_id",
+      .con = pg,
+      nsids = northstars
+    )
+
+  qres <- runQuery(q)
+
+  data <-
+    data %>%
+    left_join(qres, by='External_Reference') %>%
+    mutate(
+      signups =
+        factor(
+          case_when(
+            Group == 'Gen Pop' ~ 'Gen Pop',
+            is.na(signups) & Group == 'Members' ~ 'No Signups',
+            signups == 1 ~ '1',
+            signups > 1 & signups < 4 ~ '1-3',
+            signups >= 4 & signups < 9 ~ '4-8',
+            TRUE ~ '8+'
+          ),
+        levels=c('Gen Pop','No Signups','1','1-3','4-8','8+')
+        ),
+      reportbacks =
+        factor(
+          case_when(
+            Group == 'Gen Pop' ~ 'Gen Pop',
+            is.na(reportbacks) & Group == 'Members' ~ 'No Reportbacks',
+            reportbacks == 1 ~ '1',
+            reportbacks > 1 & reportbacks < 4 ~ '1-3',
+            reportbacks >= 4 & reportbacks < 8 ~ '4-7',
+            TRUE ~ '8+'
+          ),
+          levels=c('Gen Pop','No Reportbacks','1','1-3','4-7','8+')
+        )
+    )
+
+  return(data)
+
+}
+
 createAnalyticalSet <- function(memberPath, genpopPath) {
 
   memberSet <-
@@ -463,6 +517,10 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
   combine <- recodeCheckAllApply(combine)
   combine <- recodeBinaryToCharacter(combine)
   combine <- addSurveyWeights(combine)
+  combine <- addCampaignActivity(
+    combine,
+    combine %>% filter(!is.na(External_Reference)) %$% External_Reference
+  )
   combine <-
     combine %>%
     mutate_if(
