@@ -35,12 +35,12 @@ library(parallel)
 library(doMC)
 library(mice)
 library(xgboost)
-library(rpart)
-library(tree.bins)
 library(gbm)
 library(randomForest)
 library(ggthemes)
 library(dplyr)
+
+options(mc.cores = parallel::detectCores())
 ```
 
 # 2. Load datasets 
@@ -250,9 +250,9 @@ sms_count <- sms_total_feature(sms)
 browser_size <- browser_size_feature(phoenix)
 
 # returns number of total actions per northstar_id 
-total_action <- total_actions_feature(phoenix, campaign, email, sms)
+total_action <- total_actions_feature(phoenix, mel)
 
-# whether or not someone has reportedback ever (according to campaigns)
+# how many reportbacks a user has done 
 rb_status <- rb_feature(campaign, users)
 
 # returns time of day activity level (day broken down by "morning", "afternoon", "evening", "night")
@@ -288,9 +288,75 @@ master <-
   left_join(last_action, by = "northstar_id")
   
 master <- replace_na_numeric(master) # replace NAs in numeric columns with 0's
-# master <- multi_imput(master) # use multiple imputation to fill in for missing values (mice package)
 master <- replace_na_else(master) # replace NAs in non-numeric columns with "unknown" 
 ```
+
+
+## Descriptive Statistics 
+
+```{r}
+# distribution of voter_reg statuses 
+voter_reg_freq <- 
+  master %>% 
+  group_by(voter_reg_status) %>% 
+  tally
+
+ggplot(voter_reg_freq, aes(x = reorder(voter_reg_status, n), y = n, fill = voter_reg_status)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label = n), vjust = -0.5, size = 3) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Breakdown of DoSomething voter registration status",
+       x = "voter registration status", 
+       y = "frequency")
+```
+
+```{r}
+member_gender <- 
+  master %>% 
+  filter(!is.na(gender)) %>% 
+  group_by(gender) %>% 
+  tally %>% 
+  mutate(perc = round((n / sum(n)), 2))
+
+ggplot(member_gender, aes(x = "", y = n, fill = gender)) + 
+  geom_bar(stat = "identity", width = 1, position = position_fill())+ 
+  coord_polar(theta = "y") +
+  theme(axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        axis.line = element_blank(),
+        panel.grid = element_blank()) + 
+  scale_y_continuous(breaks = NULL) +
+  geom_text(aes(x = 1, y = cumsum(perc) - perc/2, label = perc)) +
+  labs(title = "Gender breakdown of DoSomething members")
+  
+```
+
+```{r}
+voter_reg_gender <- 
+  master %>% 
+  filter(!is.na(gender) & voter_reg_status != "ineligible") %>%
+  group_by(voter_reg_status, gender) %>% 
+  tally
+voter_reg_gender$voter_reg_status <- factor(voter_reg_gender$voter_reg_status,
+                                            levels = c("any_interaction", "registration_started", "registration_complete"),
+                                            labels = c("any_interaction", "registration_started", "registration_complete"))
+  
+# pie chart for gender breakdown 
+ggplot(voter_reg_gender, aes(x = "", y = n, fill = gender)) + 
+  geom_bar(stat = "identity", width = 1, position = position_fill()) + 
+  coord_polar(theta = "y") + 
+  facet_wrap(~ voter_reg_status, ncol = 3) +
+  theme(axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        axis.line = element_blank(),
+        panel.grid = element_blank()) +
+  scale_y_continuous(breaks = NULL) +
+  labs(title = "Gender breakdown by registration status")
+  
+
+# ses breakdown, behavioral stats (total action, reportback status), the NA's of categorical variables, what else?!? 
+```
+
 
 ## Identify & eliminate near zero-variance variables
 
@@ -315,35 +381,6 @@ master <- df_list2[[3]] # keeps only the dataframe
 ```{r}
 numeric_only <- master %>% select_if(is.numeric)
 comboinfo <- findLinearCombos(numeric_only) # nothing to remove
-```
-
-## Descriptive Statistics 
-
-```{r}
-# distribution of voter_reg statuses 
-voter_reg_freq <- 
-  master %>% 
-  group_by(voter_reg_status) %>% 
-  tally
-
-ggplot(voter_reg_freq, aes(x = reorder(voter_reg_status, n), y = n, fill = voter_reg_status)) + 
-  geom_bar(stat = "identity") + 
-  geom_text(aes(label = n), vjust = -0.5, size = 3) + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(title = "Breakdown of DoSomething voter registration status",
-       x = "voter registration status", 
-       y = "frequency")
-```
-
-```{r}
-voter_reg_gender <- 
-  master %>% 
-  group_by(voter_reg_status, gender) %>% 
-  tally
-
-# pie chart for gender breakdown 
-
-# ses breakdown, behavioral stats (total action, reportback status), the NA's of categorical variables, what else?!? 
 ```
 
 ## Finalize master dataset with desired ordered factor levels 
@@ -385,7 +422,7 @@ The dataset is unbalanced because there is a significantly greater number of "in
 ```{r}
 up_train <- upSample(x = select(training, -c(voter_reg_status, northstar_id)),
                      y = training$voter_reg_status,
-                     yname = "voter_reg_status") #upSample reduces the number of any_interaction values -- explore further (USE SMOTE??)
+                     yname = "voter_reg_status")
 ```
 
 Centering and scaling data ensures that some features do not dominate the algorithm AND and the features are unit-independent. 
@@ -401,7 +438,6 @@ randomly sample b/c of memory issues....
 ```{r}
 by_grp <- train_transformed %>% group_by(voter_reg_status)
 train_transformed_sample <- sample_n(by_grp, 10000)
-train_transformed_sample$state <- NULL
 
 rm(master, by_grp, in_train, testing, train_transformed, training, up_train)
 ```
@@ -412,35 +448,11 @@ Using the caret package to set a 10-fold cross-validation for models with tuning
 ```{r}
 ctrl <- trainControl(method = "cv",
                      number = 10,
-                     summaryFunction = multiClassSummary, # computes accuracy & Kappa statistics, sensitivity values - might substitute prSummary (precision & recall)...  explore
+                     summaryFunction = multiClassSummary, 
                      classProbs = TRUE)
 ```
 
-## Tree 
-
-```{r}
-set.seed(12345)
-options(mc.cores = parallel::detectCores())
-
-tree_model <- tree(voter_reg_status ~ .,
-                   data = train_transformed_sample) 
-tree_predictions <- predict(tree_model, newdata = test_transformed, type = "class")
-table_tree <- confusionMatrix(tree_predictions, test_transformed$voter_reg_status) # tree not predicting any "registration_complete" classes... ditch 
-
-# simple accuracy rate
-Accuracy(y_pred = tree_predictions, y_true = test_transformed$voter_reg_status) 
-
-# AUC computations (true positive rate vs. false positive rate)
-# AUC for registration_complete 
-AUC_function(tree_predictions, test_transformed, "registration_complete")
-
-# AUC for uncertain 
-AUC_function(tree_predictions, test_transformed, "registration_started")
-
-# AUC for interaction 
-AUC_function(tree_predictions, test_transformed, "any_interaction") # error - integer overflow ??
-```
-
+# Model Building and Assessment 
 
 ## Random Forest 
 
@@ -455,6 +467,7 @@ rf_model <- randomForest(voter_reg_status ~ .,
                          data = train_transformed_sample,
                          mtry = 10,
                          importance = TRUE)
+rf_model$importance
 rf_pred <- predict(rf_model, newdata = test_transformed, type = "class")
 table_rf <- confusionMatrix(rf_pred, test_transformed$voter_reg_status)
 
@@ -476,30 +489,31 @@ AUC_function(rf_pred, test_transformed, "no_interaction")
 ```
 
 
-## Ordinal Logistic (TO DO)
+## Ordinal Logistic
 
 ```{r}
-ord_logit_fit <- train(voter_reg_status ~ .,
-                       data = train_transformed_sample,
-                       method = "polr",
-                       trControl = ctrl,
-                       verbose = FALSE)
+# rank-deficient: ses_status
+# glm.fit (fitted probabilities numerically 0 or 1 occurred): total_action, afternoon_activities
+
+train_ord <- 
+  train_transformed_sample %>% 
+  select(-c(ses_status, total_action, afternoon_activities)) # remove variables that are causing above errors 
 
 ord_logit_model <- MASS::polr(voter_reg_status ~ .,
-                  data = train_transformed_sample) # error that says rank-deficient... perfect multicollinearity, but removed highly correlated variables already... might be factor variables (state)
-
+                  data = train_ord) 
+ord_logit_model
 ord_logit_pred <- predict(ord_logit_model, newdata = test_transformed, type = "class")
-table_logit <- table(test_transformed$voter_reg_status, ord_logit_pred)
+table_logit <- confusionMatrix(ord_logit_pred, test_transformed$voter_reg_status)
 
 # Accuracy rate 
-Accuracy(y_pred = ord_logit_pred, y_true = test_transformed$voter_reg_status)
+Accuracy(y_pred = ord_logit_pred, y_true = test_transformed$voter_reg_status) # 52.5%
 
 # AUC computations (true positive rate vs. false positive rate)
 # AUC for registration_complete 
-AUC_function(ord_logit_pred, test_transformed, "registration_complete")
+AUC_function(ord_logit_pred, test_transformed, "registration_complete") # 68.2%
 
 # AUC for registration_started 
-AUC_function(ord_logit_pred, test_transformed, "registration_started")
+AUC_function(ord_logit_pred, test_transformed, "registration_started") # 62.8%
 
 # AUC for any_interaction 
 AUC_function(ord_logit_pred, test_transformed, "any_interaction")
@@ -556,6 +570,45 @@ xgboost_fit <- train(voter_reg_status ~ .,
                      method = "xgbLinear",
                      trControl = ctrl,
                      verbose = FALSE)
+xgboost_fit$bestTune
+
+# transform training data to work with xgboost 
+train_xgboost <- xgboost_data_transform_function(train_transformed_sample)
+
+# transform testing data to work with xgboost
+test_xgboost <- xgboost_data_transform_function(test_transformed)
+
+xgboost_model <- xgb.train(data = train_xgboost,
+                           nrounds = 150,
+                           lambda = 0, 
+                           alpha = 0.0001,
+                           eta = 0.3,
+                           objective = "multi:softmax",
+                           num_class = 4)
+xgboost_pred <- predict(xgboost_model, 
+                        newdata = test_xgboost,
+                        reshape = TRUE) 
+
+xgboost_pred <- factor(xgboost_pred,
+                       levels = c(0:3),
+                       labels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"))
+table_xgboost <- confusionMatrix(xgboost_pred, test_transformed$voter_reg_status)
+
+# Accuracy
+Accuracy(y_pred = xgboost_pred, y_true = test_transformed$voter_reg_status) 
+
+# AUC computations (true positive rate vs. false positive rate)
+# AUC for registration_complete 
+AUC_function(xgboost_pred, test_transformed, "registration_complete") # 69.8%
+
+# AUC for registration_started
+AUC_function(xgboost_pred, test_transformed, "registration_started") # 78.6% 
+
+# AUC for any_interaction (integer overflow)
+AUC_function(xgboost_pred, test_transformed, "any_interaction")
+
+# AUC for no_interaction (integer overflow)
+AUC_function(xgboost_pred, test_transformed, "no_interaction")
 ```
 
 ## xgboost (tree)
@@ -566,6 +619,42 @@ xgboost_tree_fit <- train(voter_reg_status ~ .,
                      method = "xgbTree",
                      trControl = ctrl,
                      verbose = FALSE)
+xgboost_tree_fit$bestTune
+
+xgboost_tree_model <- xgb.train(data = train_xgboost,
+                                nrounds = 150,
+                                max_depth = 3, 
+                                eta = 0.4,
+                                gamma = 0,
+                                colsample_bytree = 0.8,
+                                min_child_weight = 1, 
+                                subsample = 0.75,
+                                objective = "multi:softmax",
+                                num_class = 4)
+xgboost_tree_pred <- predict(xgboost_tree_model, 
+                             newdata = test_xgboost,
+                             reshape = TRUE)
+
+xgboost_tree_pred <- factor(xgboost_tree_pred,
+                       levels = c(0:3),
+                       labels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"))
+table_xgboost_tree <- confusionMatrix(xgboost_tree_pred, test_transformed$voter_reg_status)
+
+# Accuracy
+Accuracy(y_pred = xgboost_tree_pred, y_true = test_transformed$voter_reg_status) # 70.1 
+
+# AUC computations (true positive rate vs. false positive rate)
+# AUC for registration_complete 
+AUC_function(xgboost_tree_pred, test_transformed, "registration_complete") # 62.7%
+
+# AUC for registration_started
+AUC_function(xgboost_tree_pred, test_transformed, "registration_started") # 76.6%
+
+# AUC for any_interaction (integer overflow)
+AUC_function(xgboost_tree_pred, test_transformed, "any_interaction")
+
+# AUC for no_interaction (integer overflow)
+AUC_function(xgboost_tree_pred, test_transformed, "no_interaction")
 ```
 
 
@@ -609,34 +698,4 @@ AUC_function(gbm_pred, test_transformed, "any_interaction")
 AUC_function(gbm_pred, test_transformed, "no_interaction")
 
 ```
-
-## Bayesian modeling 
-
-```{r}
-by_grp_bayesian <- master %>% group_by(voter_reg_status)
-training_bayesian <- sample_n(by_grp_bayesian, 5000) #20K observations to start
-training_bayesian$state <- NULL
-
-bayes_fit <- stan_polr(voter_reg_status ~ .,
-                       data = training_bayesian,
-                       method = "logistic",
-                       prior = R2(.2)) # memory exhausted.... Bayesian isn't gonna work 
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
