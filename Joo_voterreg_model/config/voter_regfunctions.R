@@ -507,7 +507,7 @@ master_final <- function(master) {
 
 
 
-###################### Modeling ##########################
+###################### Modeling & Performance Evaluation ##########################
 
 # transforming training and testing data to appropriate class for xgboost modeling
 
@@ -563,7 +563,7 @@ mod_perf_function <- function(model_name, predictions, test_data) { # model_name
     as.data.frame(AUC_metric) %>% 
     rename(!!quo_name(model_name) := AUC_metric)
   
-  metric <- c("accuracy", 
+  metric <- c("Overall accuracy", 
               "AUC: no_interaction", 
               "AUC: any_interaction", 
               "AUC: registration_started", 
@@ -574,7 +574,6 @@ mod_perf_function <- function(model_name, predictions, test_data) { # model_name
   perf_list <- list(confusion_mat, perf_df)
   
   return(perf_list) 
-
 }
  
 
@@ -588,10 +587,24 @@ model_comparison <- function(rf_results, ord_logit_results, nnet_results,
     left_join(nnet_results[[2]], by = "metric") %>%
     left_join(xgboost_results[[2]], by = "metric") %>% 
     left_join(xgboost_tree_results[[2]], by = "metric") %>%
-    left_join(gbm_results[[2]], by = "metric") %>% 
+    left_join(gbm_results[[2]], by = "metric") 
     
   return(df)
 }
+
+# Ranking models with best performance 
+
+model_select <- function(performance_df, which_metric) { # which_metric must be in quotes
+  ranked_df <- 
+    performance_df %>% 
+    filter(metric == which_metric) %>%
+    select_if(is.numeric) %>% 
+    gather(key = "model", value = "performance") %>%
+    arrange(desc(performance))
+  
+  return(ranked_df)
+}
+
 
 
 

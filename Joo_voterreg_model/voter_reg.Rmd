@@ -12,10 +12,8 @@ source('config/voter_regfunctions.R') # all functions are here
 source('config/data_source.R') # data sources
 pg <- pgConnect()
 
-packages.used <- c("lubridate", "ggplot2", "caret", 
-                   "reshape2", "dplyr", 
-                   "MLmetrics", "e1071", "tree", "rstanarm", 
-                   "doMC", "xgboost") # update
+packages.used <- c("lubridate", "reshape2", "caret", "ggplot2", "MLmetrics",
+                   "nnet", "xgboost", "gbm", "randomForest", "zoo", "rlang", "dplyr")
 
 #check packages that need to be installed
 packages.needed <- setdiff(packages.used, intersect(installed.packages()[,1], packages.used))
@@ -31,8 +29,6 @@ library(caret)
 library(ggplot2)
 library(MLmetrics)
 library(nnet)
-library(doMC)
-library(mice)
 library(xgboost)
 library(gbm)
 library(randomForest)
@@ -43,7 +39,7 @@ library(dplyr)
 options(mc.cores = parallel::detectCores())
 ```
 
-# 2. Load datasets (Depending on when they were refreshed)
+# 2. Load datasets (Depending on when "users"" dataset last refreshed)
 
 ```{r}
 data_list <- load_data(30)
@@ -235,14 +231,26 @@ df_list2 <- remove_highcor(master)
 master <- df_list2[[3]] # keeps only the dataframe
 ```
 
-# Find & remove linear dependencies 
+## Find & remove linear dependencies 
 
 ```{r}
 numeric_only <- master %>% select_if(is.numeric)
 comboinfo <- findLinearCombos(numeric_only) # nothing to remove
 ```
 
-## Finalize master dataset with desired ordered factor levels 
+## Save final prediction data
+
+```{r}
+final_prediction_data <- 
+  master %>% 
+  filter(is.na(voter_reg_status))
+
+# save data for final prediction
+saveRDS(final_prediction_data, "Rdata/final_prediction_data.rds")
+```
+
+
+## Finalize modeling dataset with desired ordered factor levels 
 (Creates a sample of no_interaction category data from NA's)
 
 ```{r}
@@ -253,14 +261,9 @@ master <- master_final(master)
 
 ```{r}
 rm(age, browser_size, email_count, gender, rb_status, reg_status,
-   ses, sms_count, state_politics, time_of_day, total_action, df_list, df_list2)
-
-rm(campaign, email, mel, phoenix,
-   sms, turbo, users)
-
-rm(mam_actions, campaign_info, campaign_with_id, cause_space, comboinfo, output)
-
-rm(numeric_only, voter_reg_freq, voter_reg_gender)
+   ses, sms_count, state_politics, time_of_day, total_action, df_list, df_list2, 
+   campaign, email, mel, phoenix, sms, turbo, users, mam_actions, campaign_info, 
+   campaign_with_id, cause_space, comboinfo, output) 
 ```
 
 
@@ -326,6 +329,7 @@ rf_model <- randomForest(voter_reg_status ~ .,
                          data = train_transformed_sample,
                          mtry = 10,
                          importance = TRUE)
+varImpPlot(rf_model)
 rf_model$importance
 rf_pred <- predict(rf_model, newdata = test_transformed, type = "class")
 rf_results <- mod_perf_function("random_forest", rf_pred, test_transformed)
@@ -468,10 +472,25 @@ gbm_results <- mod_perf_function("gbm", gbm_pred, test_transformed)
 ## Comparing performance of all models 
 
 ```{r}
-samp_results <- mod_perf_function("model1", xgboost_tree_pred, test_transformed)
+model_performance <- model_comparison(rf_results, ord_logit_results, nnet_results, 
+                                      xgboost_results, xgboost_tree_results, gbm_results)
 
+ranked_models <- model_select(model_performance, "AUC: registration_complete")
 ```
 
+
+# Making final prediction 
+
+```{r}
+readRDS("Rdata/final_prediction_data.rds")
+
+# would this have to be customized each time? 
+# (example below)
+predict(gbm_model, # update based on metric 
+        newdata = final_prediction_data,
+        n.trees = 150, # must be updated
+        type = "response")
+```
 
 
 
