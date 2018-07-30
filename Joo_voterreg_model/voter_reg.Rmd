@@ -9,12 +9,13 @@ output: html_document
 source('config/init.R')
 source('config/pgConnect.R')
 source('config/voter_regfunctions.R') # all functions are here
+source('config/data_source.R') # data sources
 pg <- pgConnect()
 
 packages.used <- c("lubridate", "ggplot2", "caret", 
                    "reshape2", "dplyr", 
-                   "MLmetrics", "e1071", "tree", "rstanarm", "parallel", 
-                   "doMC", "xgboost")
+                   "MLmetrics", "e1071", "tree", "rstanarm", 
+                   "doMC", "xgboost") # update
 
 #check packages that need to be installed
 packages.needed <- setdiff(packages.used, intersect(installed.packages()[,1], packages.used))
@@ -29,175 +30,25 @@ library(reshape2)
 library(caret)
 library(ggplot2)
 library(MLmetrics)
-library(tree)
 library(nnet)
-library(parallel)
 library(doMC)
 library(mice)
 library(xgboost)
 library(gbm)
 library(randomForest)
-library(ggthemes)
+library(zoo)
+library(rlang)
 library(dplyr)
 
 options(mc.cores = parallel::detectCores())
 ```
 
-# 2. Load datasets 
+# 2. Load datasets (Depending on when they were refreshed)
 
 ```{r}
-# Users dataset 
-
-users_query <- 
-"SELECT u.northstar_id,
-u.created_at,
-u.last_logged_in,
-u.last_accessed,
-u.SOURCE,
-u.birthdate,
-u.first_name,
-u.state,
-u.zipcode,
-u.cio_status,
-u.sms_status,
-u.voter_registration_status
-FROM users u
-WHERE u.subscribed_member = 'true'
-	AND u.country = 'US'
-	AND u.birthdate <= current_date - INTERVAL '18 years'" # removing underage members in users file 
-
-users <- runQuery(users_query)
-
-# phoenix_events dataset 
-
-phoenix_query <- "SELECT 
-	northstar_id,
-	event_datetime,
-	event_name,
-	event_source,
-	campaign_id,
-	page_utm_medium,
-	parent_source,
-	browser_size
-FROM phoenix_events
-WHERE northstar_id IS NOT NULL 
-	AND event_name IN ('view', 'visit', 'open modal', 'share action completed', 'clicked voter registration action', 'facebook share posted', 'photo-submission_action', 'clicked register-submit', 'Successful Reportback', 'text-submission-action', 'referral-submission-action')"
-
-phoenix <- runQuery(phoenix_query)
-
-# member_event_log dataset 
-
-mel_query <- "SELECT 
-	m.northstar_id,
-	m.timestamp,
-	m.action_type,
-	m.SOURCE
-FROM member_event_log m
-WHERE m.northstar_id IS NOT NULL"
-
-mel <- runQuery(mel_query)
-
-# campaign_activity dataset 
-
-ca_query <- "SELECT c.northstar_id,
-c.campaign_run_id,
-c.post_type,
-c.reportback_volume,
-c.post_status,
-c.quantity,
-c.signup_source,
-c.post_source,
-c.signup_created_at,
-c.reported_back,
-c.post_attribution_date
-FROM campaign_activity c
-WHERE c.northstar_id IS NOT NULL"
-
-campaign <- runQuery(ca_query)
-
-# campaign_info
-
-ca_info_query <- "SELECT 
-campaign_run_id,
-campaign_type,
-campaign_verb,
-campaign_cause_type
-FROM campaign_info
-WHERE campaign_run_id IS NOT NULL"
-
-campaign_info <- runQuery(ca_info_query)
-
-# email data
-
-email_query <- "SELECT customer_id AS northstar_id,
-email_address,
-template_id, 
-timestamp,
-event_type
-FROM email_event 
-WHERE customer_id IS NOT NULL"
-
-email <- runQuery(email_query)
-
-# SMS
-
-SMS_mes <- "SELECT 
-northstar_id,
-click_time AS SMS_time,
-'SMS message' AS action_type
-FROM bertly_clicks
-WHERE northstar_id IS NOT NULL
-UNION ALL 
-	SELECT 
-		id AS northstar_id,
-		last_messaged_at AS SMS_time,
-		'SMS link click' AS action_type
-	FROM northstar.users 
-	WHERE id IS NOT NULL 
-		AND last_messaged_at IS NOT NULL"
-
-sms <- runQuery(SMS_mes)
-
-# Turbovote file 
-turbo_query <- "SELECT 
-	nsid AS northstar_id,
-	SOURCE,
-	campaign_id,
-	ds_vr_status,
-	ds_registration_date,
-	file
-FROM turbovote_file
-WHERE nsid IS NOT null"
-
-turbo <- runQuery(turbo_query)  
+data_list <- load_data(30)
+list2env(data_list, .GlobalEnv)
 ```
-
-# Save as R data files 
-
-```{r}
-saveRDS(users, "Rdata/users.rds")
-saveRDS(phoenix, "Rdata/phoenix.rds")
-saveRDS(campaign, "Rdata/campaign.rds")
-saveRDS(email, "Rdata/email.rds")
-saveRDS(sms, "Rdata/sms.rds")
-saveRDS(turbo, "Rdata/turbo.rds")
-saveRDS(mel, "Rdata/mel.rds")
-saveRDS(campaign_info, "Rdata/campaign_info.rds")
-```
-
-# Load R data files 
-
-```{r}
-users <- readRDS("Rdata/users.rds")
-phoenix <- readRDS("Rdata/phoenix.rds")
-campaign <- readRDS("Rdata/campaign.rds")
-email <- readRDS("Rdata/email.rds")
-sms <- readRDS("Rdata/sms.rds")
-turbo <- readRDS("Rdata/turbo.rds")
-mel <- readRDS("Rdata/mel.rds")
-campaign_info <- readRDS("Rdata/campaign_info.rds")
-```
-
 
 # Data wrangling 
 
@@ -286,9 +137,17 @@ master <-
   left_join(mam_actions, by = "northstar_id") %>%
   left_join(cause_space, by = "northstar_id") %>% 
   left_join(last_action, by = "northstar_id")
-  
-master <- replace_na_numeric(master) # replace NAs in numeric columns with 0's
-master <- replace_na_else(master) # replace NAs in non-numeric columns with "unknown" 
+
+# MUST replace NA's in numeric columns with either 0s or means for model to run  
+vector_mean <- "age" # age or any other appropriate column that should be imputed with mean
+vector_zeros <- # vector of column names 
+  colnames(master %>% 
+             select_if(is.numeric) %>% 
+             select(-age)) 
+master <- replace_na_numeric(master, vector_mean, vector_zeros) 
+
+# MUST replace NAs in non-numeric columns with "unknown" for model to run
+master <- replace_na_else(master) 
 ```
 
 
@@ -469,23 +328,7 @@ rf_model <- randomForest(voter_reg_status ~ .,
                          importance = TRUE)
 rf_model$importance
 rf_pred <- predict(rf_model, newdata = test_transformed, type = "class")
-table_rf <- confusionMatrix(rf_pred, test_transformed$voter_reg_status)
-
-# Accuracy rate 
-Accuracy(y_pred = rf_pred, y_true = test_transformed$voter_reg_status) # 71.4%
-
-# AUC computations (true positive rate vs. false positive rate)
-# AUC for registration_complete 
-AUC_function(rf_pred, test_transformed, "registration_complete") # 67.3%
-
-# AUC for registration_started 
-AUC_function(rf_pred, test_transformed, "registration_started") #70.1%
-
-# AUC for any_interaction (integer overflow)
-AUC_function(rf_pred, test_transformed, "any_interaction")
-
-# AUC for no_interaction (integer overflow)
-AUC_function(rf_pred, test_transformed, "no_interaction")
+rf_results <- mod_perf_function("random_forest", rf_pred, test_transformed)
 ```
 
 
@@ -503,23 +346,7 @@ ord_logit_model <- MASS::polr(voter_reg_status ~ .,
                   data = train_ord) 
 ord_logit_model
 ord_logit_pred <- predict(ord_logit_model, newdata = test_transformed, type = "class")
-table_logit <- confusionMatrix(ord_logit_pred, test_transformed$voter_reg_status)
-
-# Accuracy rate 
-Accuracy(y_pred = ord_logit_pred, y_true = test_transformed$voter_reg_status) # 52.5%
-
-# AUC computations (true positive rate vs. false positive rate)
-# AUC for registration_complete 
-AUC_function(ord_logit_pred, test_transformed, "registration_complete") # 68.2%
-
-# AUC for registration_started 
-AUC_function(ord_logit_pred, test_transformed, "registration_started") # 62.8%
-
-# AUC for any_interaction 
-AUC_function(ord_logit_pred, test_transformed, "any_interaction")
-
-# AUC for no_interaction 
-AUC_function(ord_logit_pred, test_transformed, "no_interaction")
+ord_logit_results <- mod_perf_function("ordinal_logit", ord_logit_pred, test_transformed)
 ```
 
 
@@ -543,23 +370,7 @@ nnet_pred <- factor(nnet_pred,
                                "registration_started", "registration_complete"),
                     labels = c("no_interaction", "any_interaction", 
                                "registration_started", "registration_complete"))
-table_nnet <- confusionMatrix(nnet_pred, test_transformed$voter_reg_status)
-
-# Accuracy rate 
-Accuracy(y_pred = nnet_pred, y_true = test_transformed$voter_reg_status) # 70.1%
-
-# AUC computations (true positive rate vs. false positive rate)
-# AUC for registration_complete 
-AUC_function(nnet_pred, test_transformed, "registration_complete") # 60.1%
-
-# AUC for registration_started
-AUC_function(nnet_pred, test_transformed, "registration_started") # 80.4% 
-
-# AUC for any_interaction (integer overflow)
-AUC_function(nnet_pred, test_transformed, "any_interaction")
-
-# AUC for no_interaction (integer overflow)
-AUC_function(nnet_pred, test_transformed, "no_interaction")
+nnet_results <- mod_perf_function("nnet", nnet_pred, test_transformed)
 ```
 
 ## xgboost (linear)
@@ -592,23 +403,8 @@ xgboost_pred <- predict(xgboost_model,
 xgboost_pred <- factor(xgboost_pred,
                        levels = c(0:3),
                        labels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"))
-table_xgboost <- confusionMatrix(xgboost_pred, test_transformed$voter_reg_status)
 
-# Accuracy
-Accuracy(y_pred = xgboost_pred, y_true = test_transformed$voter_reg_status) 
-
-# AUC computations (true positive rate vs. false positive rate)
-# AUC for registration_complete 
-AUC_function(xgboost_pred, test_transformed, "registration_complete") # 69.8%
-
-# AUC for registration_started
-AUC_function(xgboost_pred, test_transformed, "registration_started") # 78.6% 
-
-# AUC for any_interaction (integer overflow)
-AUC_function(xgboost_pred, test_transformed, "any_interaction")
-
-# AUC for no_interaction (integer overflow)
-AUC_function(xgboost_pred, test_transformed, "no_interaction")
+xgboost_results <- mod_perf_function("xgoobst", xgboost_pred, test_transformed)
 ```
 
 ## xgboost (tree)
@@ -638,23 +434,8 @@ xgboost_tree_pred <- predict(xgboost_tree_model,
 xgboost_tree_pred <- factor(xgboost_tree_pred,
                        levels = c(0:3),
                        labels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"))
-table_xgboost_tree <- confusionMatrix(xgboost_tree_pred, test_transformed$voter_reg_status)
 
-# Accuracy
-Accuracy(y_pred = xgboost_tree_pred, y_true = test_transformed$voter_reg_status) # 70.1 
-
-# AUC computations (true positive rate vs. false positive rate)
-# AUC for registration_complete 
-AUC_function(xgboost_tree_pred, test_transformed, "registration_complete") # 62.7%
-
-# AUC for registration_started
-AUC_function(xgboost_tree_pred, test_transformed, "registration_started") # 76.6%
-
-# AUC for any_interaction (integer overflow)
-AUC_function(xgboost_tree_pred, test_transformed, "any_interaction")
-
-# AUC for no_interaction (integer overflow)
-AUC_function(xgboost_tree_pred, test_transformed, "no_interaction")
+xgboost_tree_results <- mod_perf_function("xgboost_tree", xgboost_tree_pred, test_transformed)
 ```
 
 
@@ -679,23 +460,29 @@ gbm_pred <- predict(gbm_model,
                     n.trees = 150,
                     type = "response")
 gbm_pred <- gbm_transform_function(gbm_pred) # transform predictions into a dataset that can be compared to the test dataset
-table_gbm <- confusionMatrix(gbm_pred, test_transformed$voter_reg_status)
 
-# Accuracy rate 
-Accuracy(y_pred = gbm_pred, y_true = test_transformed$voter_reg_status) # 71.4%
+gbm_results <- mod_perf_function("gbm", gbm_pred, test_transformed)
+```
 
-# AUC computations (true positive rate vs. false positive rate)
-# AUC for registration_complete 
-AUC_function(gbm_pred, test_transformed, "registration_complete") # 62.6%
 
-# AUC for registration_started
-AUC_function(gbm_pred, test_transformed, "registration_started") # 77.0%
+## Comparing performance of all models 
 
-# AUC for any_interaction (integer overflow...)
-AUC_function(gbm_pred, test_transformed, "any_interaction")
-
-# AUC for no_interaction (integer overflow...) 
-AUC_function(gbm_pred, test_transformed, "no_interaction")
+```{r}
+samp_results <- mod_perf_function("model1", xgboost_tree_pred, test_transformed)
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
