@@ -1,3 +1,68 @@
+source('config/data_source.R')
+source('config/init.R')
+source('config/pgConnect.R')
+
+###################### Load Data Set ############################
+load_data <- function(days_refreshed) { # set number of days since last running the query
+  if (difftime(Sys.Date(), file.mtime("Rdata/users.rds")) > days_refreshed) {
+    
+    # run queries for latest data from Quasar
+    users <- runQuery(users_query)
+    phoenix <- runQuery(phoenix_query)
+    mel <- runQuery(mel_query)
+    campaign <- runQuery(ca_query)
+    campaign_info <- runQuery(ca_info_query)
+    email <- runQuery(email_query)
+    sms <- runQuery(SMS_mes)
+    turbo <- runQuery(turbo_query)  
+    
+    # save the files as Rdata files
+    saveRDS(phoenix, "Rdata/phoenix.rds")
+    saveRDS(campaign, "Rdata/campaign.rds")
+    saveRDS(campaign_info, "Rdata/campaign_info.rds")
+    saveRDS(email, "Rdata/email.rds")
+    saveRDS(sms, "Rdata/sms.rds")
+    saveRDS(turbo, "Rdata/turbo.rds")
+    saveRDS(mel, "Rdata/mel.rds")
+    saveRDS(campaign_info, "Rdata/campaign_info.rds")
+    
+    data_list <- list(users = users, 
+                      phoenix = phoenix,
+                      mel = mel,
+                      campaign = campaign,
+                      campaign_info = campaign_info,
+                      email = email,
+                      sms = sms,
+                      turbo = turbo)
+    
+  } else {
+    
+    # load the files 
+    users <- readRDS("Rdata/users.rds")
+    phoenix <- readRDS("Rdata/phoenix.rds")
+    mel <- readRDS("Rdata/mel.rds")
+    campaign <- readRDS("Rdata/campaign.rds")
+    campaign_info <- readRDS("Rdata/campaign_info.rds")
+    email <- readRDS("Rdata/email.rds")
+    sms <- readRDS("Rdata/sms.rds")
+    turbo <- readRDS("Rdata/turbo.rds")
+    
+    data_list <- list(users = users, 
+                      phoenix = phoenix,
+                      mel = mel,
+                      campaign = campaign,
+                      campaign_info = campaign_info,
+                      email = email,
+                      sms = sms,
+                      turbo = turbo)
+    
+  }
+  
+  return(data_list)
+    
+}
+
+
 ################## Initial Data Wrangling #######################
 
 # remove northstar_ids that are under 18, do not live in the US, and are unsubscribed
@@ -287,7 +352,7 @@ MAM_action_feature <- function(mel) {
   return(output)
 }
 
-# how many months ago was their last activity? (the lower the value, the most recently active the user)
+# how many days ago was their last activity? (the lower the value, the most recently active the user)
 
 last_action_feature <- function(mel) { 
   output <- 
@@ -295,7 +360,7 @@ last_action_feature <- function(mel) {
     group_by(northstar_id) %>% 
     dplyr::slice(which.max(timestamp)) %>% 
     select(northstar_id, timestamp) %>% 
-    mutate(months_since_last_active = time_length(difftime(Sys.Date(), timestamp, units = "days"), "month")) %>%
+    mutate(days_since_lastactive = difftime(Sys.Date(), timestamp, units = "days")) %>%
     select(-timestamp)
   
   return(output)
@@ -343,13 +408,19 @@ cause_space_feature <- function(users, campaign, campaign_info) {
 
 ######################### Pre-processing ########################
 
-# replace all NAs in numeric columns with 0's
-replace_na_numeric <- function(data) {
-  output <- 
-    data %>% 
-    mutate_if(is.numeric, funs(replace(., is.na(.), 0)))
+# replace all NAs in numeric columns with 0's OR means 
+replace_na_numeric <- function(data, vector_means, vector_zeros) {  
+  vector_means # should input a vector with names of all variables for which you'd want to replace NA's with means
+  data_imputed_mean <- 
+    master %>% 
+    mutate_at(vars(vector_means), na.aggregate)
   
-  return(output)
+  vector_zeros # should input a vector with names of all variables for which you'd want to replace NA's with 0
+  data_imputed_zeros <- 
+    data %>% 
+    mutate_at(vars(vector_zeros), funs(replace(., is.na(.), 0)))
+  
+  return(data_imputed_mean)
 }
 
 # replace all other NAs in categorical variables (except northstar_id) with "Unknown"
@@ -438,16 +509,6 @@ master_final <- function(master) {
 
 ###################### Modeling ##########################
 
-# Calculating AUC 
-
-AUC_function <- function(predictions, test_data, class) { # class must be in quotes for input
-  class_pred <- ifelse(predictions == class, 1, 0)
-  class_test <- ifelse(test_data$voter_reg_status == class, 1, 0)
-  output <- AUC(y_pred = class_pred, y_true = class_test)
-  
-  return(output)
-}
-
 # transforming training and testing data to appropriate class for xgboost modeling
 
 xgboost_data_transform_function <- function(data) {
@@ -478,6 +539,67 @@ gbm_transform_function <- function(gbm_pred) {
   
   return(gbm_pred)
 }
+
+
+# Creating a list with confusion matrix + accuracy rate & AUC rate dataframe 
+
+mod_perf_function <- function(model_name, predictions, test_data) { # model_name must be in quotes 
+  test_ref <- test_transformed$voter_reg_status
+  results <- 
+    confusionMatrix(predictions, test_ref)
+  
+  # confusion matrix 
+  confusion_mat <- results$table
+  
+  # data frame with performance results 
+  accuracy_metric <- results$overall["Accuracy"]
+  AUC_metric <- results$byClass[, "Balanced Accuracy"]
+  
+  accur_df <- 
+    as.data.frame(accuracy_metric) %>% 
+    rename(!!quo_name(model_name) := accuracy_metric)
+  
+  AUC_df <- 
+    as.data.frame(AUC_metric) %>% 
+    rename(!!quo_name(model_name) := AUC_metric)
+  
+  metric <- c("accuracy", 
+              "AUC: no_interaction", 
+              "AUC: any_interaction", 
+              "AUC: registration_started", 
+              "AUC: registration_complete")
+  performance <- bind_rows(accur_df, AUC_df)
+  perf_df <- cbind(metric, performance)
+  
+  perf_list <- list(confusion_mat, perf_df)
+  
+  return(perf_list) 
+
+}
+ 
+
+# Comparing performance of all models 
+
+model_comparison <- function(rf_results, ord_logit_results, nnet_results, 
+                             xgboost_results, xgboost_tree_results, gbm_results) { # is there a simpler way than individual input of results? 
+  df <- 
+    rf_results[[2]] %>% 
+    left_join(ord_logit_results[[2]], by = "metric") %>%
+    left_join(nnet_results[[2]], by = "metric") %>%
+    left_join(xgboost_results[[2]], by = "metric") %>% 
+    left_join(xgboost_tree_results[[2]], by = "metric") %>%
+    left_join(gbm_results[[2]], by = "metric") %>% 
+    
+  return(df)
+}
+
+
+
+
+
+
+
+
 
 
 
