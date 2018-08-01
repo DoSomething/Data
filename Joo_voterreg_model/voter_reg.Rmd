@@ -39,10 +39,10 @@ library(dplyr)
 options(mc.cores = parallel::detectCores())
 ```
 
-# 2. Load datasets (Depending on when "users"" dataset last refreshed)
+# 2. Load datasets (Depending on when "users" dataset last refreshed)
 
 ```{r}
-data_list <- load_data(30)
+data_list <- load_data(50)
 list2env(data_list, .GlobalEnv)
 ```
 
@@ -68,7 +68,7 @@ reg_status <- predicted_feature(users, turbo, campaign, phoenix, email)
 ```
 
 
-## Extracting demographic features 
+## Selecting demographic features 
 
 ```{r}
 # gender feature 
@@ -84,10 +84,10 @@ ses <- ses_feature(users)
 state_politics <- dem_rep_feature(users)
 ```
 
-## Extracting behavioral features 
+## Selecting behavioral features 
 
 ```{r}
-# returns variables of email clicked, converted, opened, unsubscribed & total number of email actions per northstar_id  
+# returns variables of email clicked, converted, opened, unsubscribed & total number of email actions per northstar_id
 email_count <- email_feature(email)
 
 # returns columns of SMS action by type & total number of sms actions per northstar_id 
@@ -100,10 +100,10 @@ browser_size <- browser_size_feature(phoenix)
 total_action <- total_actions_feature(phoenix, mel)
 
 # how many reportbacks a user has done 
-rb_status <- rb_feature(campaign, users)
+rb_count <- rb_feature(campaign, users)
 
-# returns time of day activity level (day broken down by "morning", "afternoon", "evening", "night")
-time_of_day <- timeday_feature(mel, users) # potentially recategorize using tree.bins or rpart or recat? 
+# returns time of day when most active (morning, afternoon, evening, night)
+time_mostactive <- time_mostactive_feature(phoenix, mel) 
 
 # monthly active membership eligible action count by action type 
 mam_actions <- MAM_action_feature(mel)
@@ -111,7 +111,7 @@ mam_actions <- MAM_action_feature(mel)
 # cause space 
 cause_space <- cause_space_feature(users, campaign, campaign_info)
 
-# months before last active
+# days since last active
 last_action <- last_action_feature(mel)
 ```
 
@@ -128,8 +128,8 @@ master <-
   left_join(sms_count, by = "northstar_id") %>%
   left_join(browser_size, by = "northstar_id") %>% 
   left_join(total_action, by = "northstar_id") %>%
-  left_join(rb_status, by = "northstar_id") %>%
-  left_join(time_of_day, by = "northstar_id") %>%
+  left_join(rb_count, by = "northstar_id") %>%
+  left_join(time_mostactive, by = "northstar_id") %>%
   left_join(mam_actions, by = "northstar_id") %>%
   left_join(cause_space, by = "northstar_id") %>% 
   left_join(last_action, by = "northstar_id")
@@ -142,74 +142,8 @@ vector_zeros <- # vector of column names
              select(-age)) 
 master <- replace_na_numeric(master, vector_mean, vector_zeros) 
 
-# MUST replace NAs in non-numeric columns with "unknown" for model to run
+# MUST replace NAs in non-numeric columns (except voter_reg_status) with "unknown" for model to run
 master <- replace_na_else(master) 
-```
-
-
-## Descriptive Statistics 
-
-```{r}
-# distribution of voter_reg statuses 
-voter_reg_freq <- 
-  master %>% 
-  group_by(voter_reg_status) %>% 
-  tally
-
-ggplot(voter_reg_freq, aes(x = reorder(voter_reg_status, n), y = n, fill = voter_reg_status)) + 
-  geom_bar(stat = "identity") + 
-  geom_text(aes(label = n), vjust = -0.5, size = 3) + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(title = "Breakdown of DoSomething voter registration status",
-       x = "voter registration status", 
-       y = "frequency")
-```
-
-```{r}
-member_gender <- 
-  master %>% 
-  filter(!is.na(gender)) %>% 
-  group_by(gender) %>% 
-  tally %>% 
-  mutate(perc = round((n / sum(n)), 2))
-
-ggplot(member_gender, aes(x = "", y = n, fill = gender)) + 
-  geom_bar(stat = "identity", width = 1, position = position_fill())+ 
-  coord_polar(theta = "y") +
-  theme(axis.ticks = element_blank(),
-        axis.title = element_blank(),
-        axis.line = element_blank(),
-        panel.grid = element_blank()) + 
-  scale_y_continuous(breaks = NULL) +
-  geom_text(aes(x = 1, y = cumsum(perc) - perc/2, label = perc)) +
-  labs(title = "Gender breakdown of DoSomething members")
-  
-```
-
-```{r}
-voter_reg_gender <- 
-  master %>% 
-  filter(!is.na(gender) & voter_reg_status != "ineligible") %>%
-  group_by(voter_reg_status, gender) %>% 
-  tally
-voter_reg_gender$voter_reg_status <- factor(voter_reg_gender$voter_reg_status,
-                                            levels = c("any_interaction", "registration_started", "registration_complete"),
-                                            labels = c("any_interaction", "registration_started", "registration_complete"))
-  
-# pie chart for gender breakdown 
-ggplot(voter_reg_gender, aes(x = "", y = n, fill = gender)) + 
-  geom_bar(stat = "identity", width = 1, position = position_fill()) + 
-  coord_polar(theta = "y") + 
-  facet_wrap(~ voter_reg_status, ncol = 3) +
-  theme(axis.ticks = element_blank(),
-        axis.title = element_blank(),
-        axis.line = element_blank(),
-        panel.grid = element_blank()) +
-  scale_y_continuous(breaks = NULL) +
-  labs(title = "Gender breakdown by registration status")
-  
-
-# ses breakdown, behavioral stats (total action, reportback status), the NA's of categorical variables, what else?!? 
 ```
 
 
@@ -238,15 +172,32 @@ numeric_only <- master %>% select_if(is.numeric)
 comboinfo <- findLinearCombos(numeric_only) # nothing to remove
 ```
 
+## Save for quasar table 
+
+```{r}
+# all user records + untransformed predictors & predicted 
+saveRDS(master, "join_quasar.rds")
+```
+
+## Centering and scaling data 
+
+Ensures that some features do not dominate the algorithm AND and the features are unit-independent. 
+
+```{r}
+preprocvalues <- preProcess(master, method = c("center", "scale")) # estimates required parameters to be centered & scaled 
+master <- predict(preprocvalues, master) # this function actually centers and scales based on the parameters defined above 
+```
+
 ## Save final prediction data
 
 ```{r}
-final_prediction_data <- 
+data_ready_predict <- 
   master %>% 
-  filter(is.na(voter_reg_status))
+  filter(is.na(voter_reg_status)) %>%
+  select(-voter_reg_status)
 
 # save data for final prediction
-saveRDS(final_prediction_data, "Rdata/final_prediction_data.rds")
+saveRDS(data_ready_predict, "Rdata/data_ready_predict.rds")
 ```
 
 
@@ -277,31 +228,23 @@ training <- master[in_train, ]
 testing  <- master[-in_train, ]
 ```
 
-The dataset is unbalanced because there is a significantly greater number of "interaction" than "registration complete" & "uncertain" values, which would bias the model into favoring predictions for those who have "interacted" with any voter registration CTA. I will use the caret upsample function to increase the other two values, with replacement. 
+The dataset is unbalanced because there is a significantly greater number of "interaction" than "registration complete" & "registration_started" values, which would bias the model into favoring predictions for those who have "interacted" with any voter registration CTA. I will use the caret upsample function to increase the other two values, with replacement. 
 
 (The up sampling should be done to the training set ONLY. The testing set should maintain the unbalanced classes.)  
 
 ```{r}
-up_train <- upSample(x = select(training, -c(voter_reg_status, northstar_id)),
+up_training <- upSample(x = select(training, -c(voter_reg_status, northstar_id)),
                      y = training$voter_reg_status,
                      yname = "voter_reg_status")
-```
-
-Centering and scaling data ensures that some features do not dominate the algorithm AND and the features are unit-independent. 
-
-```{r}
-preprocvalues <- preProcess(up_train, method = c("center", "scale")) # estimates required parameters to be centered & scaled 
-train_transformed <- predict(preprocvalues, up_train) # this function actually centers and scales based on the parameters defined above 
-test_transformed <- predict(preprocvalues, testing)
 ```
 
 randomly sample b/c of memory issues....
 
 ```{r}
-by_grp <- train_transformed %>% group_by(voter_reg_status)
+by_grp <- up_training %>% group_by(voter_reg_status)
 train_transformed_sample <- sample_n(by_grp, 10000)
 
-rm(master, by_grp, in_train, testing, train_transformed, training, up_train)
+rm(master, by_grp, data_ready_predict, in_train, training, up_training)
 ```
 
 
@@ -331,8 +274,8 @@ rf_model <- randomForest(voter_reg_status ~ .,
                          importance = TRUE)
 varImpPlot(rf_model)
 rf_model$importance
-rf_pred <- predict(rf_model, newdata = test_transformed, type = "class")
-rf_results <- mod_perf_function("random_forest", rf_pred, test_transformed)
+rf_pred <- predict(rf_model, newdata = testing, type = "class")
+rf_results <- mod_perf_function("random_forest", rf_pred, testing)
 ```
 
 
@@ -340,17 +283,17 @@ rf_results <- mod_perf_function("random_forest", rf_pred, test_transformed)
 
 ```{r}
 # rank-deficient: ses_status
-# glm.fit (fitted probabilities numerically 0 or 1 occurred): total_action, afternoon_activities
+# glm.fit (fitted probabilities numerically 0 or 1 occurred): site_login
 
 train_ord <- 
   train_transformed_sample %>% 
-  select(-c(ses_status, total_action, afternoon_activities)) # remove variables that are causing above errors 
+  select(-c(ses_status, site_login)) # remove variables that are causing above errors 
 
 ord_logit_model <- MASS::polr(voter_reg_status ~ .,
-                  data = train_ord) 
+                              data = train_ord) 
 ord_logit_model
-ord_logit_pred <- predict(ord_logit_model, newdata = test_transformed, type = "class")
-ord_logit_results <- mod_perf_function("ordinal_logit", ord_logit_pred, test_transformed)
+ord_logit_pred <- predict(ord_logit_model, newdata = testing, type = "class")
+ord_logit_results <- mod_perf_function("ordinal_logit", ord_logit_pred, testing)
 ```
 
 
@@ -368,13 +311,13 @@ nnet_model <- nnet(voter_reg_status ~ .,
                   data = train_transformed_sample,
                   size = 5, # from nnet_fit$bestTune
                   decay = 0.1) # from nnet_fit$bestTune
-nnet_pred <- predict(nnet_model, newdata = test_transformed, type = "class")
+nnet_pred <- predict(nnet_model, newdata = testing, type = "class")
 nnet_pred <- factor(nnet_pred,
                     levels = c("no_interaction", "any_interaction", 
                                "registration_started", "registration_complete"),
                     labels = c("no_interaction", "any_interaction", 
                                "registration_started", "registration_complete"))
-nnet_results <- mod_perf_function("nnet", nnet_pred, test_transformed)
+nnet_results <- mod_perf_function("nnet", nnet_pred, testing)
 ```
 
 ## xgboost (linear)
@@ -391,7 +334,7 @@ xgboost_fit$bestTune
 train_xgboost <- xgboost_data_transform_function(train_transformed_sample)
 
 # transform testing data to work with xgboost
-test_xgboost <- xgboost_data_transform_function(test_transformed)
+test_xgboost <- xgboost_data_transform_function(testing)
 
 xgboost_model <- xgb.train(data = train_xgboost,
                            nrounds = 150,
@@ -408,7 +351,7 @@ xgboost_pred <- factor(xgboost_pred,
                        levels = c(0:3),
                        labels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"))
 
-xgboost_results <- mod_perf_function("xgoobst", xgboost_pred, test_transformed)
+xgboost_results <- mod_perf_function("xgoobst", xgboost_pred, testing)
 ```
 
 ## xgboost (tree)
@@ -439,7 +382,7 @@ xgboost_tree_pred <- factor(xgboost_tree_pred,
                        levels = c(0:3),
                        labels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"))
 
-xgboost_tree_results <- mod_perf_function("xgboost_tree", xgboost_tree_pred, test_transformed)
+xgboost_tree_results <- mod_perf_function("xgboost_tree", xgboost_tree_pred, testing)
 ```
 
 
@@ -460,46 +403,150 @@ gbm_model <- gbm(voter_reg_status ~ .,
                  shrinkage = 0.1, # parameter determined by 10-fold cross validation
                  n.minobsinnode = 10) # parameter determined by 10-fold cross validation
 gbm_pred <- predict(gbm_model, 
-                    newdata = test_transformed,
+                    newdata = testing,
                     n.trees = 150,
                     type = "response")
 gbm_pred <- gbm_transform_function(gbm_pred) # transform predictions into a dataset that can be compared to the test dataset
 
-gbm_results <- mod_perf_function("gbm", gbm_pred, test_transformed)
+gbm_results <- mod_perf_function("gbm", gbm_pred, testing)
 ```
 
 
-## Comparing performance of all models 
+## Comparing performance of models 
 
 ```{r}
 model_performance <- model_comparison(rf_results, ord_logit_results, nnet_results, 
                                       xgboost_results, xgboost_tree_results, gbm_results)
 
 ranked_models <- model_select(model_performance, "AUC: registration_complete")
+
+# SAVE THE BEST MODEL!!!!
 ```
 
+# Choose model and save model for future predictions 
 
-# Making final prediction 
+# Making final prediction & creating a table to load into Quasar
 
 ```{r}
-readRDS("Rdata/final_prediction_data.rds")
+# use data not trained and tested and which northstar_id took no action (voter_reg_status = NA)
+data_ready_predict <- readRDS("Rdata/data_ready_predict.rds") 
 
-# would this have to be customized each time? 
-# (example below)
-predict(gbm_model, # update based on metric 
-        newdata = final_prediction_data,
-        n.trees = 150, # must be updated
-        type = "response")
+# create a table that has northstar_id, voter_reg_status, untransformed predictors, and predictions 
+voter_reg_prediction <- voter_reg_predict(data_ready_predict)
+```
+
+## Write it into Quasar 
+
+I have the final prediction, load it into Quasar
+
+```{r}
+# I have the final prediction, it now needs to go into Quasar 
+channel <- pgConnect()
+
+if(dbExistsTable(channel, c("public", "voter_reg_predictions"))) {
+
+  q <- "truncate public.voter_reg_predictions"
+  runQuery(q)
+
+}
+
+dbWriteTable(channel, c("public", "voter_reg_predictions"), voter_reg_prediction, row.names=F)
+
 ```
 
 
+# Adding new DoSomething into data and making predictions for them 
+
+```{r}
+best_model <- load(TKTKTKTKTKTKTTK)
+```
 
 
+# Descriptive Statistics 
+
+```{r}
+# distribution of voter_reg statuses 
+voter_reg_freq <- 
+  master %>% 
+  group_by(voter_reg_status) %>% 
+  tally
+
+ggplot(voter_reg_freq, aes(x = reorder(voter_reg_status, n), y = n, fill = voter_reg_status)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label = n), vjust = -0.5, size = 3) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Breakdown of DoSomething voter registration status",
+       x = "voter registration status", 
+       y = "frequency")
+```
 
 
+```{r}
+# pie chart of gender breakdown - fix 
+
+member_gender <- 
+  master %>% 
+  filter(!is.na(gender)) %>% 
+  group_by(gender) %>% 
+  tally %>% 
+  mutate(perc = round((n / sum(n)), 2))
+
+ggplot(member_gender, aes(x = "", y = n, fill = gender)) + 
+  geom_bar(stat = "identity", width = 1, position = position_fill())+ 
+  coord_polar(theta = "y") +
+  theme(axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        axis.line = element_blank(),
+        panel.grid = element_blank()) + 
+  scale_y_continuous(breaks = NULL) +
+  geom_text(aes(x = 1, y = cumsum(perc) - perc/2, label = perc)) +
+  labs(title = "Gender breakdown of DoSomething members")
+  
+```
 
 
+```{r}
+# bar chart of gender breakdown by voter reg status 
+voter_reg_gender <- 
+  master %>% 
+  filter(!is.na(gender) & voter_reg_status != "ineligible") %>%
+  group_by(voter_reg_status, gender) %>% 
+  tally
+voter_reg_gender$voter_reg_status <- factor(voter_reg_gender$voter_reg_status,
+                                            levels = c("any_interaction", "registration_started", "registration_complete"),
+                                            labels = c("any_interaction", "registration_started", "registration_complete"))
+  
 
+ggplot(voter_reg_gender, aes(x = "", y = n, fill = gender)) + 
+  geom_bar(stat = "identity", width = 1, position = position_fill()) + 
+  coord_polar(theta = "y") + 
+  facet_wrap(~ voter_reg_status, ncol = 3) +
+  theme(axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        axis.line = element_blank(),
+        panel.grid = element_blank()) +
+  scale_y_continuous(breaks = NULL) +
+  labs(title = "Gender breakdown by registration status")
+
+```
+
+
+```{r}
+# ses breakdown, behavioral stats (total action, reportback status), the NA's of categorical variables, what else?!? 
+member_ses <- 
+  master %>% 
+  group_by(ses_status) %>% 
+  tally
+
+# remove those with dosomething.org email address? 
+mean(master$total_action) # average number of actions 
+
+# cause areas ?
+master %>% 
+  select(starts_with("cause_")) %>% 
+  mutate_at(vars(1:4), funs(replace(., is.na(.), 0))) %>%
+  mutate(total = )
+```
 
 
 

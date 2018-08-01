@@ -360,8 +360,8 @@ last_action_feature <- function(mel) {
     group_by(northstar_id) %>% 
     dplyr::slice(which.max(timestamp)) %>% 
     select(northstar_id, timestamp) %>% 
-    mutate(days_since_lastactive = difftime(Sys.Date(), timestamp, units = "days")) %>%
-    select(-timestamp)
+    mutate(days_since_lastactive = as.numeric(difftime(Sys.Date(), timestamp, units = "days"))) %>%
+    select(-timestamp) 
   
   return(output)
   
@@ -409,18 +409,16 @@ cause_space_feature <- function(users, campaign, campaign_info) {
 ######################### Pre-processing ########################
 
 # replace all NAs in numeric columns with 0's OR means 
-replace_na_numeric <- function(data, vector_means, vector_zeros) {  
-  vector_means # should input a vector with names of all variables for which you'd want to replace NA's with means
-  data_imputed_mean <- 
-    master %>% 
-    mutate_at(vars(vector_means), na.aggregate)
-  
+replace_na_numeric <- function(data, vector_mean, vector_zeros) {  
+  vector_mean # should input a vector with names of variables for which you'd want to replace NA's with means
   vector_zeros # should input a vector with names of all variables for which you'd want to replace NA's with 0
-  data_imputed_zeros <- 
+  
+  data_imputed <- 
     data %>% 
+    mutate_at(vars(vector_mean), na.aggregate) %>% 
     mutate_at(vars(vector_zeros), funs(replace(., is.na(.), 0)))
   
-  return(data_imputed_mean)
+  return(data_imputed)
 }
 
 # replace all other NAs in categorical variables (except northstar_id) with "Unknown"
@@ -544,7 +542,7 @@ gbm_transform_function <- function(gbm_pred) {
 # Creating a list with confusion matrix + accuracy rate & AUC rate dataframe 
 
 mod_perf_function <- function(model_name, predictions, test_data) { # model_name must be in quotes 
-  test_ref <- test_transformed$voter_reg_status
+  test_ref <- test_data$voter_reg_status
   results <- 
     confusionMatrix(predictions, test_ref)
   
@@ -604,6 +602,40 @@ model_select <- function(performance_df, which_metric) { # which_metric must be 
   
   return(ranked_df)
 }
+
+# Making prediction for first dataset 
+
+voter_reg_predict <- function(new_data) {
+  best_model <- readRDS("ord_logit_model.rds") # this would have to be updated
+  
+  # to be updated with best model (below is just an example)
+  predictions <- predict(best_model, # update based on metric 
+                         newdata = new_data, 
+                         type = "class")
+  all_predictions <- 
+    cbind(new_data, predictions) %>% 
+    select(northstar_id, predictions)
+  
+  full_data <- readRDS("join_quasar.rds")
+  quasar_table<- 
+    full_data %>% 
+    full_join(all_predictions, by = "northstar_id")
+  
+  return(quasar_table)
+}
+
+# Making predictions for new users 
+
+new_predict <- function() {
+  new_users <- runQuery(users_query)
+  
+  # bring over latest table from Quasar without prediction (needs update)
+  turbo_query <- "SELECT *
+  FROM TKTKTKTKT
+  WHERE prediction IS NOT NULL" # will this be automatically updated as new members subscribe?? 
+}
+
+
 
 
 
