@@ -1,15 +1,21 @@
 library(glue)
 library(digest)
 
-getRTVFile <- function(path) {
+getRTVFile <- function(path, testing=F) {
 
   data <-
-    suppressWarnings(suppressMessages(read_csv(path))) %>%
-    filter(
-      !grepl('dosomething', `Email address`) &
-      !grepl('testing', `Tracking Source`) &
-      !grepl('@example.com', `Email address`)
-    )
+    suppressWarnings(suppressMessages(read_csv(path)))
+
+  if (testing==F) {
+
+    data %<>%
+      filter(
+        !grepl('dosomething', `Email address`) &
+        !grepl('testing', `Tracking Source`) &
+        !grepl('@example.com', `Email address`)
+      )
+
+  }
 
   for (i in 1:length(names(data))) {
     if(grepl('-', names(data)[i])) {
@@ -275,7 +281,7 @@ alignNames <- function(data) {
 
 }
 
-prepData <- function(...) {
+prepRTVData <- function(testing=F, ...) {
 
   d <- getRTVFile(...)
   d <- attachWebLeadTracking(d)
@@ -306,6 +312,10 @@ prepData <- function(...) {
     rename(newsletter = source_details) %>%
     filter(type=='email')
 
+  if (testing==T) {
+    browser()
+  }
+
   vr <-
     alignNames(vr) %>%
     left_join(cioConv) %>%
@@ -331,4 +341,4 @@ prepData <- function(...) {
 
 }
 
-rtv <- prepData(paste0('Data/RockTheVote/rock_the_vote_',latest_file,'.csv'))
+rtv <- prepRTVData(paste0('Data/RockTheVote/rock_the_vote_',latest_file,'.csv'))
