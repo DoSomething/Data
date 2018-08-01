@@ -217,7 +217,7 @@ addFields <- function(dat) {
     )
 }
 
-prepData <- function(...) {
+prepTVData <- function(...) {
 
   d <- getData(...)
   refParsed <- processReferralColumn(d)
@@ -253,4 +253,4 @@ prepData <- function(...) {
 
 }
 
-tv <- prepData()
+tv <- prepTVData()
