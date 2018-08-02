@@ -281,9 +281,9 @@ alignNames <- function(data) {
 
 }
 
-prepRTVData <- function(testing=F, ...) {
+prepRTVData <- function(path, testing=F) {
 
-  d <- getRTVFile(...)
+  d <- getRTVFile(path, testing)
   d <- attachWebLeadTracking(d)
   refParsed <- processTrackingSource(d)
 
