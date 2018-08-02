@@ -48,18 +48,6 @@ list2env(data_list, .GlobalEnv)
 
 # Data wrangling 
 
-## Remove records of under 18 northstar_ids in all datasets 
-
-```{r}
-# only keep rows whose age < 18, in US, and members in relevant datasets. 
-phoenix <- remove18(phoenix, users)
-campaign <- remove18(campaign, users)
-email <- remove18(email, users)
-sms <- remove18(sms, users)
-turbo <- remove18(turbo, users)
-mel <- remove18(mel, users)
-```
-
 ## Extracting predicted feature (voter registration status)
 
 ```{r}

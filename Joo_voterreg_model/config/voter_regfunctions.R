@@ -16,15 +16,24 @@ load_data <- function(days_refreshed) { # set number of days since last running 
     sms <- runQuery(SMS_mes)
     turbo <- runQuery(turbo_query)  
     
+    # remove northstar_ids that are under 18, do not live in the US, and are unsubscribed based on users data
+    mel <- remove18(mel, users)
+    phoenix <- remove18(phoenix, users)
+    campaign <- remove18(campaign, users)
+    campaign_info <- remove18(campaign_info, users)
+    email <- remove18(email, users)
+    sms <- remove18(sms, users)
+    turbo <- remove18(turbo, users)
+    
     # save the files as Rdata files
+    saveRDS(users, "Rdata/users.rds")
     saveRDS(phoenix, "Rdata/phoenix.rds")
+    saveRDS(mel, "Rdata/mel.rds")
     saveRDS(campaign, "Rdata/campaign.rds")
     saveRDS(campaign_info, "Rdata/campaign_info.rds")
     saveRDS(email, "Rdata/email.rds")
     saveRDS(sms, "Rdata/sms.rds")
     saveRDS(turbo, "Rdata/turbo.rds")
-    saveRDS(mel, "Rdata/mel.rds")
-    saveRDS(campaign_info, "Rdata/campaign_info.rds")
     
     data_list <- list(users = users, 
                       phoenix = phoenix,
@@ -66,8 +75,10 @@ load_data <- function(days_refreshed) { # set number of days since last running 
 ################## Initial Data Wrangling #######################
 
 # remove northstar_ids that are under 18, do not live in the US, and are unsubscribed
-remove18 <- function(x, y) {
-  output <- x %>% semi_join(y, by = "northstar_id") 
+remove18 <- function(x, users) {
+  output <- 
+    x %>% 
+    semi_join(users, by = "northstar_id") 
   # semi_join returns all rows from x where there are matching values in y, keeping just columns from x
   
   return(output)
@@ -605,7 +616,7 @@ model_select <- function(performance_df, which_metric) { # which_metric must be 
 
 # Making prediction for first dataset 
 
-voter_reg_predict <- function(new_data) {
+voter_reg_predict <- function(new_data, latest_untransformed.rds) { # in quotes?
   best_model <- readRDS("ord_logit_model.rds") # this would have to be updated
   
   # to be updated with best model (below is just an example)
@@ -616,7 +627,7 @@ voter_reg_predict <- function(new_data) {
     cbind(new_data, predictions) %>% 
     select(northstar_id, predictions)
   
-  full_data <- readRDS("join_quasar.rds")
+  full_data <- readRDS(latest_untransformed.rds)
   quasar_table<- 
     full_data %>% 
     full_join(all_predictions, by = "northstar_id")
@@ -624,16 +635,6 @@ voter_reg_predict <- function(new_data) {
   return(quasar_table)
 }
 
-# Making predictions for new users 
-
-new_predict <- function() {
-  new_users <- runQuery(users_query)
-  
-  # bring over latest table from Quasar without prediction (needs update)
-  turbo_query <- "SELECT *
-  FROM TKTKTKTKT
-  WHERE prediction IS NOT NULL" # will this be automatically updated as new members subscribe?? 
-}
 
 
 
