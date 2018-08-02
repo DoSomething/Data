@@ -73,8 +73,7 @@ ggplot(Source, aes(x=status, y=value, fill=reorder(source, value))) +
     title='Counts and Proportions of Form Status split by Source'
     ) +
   theme(plot.title = element_text(hjust=.5)) + 
-  guides(fill=guide_legend(title='Source')) + 
-  scale_fill_brewer(palette = 'Set2')
+  guides(fill=guide_legend(title='Source')) 
 ```
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
 ggplot(sourceTime, aes(x=date, y=runningTotal, color=source)) +
