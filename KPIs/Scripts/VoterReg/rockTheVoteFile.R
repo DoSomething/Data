@@ -50,17 +50,18 @@ getRTVFile <- function(path, testing=F) {
 
 getWebLeads <- function() {
 
-  raw <- tibble()
+  raw <- suppressMessages(read_csv('Data/WebLeads/master_csv.csv'))
 
   for (i in 1:7) {
     a <- suppressMessages(read_csv(paste0('Data/WebLeads/leads-',i,'.csv')))
     raw <- bind_rows(a,raw)
   }
-
+  # browser()
   leads <-
     raw %>%
     mutate(
       Date = as.POSIXct(Date, format='%m/%d/%Y %H:%M:%S'),
+      Email = case_when(is.na(Email) ~ `Email Address`, TRUE ~ Email),
       tracking_source_alt =
         case_when(
           is.na(source) ~ r,
@@ -68,7 +69,6 @@ getWebLeads <- function() {
           TRUE ~ NA_character_
         )
     ) %>%
-    filter(Date >= '2018-06-26' & Date <= '2018-06-27') %>%
     group_by(Email, `Zip Code`) %>%
     filter(Date==max(Date)) %>%
     select(email_address=Email, home_zip_code=`Zip Code`, tracking_source_alt) %>%
@@ -88,7 +88,7 @@ attachWebLeadTracking <- function(rtv) {
     mutate(
       tracking_source =
         case_when(
-          tracking_source %in% c('[r]','undefined','[source]') |
+          tracking_source %in% c('[r]','undefined','[source]','') |
           is.na(tracking_source) ~ tracking_source_alt,
           TRUE ~ tracking_source
         )
