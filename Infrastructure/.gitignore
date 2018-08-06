@@ -15,5 +15,6 @@
 **.DS_Store
 *.xlsx
 **.xml
+**.RData
 .idea/
 .Renviron

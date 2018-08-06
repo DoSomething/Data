@@ -17,6 +17,7 @@
 **.pdf
 **.html
 **.Rprofile
+**.RData
 Data/
 Visuals/
 .httr-oauth
