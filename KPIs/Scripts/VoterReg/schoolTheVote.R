@@ -74,7 +74,8 @@ for (i in 1:nrow(qres)) {
         campaign_run_id == '8130' ~ '8129',
         campaign_run_id == '8103' ~ '822',
         TRUE ~ ''
-        )
+        ),
+      reportback = T
       )
 
   stv <-

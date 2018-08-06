@@ -79,8 +79,7 @@ ggplot(Source, aes(x=status, y=value, fill=reorder(source, value))) +
 ggplot(sourceTime, aes(x=date, y=runningTotal, color=source)) +
   geom_line() + 
   labs(x='Date',y='Registrations',title='Running Total of Registrations by Source') +
-  theme(plot.title = element_text(hjust=.5))+
-  scale_colour_brewer(palette = 'Set2')
+  theme(plot.title = element_text(hjust=.5))
 ```
 
 #### Source Details
