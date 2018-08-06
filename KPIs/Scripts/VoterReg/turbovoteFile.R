@@ -198,12 +198,13 @@ addDetails <- function(dat) {
 }
 
 addFields <- function(dat) {
+
   dat %<>%
     mutate(
-      reportback = ifelse(
-        ds_vr_status %in%
-          c('confirmed','register-form','register-OVR'), T, F
-      ),
+      reportback =
+        ifelse(
+          ds_vr_status %in% c('confirmed','register-form','register-OVR'), 1, 0
+        ) %>% as.logical,
       month = month(created_at),
       week = case_when(
         created_at < '2018-02-06' ~ as.character('2018-01-26'),
