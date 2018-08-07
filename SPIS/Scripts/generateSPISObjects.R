@@ -1445,7 +1445,7 @@ nonprofitAwareness.DonorsChoose <-
 
 whereSeeDoSomething <-
   styleSelectMultiple(
-    set,
+    set %>% filter(Group=='Gen Pop'),
     'where_see_DS.',
     pivots=c(Group, sex, fam_finances, age, race, region, parental_education,
              political_party, political_view, attend_religious_services_freq,
@@ -1454,7 +1454,7 @@ whereSeeDoSomething <-
 
 socialMediaSeeDoSomething <-
   styleSelectMultiple(
-    set,
+    set %>% filter(Group=='Gen Pop'),
     'which_social_media_see_DS.',
     pivots=c(Group, sex, fam_finances, age, race, region, parental_education,
              political_party, political_view, attend_religious_services_freq,
@@ -1463,7 +1463,7 @@ socialMediaSeeDoSomething <-
 
 howEngageDoSomething <-
   styleSelectMultiple(
-    set,
+    set %>% filter(Group=='Gen Pop'),
     'how_engage_with_DS.',
     pivots=c(Group, sex, fam_finances, age, race, region, parental_education,
              political_party, political_view, attend_religious_services_freq,

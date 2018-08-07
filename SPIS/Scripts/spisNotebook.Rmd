@@ -124,7 +124,7 @@ grid.arrange(takenActionEncouragedOnline$pivotPlot)
 grid.arrange(takenActionEncouragedOnline$groupedPivotPlot)
 ```
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=4.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 contactedPolitician$frequencyPlot
 grid.arrange(contactedPolitician$pivotPlot)
 grid.arrange(contactedPolitician$groupedPivotPlot)
@@ -190,7 +190,7 @@ grid.arrange(engagedCompanyToAdvocate$pivotPlot)
 grid.arrange(engagedCompanyToAdvocate$groupedPivotPlot)
 ```
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=9.5, fig.width=11}
 plannedSocialImpactActivity$frequencyPlot
 grid.arrange(plannedSocialImpactActivity$pivotPlot)
 grid.arrange(plannedSocialImpactActivity$groupedPivotPlot)
@@ -255,7 +255,7 @@ sinceDS.persistThroughChallenges$frequencyPlot
 grid.arrange(sinceDS.persistThroughChallenges$pivotPlot)
 ```
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=8.5, fig.width=9}
 sinceDS.iCanAccomplishGoals$frequencyPlot
 grid.arrange(sinceDS.iCanAccomplishGoals$pivotPlot)
 ```
@@ -617,7 +617,7 @@ grid.arrange(causeImportance.AnimalWelfare$pivotPlot)
 grid.arrange(causeImportance.AnimalWelfare$groupedPivotPlot)
 ```
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=5.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=4, fig.width=9}
 causeImportance.DisasterRelief$frequencyPlot
 grid.arrange(causeImportance.DisasterRelief$pivotPlot)
 grid.arrange(causeImportance.DisasterRelief$groupedPivotPlot)
@@ -675,7 +675,7 @@ grid.arrange(purchaseInfluence.Price$pivotPlot)
 grid.arrange(purchaseInfluence.Price$groupedPivotPlot)
 ```
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=5.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=4, fig.width=9}
 purchaseInfluence.Quality$frequencyPlot
 grid.arrange(purchaseInfluence.Quality$pivotPlot)
 grid.arrange(purchaseInfluence.Quality$groupedPivotPlot)
@@ -699,7 +699,7 @@ grid.arrange(purchaseInfluence.CompanyReputationValues$pivotPlot)
 grid.arrange(purchaseInfluence.CompanyReputationValues$groupedPivotPlot)
 ```
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=5.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=4, fig.width=9}
 purchaseInfluence.RecommendedByKnownPerson$frequencyPlot
 grid.arrange(purchaseInfluence.RecommendedByKnownPerson$pivotPlot)
 grid.arrange(purchaseInfluence.RecommendedByKnownPerson$groupedPivotPlot)
@@ -711,13 +711,13 @@ grid.arrange(purchaseInfluence.CustomerReviews$pivotPlot)
 grid.arrange(purchaseInfluence.CustomerReviews$groupedPivotPlot)
 ```
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=5.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=4, fig.width=9}
 FrequencyPurchaseBrandValues$frequencyPlot
 grid.arrange(FrequencyPurchaseBrandValues$pivotPlot)
 grid.arrange(FrequencyPurchaseBrandValues$groupedPivotPlot)
 ```
 
-```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=5.5, fig.width=9}
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=4, fig.width=9}
 brandValuesCompensate.LowerQuality$frequencyPlot
 grid.arrange(brandValuesCompensate.LowerQuality$pivotPlot)
 grid.arrange(brandValuesCompensate.LowerQuality$groupedPivotPlot)
