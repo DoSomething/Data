@@ -15,6 +15,7 @@
 **DS_Store
 **.idea/
 **.xml
+**.RData
 Data/
 Visuals/
 .httr-oauth
