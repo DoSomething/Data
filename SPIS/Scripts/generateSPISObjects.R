@@ -129,16 +129,22 @@ iTakeActionsIssues <-
 # Which Action Taken When -------------------------------------------------
 
 mapFrom <-
-  c('Done in the past year',
-    'Done over a year ago',
-    'Not done and DONT KNOW if I would in the future',
+  c(
     'Not done and would NEVER under any circumstances',
-    'Not done but MIGHT in the future'
+    'Not done and DONT KNOW if I would in the future',
+    'Not done but MIGHT in the future',
+    'Done over a year ago',
+    'Done in the past year'
     )
-mapTo <- c('Done Past Year','Done in Past',
-           'Not Done, Dont Know if Ever','Would Never Do',
-           'Not Done But Might')
-finCode <- c(2,1,0,-2,-1)
+mapTo <-
+  c(
+    'Would Never Do',
+    'Not Done, Dont Know if Ever',
+    'Not Done But Might',
+    'Done in Past',
+    'Done Past Year'
+    )
+finCode <- c(-2,-1,0,1,2)
 
 politicalEventsProtests <-
   stylePickOneOrdinal(
@@ -1439,7 +1445,7 @@ nonprofitAwareness.DonorsChoose <-
 
 whereSeeDoSomething <-
   styleSelectMultiple(
-    set,
+    set %>% filter(Group=='Gen Pop'),
     'where_see_DS.',
     pivots=c(Group, sex, fam_finances, age, race, region, parental_education,
              political_party, political_view, attend_religious_services_freq,
@@ -1448,7 +1454,7 @@ whereSeeDoSomething <-
 
 socialMediaSeeDoSomething <-
   styleSelectMultiple(
-    set,
+    set %>% filter(Group=='Gen Pop'),
     'which_social_media_see_DS.',
     pivots=c(Group, sex, fam_finances, age, race, region, parental_education,
              political_party, political_view, attend_religious_services_freq,
@@ -1457,7 +1463,7 @@ socialMediaSeeDoSomething <-
 
 howEngageDoSomething <-
   styleSelectMultiple(
-    set,
+    set %>% filter(Group=='Gen Pop'),
     'how_engage_with_DS.',
     pivots=c(Group, sex, fam_finances, age, race, region, parental_education,
              political_party, political_view, attend_religious_services_freq,
