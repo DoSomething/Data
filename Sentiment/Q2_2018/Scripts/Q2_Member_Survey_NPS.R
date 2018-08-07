@@ -12,7 +12,7 @@ library(lubridate)
 pg <- pgConnect()
 
 #Import latest Question Pro data pulled on July 17th (N=3583)
-# member_survey_2018 <- read.xlsx('~/Documents/Member Surveys/Member Survey 2018 /2018 Member Survey final .xlsx')
+#member_survey_2018 <- read.xlsx('~/Documents/Member Surveys/Member Survey 2018 /2018 Member Survey final Aug 3.xlsx')
 
 #Import member survey data from PostGres (N should equal 3538)
 mem_survey <- "select *
@@ -31,7 +31,7 @@ collapseRace <- function(dat) {
   raceVars <- raceSet %>% select(starts_with('race')) %>% names()
 
   setRace <-
-    member_survey_2018 %>%
+    dat %>%
     mutate_at(
 
       .vars = vars(starts_with('race_')),
@@ -54,7 +54,7 @@ collapseRace <- function(dat) {
       )
 
     ) %>%
-    select(-starts_with('race.'), -ticks)
+    select(-starts_with('race_'), -ticks)
 
 }
 
@@ -104,15 +104,105 @@ member_survey_2018 <- member_survey_2018%>%
                        volunteer_frequency=='One time only'~ 'Once every few months',
                      volunteer_frequency=='Never' ~ 'Never'),
          political_view_rec=
-           case_when(political_view=='Conservative' | political_view=='Very conserative' ~ 'Conservative',
-                     political_view=='Moderate' ~'Moderate',
-                     political_view=='Liberal' | political_view=='Very liberal' ~ 'Liberal'),
+           case_when(political_view=='Conservative' | political_view=='Very conserative' ~ '3_Conservative',
+                     political_view=='Moderate' ~'2_Moderate',
+                     political_view=='Liberal' | political_view=='Very liberal' ~ '1_Liberal'),
+         asked_candidate =
+           case_when(voter_reg_ask_candidate=='Asked by a candidate or political group' ~ 1,
+                     voter_reg_ask_candidate=is.na(voter_reg_ask_candidate) ~ 0),
+         asked_religous =
+           case_when(voter_reg_ask_religious=='Asked by a religious group' ~ 1,
+                     voter_reg_ask_religious=is.na(voter_reg_ask_religious) ~ 0),
          asked_ds =
            case_when(voter_reg_ask_dosomething=='Asked by DoSomething.org' ~ 1,
                      voter_reg_ask_dosomething=is.na(voter_reg_ask_dosomething) ~ 0),
+         asked_civic =
+           case_when(voter_reg_ask_civicorg=='Asked by a civic organization or another group that was not political or religious (excluding DoSomething.org)' ~ 1,
+                     voter_reg_ask_civicorg=is.na(voter_reg_ask_civicorg) ~ 0),
+         asked_family =
+           case_when(voter_reg_ask_family=='Asked by a friend or family member' ~ 1,
+                     voter_reg_ask_family=is.na(voter_reg_ask_family) ~ 0),
+         asked_official =
+           case_when(voter_reg_ask_official=='Asked by an official at a motor vehicle agency, social service agency or other government office' ~ 1,
+                     voter_reg_ask_official=is.na(voter_reg_ask_official) ~ 0),
+         asked_school =
+           case_when(voter_reg_ask_school=='Asked at school or as part of a class' ~ 1,
+                     voter_reg_ask_school=is.na(voter_reg_ask_school) ~ 0),
+         asked_website =
+           case_when(voter_reg_ask_website=='Asked by another organization on a website ' ~ 1,
+                     voter_reg_ask_website=is.na(voter_reg_ask_website) ~ 0),
+         asked_message =
+           case_when(voter_reg_ask_message=='Asked by email or text from an organization' ~ 1,
+                     voter_reg_ask_message=is.na(voter_reg_ask_message) ~ 0),
+         asked_social =
+           case_when(voter_reg_ask_social=='Asked online through an ad on social media (e.g. Facebook, Instagram, Twitter, etc.)' ~ 1,
+                     voter_reg_ask_social=is.na(voter_reg_ask_social) ~ 0),
+         asked_never =
+           case_when(voter_reg_ask_neverasked=='I have never been asked to register' ~ 1,
+                     voter_reg_ask_neverasked=is.na(voter_reg_ask_neverasked) ~ 0),
          nps_cat = case_when(nps<7 ~ 'Detractor',
                              nps %in% c(7,8) ~ 'Persuadable',
-                             nps>8 ~ 'Promoter')
+                             nps>8 ~ 'Promoter'),
+         action_bullying_top =
+           case_when(action_bullying!=is.na(action_bullying) ~ 1,
+                     action_bullying=is.na(action_bullying) ~ 0),
+         action_elected_official_top =
+           case_when(action_elected_official!=is.na(action_elected_official) ~ 1,
+                     action_elected_official=is.na(action_elected_official) ~ 0),
+         action_quiz_top =
+           case_when(action_quiz!=is.na(action_quiz) ~ 1,
+                     action_quiz=is.na(action_quiz) ~ 0),
+         action_bookmark_top =
+           case_when(action_bookmark!=is.na(action_bookmark) ~ 1,
+                     action_bookmark=is.na(action_bookmark) ~ 0),
+         action_registering_self_top =
+           case_when(action_registering_self!=is.na(action_registering_self) ~ 1,
+                     action_registering_self=is.na(action_registering_self) ~ 0),
+         action_bonemarrow_top =
+           case_when(action_bonemarrow!=is.na(action_bonemarrow) ~ 1,
+                     action_bonemarrow=is.na(action_bonemarrow) ~ 0),
+         action_donatemoney_top =
+           case_when(action_donatemoney!=is.na(action_donatemoney) ~ 1,
+                     action_donatemoney=is.na(action_donatemoney) ~ 0),
+         action_teacher_card_top =
+           case_when(action_teacher_card!=is.na(action_teacher_card) ~ 1,
+                     action_teacher_card=is.na(action_teacher_card) ~ 0),
+         action_sign_passion_top =
+           case_when(action_sign_passion!=is.na(action_sign_passion) ~ 1,
+                     action_sign_passion=is.na(action_sign_passion) ~ 0),
+         action_safety_posters_top =
+           case_when(action_safety_posters!=is.na(action_safety_posters) ~ 1,
+                     action_safety_posters=is.na(action_safety_posters) ~ 0),
+         action_post_notes_top =
+           case_when(action_post_notes!=is.na(action_post_notes) ~ 1,
+                     action_post_notes=is.na(action_post_notes) ~ 0),
+         action_recylingbins_top =
+           case_when(action_recylingbins!=is.na(action_recylingbins) ~ 1,
+                     action_recylingbins=is.na(action_recylingbins) ~ 0),
+         action_iou_book_top =
+           case_when(action_iou_book!=is.na(action_iou_book) ~ 1,
+                     action_iou_book=is.na(action_iou_book) ~ 0),
+         action_register_drive_top =
+           case_when(action_register_drive!=is.na(action_register_drive) ~ 1,
+                     action_register_drive=is.na(action_register_drive) ~ 0),
+         action_playlist_songs_top =
+           case_when(action_playlist_songs!=is.na(action_playlist_songs) ~ 1,
+                     action_playlist_songs=is.na(action_playlist_songs) ~ 0),
+         action_scienceteacher_pledge_top =
+           case_when(action_scienceteacher_pledge!=is.na(action_scienceteacher_pledge) ~ 1,
+                     action_scienceteacher_pledge=is.na(action_scienceteacher_pledge) ~ 0),
+         action_register_helpfriends_top =
+           case_when(action_register_helpfriends!=is.na(action_register_helpfriends) ~ 1,
+                     action_register_helpfriends=is.na(action_register_helpfriends) ~ 0),
+         action_discrimination_strategies_top =
+           case_when(action_discrimination_strategies!=is.na(action_discrimination_strategies) ~ 1,
+                     action_discrimination_strategies=is.na(action_discrimination_strategies) ~ 0),
+         action_sports_equiptment_top =
+           case_when(action_sports_equiptment!=is.na(action_sports_equiptment) ~ 1,
+                     action_sports_equiptment=is.na(action_sports_equiptment) ~ 0),
+         action_ramadan_cards_top =
+           case_when(action_ramadan_cards!=is.na(action_ramadan_cards) ~ 1,
+                     action_ramadan_cards=is.na(action_ramadan_cards) ~ 0)
          )
 
 ####################################################
@@ -123,7 +213,6 @@ member_survey_2018 <- member_survey_2018%>%
 membersurvey_dedup <- member_survey_2018%>%
   filter(!duplicated(nsid))%>%
   rename(northstar_id=nsid)
-
 
 #Pull member data from database
 members <- glue_sql("select u.northstar_id,
@@ -296,7 +385,7 @@ ggplot(avgSignup, aes(x=avg_signup)) +
 
 
 #Get earliest signup date
-# minDate <- min(as.Date(substr(sample$signup_created_at, 1, 10)))
+minDate <- min(as.Date(substr(sample$signup_created_at, 1, 10)))
 
 #Group by northstar and get the average signup date per northstar
 #This required removing the time component with substr, turning it into a date,
@@ -355,7 +444,7 @@ for (i in 1:1000) {
   scores <- c(scores, score)
 }
 
-score
+mean(scores)
 
 sms_weighted <-weighted_members_nps%>%
   filter(source_segment=='SMS only')%>%
@@ -369,7 +458,7 @@ for (i in 1:1000) {
   scores <- c(scores, score)
 }
 
-score
+mean(scores)
 
 typical_weighted <-weighted_members_nps %>%
   filter(source_segment=='Typical')%>%
@@ -383,7 +472,7 @@ for (i in 1:1000) {
   scores <- c(scores, score)
 }
 
-score
+mean(scores)
 
 scores <- numeric()
 for (i in 1:1000) {
@@ -393,7 +482,7 @@ for (i in 1:1000) {
   scores <- c(scores, score)
 }
 
-score
+mean(scores)
 
 #####charts #########
 sampleNiche <-
@@ -428,94 +517,4 @@ sampleAll <-
 ggplot(sampleAll, aes(x=last_signup_date.x, y=nps)) +
   geom_point() + geom_smooth() + ggtitle('All members') +
   scale_x_date(breaks=pretty_breaks(5))
-
-##################################################################################
-######################## Compare Gender ##########################################
-##################################################################################
-
-count(membersurvey_dedup, gender, sort = TRUE)%>% filter(gender!=is.na(gender))%>% mutate(p=n/sum(n))
-count(membersurvey_dedup, gender_dummy, sort = TRUE)%>% filter(gender_dummy!=is.na(gender_dummy))%>%mutate(p=n/sum(n))
-
-#import list of names
-names <- read.csv('~/Desktop/Gender First Name Master File.csv')
-#upcase names
-names <- mutate_all(names, funs(toupper))
-
-
-#pull first names of survey respondents from db
-db_names <- members_postgres%>%
-  select(northstar_id,first_name)
-#upcase names
-db_names <- db_names%>%
-  mutate(first_name = toupper(gsub("[^[:alnum:] ]", "", first_name)))
-
-
-#join names from list to survey respondents
-names_respondents<- db_names%>%
- left_join(names, by='first_name')
-
-#Compare frequencies of gender from db to seld-reported gender
-count(names_respondents, gender, sort = TRUE)%>% mutate(p=n/sum(n))
-count(names_respondents, gender, sort = TRUE)%>%filter(gender!=is.na(gender))%>% mutate(p=n/sum(n))
-
-
-###############################################################################
-################################ VOTER REG ####################################
-###############################################################################
-
-#freqs
-count(membersurvey_dedup, voter_reg_status, sort = TRUE)%>%filter(voter_reg_status!=is.na(voter_reg_status))%>% mutate(p=n/sum(n))
-count(membersurvey_dedup, registered_cat, sort = TRUE)%>%filter(registered_cat!=is.na(registered_cat))%>% mutate(p=n/sum(n))
-
-# count(membersurvey_dedup, asked_ds, sort = TRUE)%>% mutate(p=n/sum(n))
-
-#count(membersurvey_dedup, gender_dummy, sort = TRUE)%>% filter(gender_dummy!=is.na(gender_dummy))%>% mutate(p=n/sum(n))
-#count(membersurvey_dedup, gpa, sort = TRUE)%>% filter(gpa!=is.na(gpa))%>% mutate(p=n/sum(n))
-#count(membersurvey_dedup, age, sort = TRUE)%>% filter(age!=is.na(age))%>% mutate(p=n/sum(n))
-#count(membersurvey_dedup, sub_urb, sort = TRUE)%>% filter(sub_urb!=is.na(sub_urb))%>% mutate(p=n/sum(n))
-
-#Exploring
-CrossTable(membersurvey_dedup$gender_dummy, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-CrossTable(membersurvey_dedup$fam_finances, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-CrossTable(membersurvey_dedup$sub_urb, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-CrossTable(membersurvey_dedup$political_view_rec, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-CrossTable(membersurvey_dedup$political_party, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-CrossTable(membersurvey_dedup$contacted_official, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-CrossTable(membersurvey_dedup$race_cat, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-#CrossTable(membersurvey_dedup$gender_dummy, membersurvey_dedup$registered_dummy, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-#CrossTable(membersurvey_dedup$gender_dummy, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-#CrossTable(member_survey_2018$registered_cat, member_survey_2018$sub_urb, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-#CrossTable(member_survey_2018$registered_cat, member_survey_2018$gender_dummy, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-
-#Logistic regression model - RACE
-logreg_registered <-glm(registered_dummy~race_cat,
-                        data=membersurvey_dedup, family=binomial(link="logit"))
-
-summary(logreg_registered)
-exp(coef(logreg_registered))
-
-
-#Logistic regression model - GENDER
-logreg_registered_gender <-glm(registered_dummy~gender_dummy,
-                               data=membersurvey_dedup, family=binomial(link="logit"))
-
-summary(logreg_registered_gender)
-exp(coef(logreg_registered_gender))
-
-
-#Logistic regression model - POL PARTY
-logreg_registered_polparty <-glm(registered_dummy~political_party,
-                        data=membersurvey_dedup, family=binomial(link="logit"))
-
-summary(logreg_registered_polparty)
-exp(coef(logreg_registered_polparty))
-
 
