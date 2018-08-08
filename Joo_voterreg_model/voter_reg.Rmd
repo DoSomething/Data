@@ -489,7 +489,7 @@ predictions_only  <-
 ## Make predictions 
 
 ```{r}
-voter_reg_prediction <- voter_reg_predict(predictions_only, "future_predictions/join_quasar.rds")
+voter_reg_prediction <- voter_reg_predict(predictions_only, "join_quasar.rds")
 ```
 
 ## Add it to Quasar table 
