@@ -2,7 +2,12 @@ source('config/data_source.R')
 source('config/init.R')
 source('config/pgConnect.R')
 
+#################################################################
+################ Initial Modeling & Prediction ##################
+#################################################################
+
 ###################### Load Data Set ############################
+
 load_data <- function(days_refreshed) { # set number of days since last running the query
   if (difftime(Sys.Date(), file.mtime("Rdata/users.rds")) > days_refreshed) {
     
@@ -20,7 +25,6 @@ load_data <- function(days_refreshed) { # set number of days since last running 
     mel <- remove18(mel, users)
     phoenix <- remove18(phoenix, users)
     campaign <- remove18(campaign, users)
-    campaign_info <- remove18(campaign_info, users)
     email <- remove18(email, users)
     sms <- remove18(sms, users)
     turbo <- remove18(turbo, users)
@@ -78,8 +82,7 @@ load_data <- function(days_refreshed) { # set number of days since last running 
 remove18 <- function(x, users) {
   output <- 
     x %>% 
-    semi_join(users, by = "northstar_id") 
-  # semi_join returns all rows from x where there are matching values in y, keeping just columns from x
+    semi_join(users, by = "northstar_id") # returns all rows from x where there are matching values in y, keeping just columns from x
   
   return(output)
 }
@@ -110,31 +113,50 @@ predicted_feature <- function(users, turbo, campaign, phoenix, email) {
                                       voter_reg_status %in% c("confirmed", "unregistered"),
                                       NA)) 
   
-  # combine: registration > uncertain > ineligible
+  # combine: registration_complete > registration_started > ineligible
   users_turbo <- 
-    fromusers %>%
-    left_join(fromturbo, by = "northstar_id") %>%
+    bind_rows(fromusers, fromturbo) %>% 
+    distinct() %>% 
     mutate(voter_reg_status = case_when(
-      voter_reg_status.x == "registration_complete" | voter_reg_status.y == "registration_complete" ~ "registration_complete",
-      voter_reg_status.x == "uncertain" | voter_reg_status.y == "uncertain" ~ "uncertain",
-      voter_reg_status.y == "ineligible" ~ "ineligible",
+      voter_reg_status == "registration_complete" ~ "registration_complete",
+      voter_reg_status == "uncertain" ~ "registration_started",
+      voter_reg_status == "ineligible" ~ "ineligible",
       TRUE ~ NA_character_
-    )) %>%
+    ),
+    ordered = case_when(
+      voter_reg_status == "registration_complete" ~ 1,
+      voter_reg_status == "registration_started" ~ 2,
+      voter_reg_status == "ineligible" ~ 3,
+      TRUE ~ 4
+      )) %>%
+    group_by(northstar_id) %>%
+    dplyr::slice(which.min(ordered)) %>%
     select(northstar_id, voter_reg_status)
   
   # voter reg status (any interaction) from campaign, phoenix, email 
   voter_reg_emails <- read.csv("voter_reg_emails.csv") # contains template_ids of all emails re: voter reg 
-  voter_reg_ids <- c("8017", "7059", "822", "8129", "7951", "7927") # campaign ids for voter registration campaigns 
+  
+  # campaign_run_ids & campaign_ids for voter registration campaigns 
+  voter_runids <- c("8022", # gtm
+                     "7060", "7944", "8105", "8128", "8152", # lose your v-card
+                     "6223", "8103", # school the vote
+                     "8151", # red, white, and booth
+                     "7952", # do something about gun violence (members asked to register in the affirmation)
+                     "7928") # defend dreamers (members asked to register in the affirmation) 
+  voter_ids <- c("8017", # gtm
+                 "7059", # lose your v-card
+                 "822", # school the vote
+                 "8129") #red, white, and booth
   voter_reg_template_ids <- voter_reg_emails$template_id # template ids for voter registration emails 
   
   fromcampaign <- 
     campaign %>%
-    filter(campaign_id %in% voter_reg_ids & 
+    filter(campaign_run_id %in% voter_runids & 
              (!is.na(signup_created_at) | !is.na(post_attribution_date))) %>%
     select(northstar_id)
   fromphoenix <- 
     phoenix %>%
-    filter(campaign_id %in% voter_reg_ids) %>%
+    filter(campaign_id %in% voter_ids) %>%
     select(northstar_id)
   fromemail <- 
     email %>%
@@ -144,20 +166,19 @@ predicted_feature <- function(users, turbo, campaign, phoenix, email) {
   all_interactions <- 
     bind_rows(fromcampaign, fromphoenix, fromemail) %>%
     distinct() %>%
-    mutate(voter_reg_status = "interaction")
+    mutate(voter_reg_status = "any_interaction")
   
-  # combine all: registration_complete > uncertain > interaction > ineligible
-  # uncertain renamed to registration_started; interaction renamed to any_interaction
+  # combine all: registration_complete > registration_started > any_interaction > ineligible
   output <- 
-    users_turbo %>%
-    left_join(all_interactions, by = "northstar_id") %>%
-    mutate(voter_reg_status = case_when(
-      voter_reg_status.x == "registration_complete" | voter_reg_status.y == "registration_complete" ~ "registration_complete",
-      voter_reg_status.x == "uncertain" | voter_reg_status.y == "uncertain" ~ "registration_started",
-      voter_reg_status.y == "interaction" ~ "any_interaction",
-      voter_reg_status.x == "ineligible" ~ "ineligible",
-      TRUE ~ NA_character_
-    )) %>%
+    bind_rows(users_turbo, all_interactions) %>% 
+    mutate(ordered = case_when(
+      voter_reg_status == "registration_complete" ~ 1,
+      voter_reg_status == "registration_started" ~ 2,
+      voter_reg_status == "any_interaction" ~ 3,
+      voter_reg_status == "ineligible" ~ 4,
+      TRUE ~ 5
+    )) %>% 
+    dplyr::slice(which.min(ordered)) %>% 
     select(northstar_id, voter_reg_status)
   
   return(output)
@@ -165,10 +186,9 @@ predicted_feature <- function(users, turbo, campaign, phoenix, email) {
 }
 
 
-
 ################## Feature Extraction #######################
 
-# gender feature (extracts gender using list "name_gender.csv" - can be substituted with another gender list)
+# gender feature (extracts gender using list "name_gender.csv")
 gender_feature <- function(users) {
   gender_list <- read.csv("name_gender.csv")
   users$first_name <- tolower(users$first_name)
@@ -201,7 +221,7 @@ age_feature <- function(users) {
   return(output)
 }
 
-# SES feature 
+# SES feature (extracts ses_status using list "zipcode_ses.csv")
 ses_feature <- function(users) {
   ses_list <- read.csv("zipcode_ses.csv")
   users$zipcode <- as.integer(users$zipcode)
@@ -215,7 +235,6 @@ ses_feature <- function(users) {
 }
 
 # 2016 election results feature from state variable 
-
 dem_rep_feature <- function(users) {
   # from 2016 election 
   dems <- c("CA", "CO", "CT", "DE", "HI", "IL", "ME", "MD", "MA", "MN",
@@ -233,13 +252,13 @@ dem_rep_feature <- function(users) {
     users %>% 
     select(northstar_id, state) %>% 
     left_join(dems_reps_list, by = "state") %>%
-    select(-state) # removing state which has 51 categories 
+    select(-state)
   
   return(output)
   
 }
 
-# returns columns of email clicked, converted, opened, and unsubscribed per northstar_id 
+# returns columns of email clicked, opened, and unsubscribed per northstar_id 
 email_feature <- function(email) {
   output <- 
     email %>% 
@@ -254,7 +273,6 @@ email_feature <- function(email) {
 }
 
 # returns columns of SMS action by type & total number of actions per northstar_id 
-
 sms_total_feature <- function(sms) {
   output <-
     sms %>% 
@@ -266,7 +284,6 @@ sms_total_feature <- function(sms) {
 }
 
 # returns columns of browser size by northstar_id 
-
 browser_size_feature <- function(phoenix) {
   output <-
     phoenix %>% 
@@ -282,7 +299,6 @@ browser_size_feature <- function(phoenix) {
 }
 
 # returns total # of actions per northstar_id 
-
 total_actions_feature <- function(phoenix, mel) {
   web_actions <- 
     phoenix %>%
@@ -300,7 +316,6 @@ total_actions_feature <- function(phoenix, mel) {
 }
 
 # how many reportbacks a user has done 
-
 rb_feature <- function(campaign, users) {
   rb <- 
     campaign %>% 
@@ -316,8 +331,8 @@ rb_feature <- function(campaign, users) {
   return(output)  
 }
 
-# when user is most active
-
+# when user is most active 
+## if user active during multiple times, categorized as "all_day"
 time_mostactive_feature <- function(phoenix, mel) {
   web_time <- 
     phoenix %>% 
@@ -349,7 +364,6 @@ time_mostactive_feature <- function(phoenix, mel) {
 
 
 # monthly active membership eligible action count by action type 
-
 MAM_action_feature <- function(mel) {
   output <- 
     mel %>%
@@ -364,7 +378,6 @@ MAM_action_feature <- function(mel) {
 }
 
 # how many days ago was their last activity? (the lower the value, the most recently active the user)
-
 last_action_feature <- function(mel) { 
   output <- 
     mel %>%
@@ -379,7 +392,6 @@ last_action_feature <- function(mel) {
 }
 
 # what cause spaces have they participated in? 
-
 cause_space_feature <- function(users, campaign, campaign_info) {
   campaign_with_id <- 
     campaign %>% 
@@ -449,8 +461,8 @@ replace_na_else <- function(data) {
 }
 
 # removing nzv variables - returns list: 
-# 1) table with metrics of variance & near zero variance (nzv) and 
-# 2) dataframe that has eliminated nzv variables  
+## 1) table with metrics of variance & near zero variance (nzv) and 
+## 2) dataframe that has eliminated nzv variables  
 
 remove_nzv <- function(x) {
   nzv <- nearZeroVar(x, saveMetrics = TRUE)
@@ -464,9 +476,9 @@ remove_nzv <- function(x) {
 }
 
 # removing correlation variables- returns list:
-# 1) correlation matrix 
-# 2) names of highly correlated variables 
-# 3) dataframe htat has eliminated highly correlated variables
+## 1) correlation matrix 
+## 2) names of highly correlated variables 
+## 3) dataframe htat has eliminated highly correlated variables
 
 remove_highcor <- function(x) {
   numeric_only <- 
@@ -513,6 +525,47 @@ master_final <- function(master) {
   
   return(combined)
 }
+
+# Balancing training dataset 
+
+balance_data <- function(training_data, number_per_group) {
+  # sample without replacement for no_interaction & any_interaction 
+  no_any_interaction <- 
+    training_data %>% 
+    filter(voter_reg_status %in% c("no_interaction", "any_interaction")) %>% 
+    group_by(voter_reg_status) %>% 
+    sample_n(number_per_group)
+  
+  # registration_complete: keep all reg_complete rows + sample with placement to meet numbers_per_group threshold
+  reg_complete <- 
+    training_data %>% 
+    filter(voter_reg_status == "registration_complete")
+  number_to_sample <- number_per_group - nrow(reg_complete)
+  reg_complete_samp <- 
+    reg_complete %>% 
+    sample_n(size = number_to_sample, replace = TRUE)
+  all_reg_complete <- 
+    bind_rows(reg_complete, reg_complete_samp)
+  
+  # registration_started: keep all reg_started rows + sample with placement to meet numbers_per_group threshold 
+  reg_started <- 
+    training_data %>% 
+    filter(voter_reg_status == "registration_started")
+  number_to_sample <- number_per_group - nrow(reg_started)
+  reg_started_samp <- 
+    reg_started %>% 
+    sample_n(size = number_to_sample, replace = TRUE)
+  all_reg_started <- 
+    bind_rows(reg_started, reg_started_samp)
+  
+  # bind all of them to create a balanced training set 
+  training <- 
+    bind_rows(no_any_interaction,
+              all_reg_complete,
+              all_reg_started)
+  
+  return(training)
+} 
 
 
 
@@ -589,7 +642,7 @@ mod_perf_function <- function(model_name, predictions, test_data) { # model_name
 # Comparing performance of all models 
 
 model_comparison <- function(rf_results, ord_logit_results, nnet_results, 
-                             xgboost_results, xgboost_tree_results, gbm_results) { # is there a simpler way than individual input of results? 
+                             xgboost_results, xgboost_tree_results, gbm_results) { 
   df <- 
     rf_results[[2]] %>% 
     left_join(ord_logit_results[[2]], by = "metric") %>%
@@ -614,13 +667,12 @@ model_select <- function(performance_df, which_metric) { # which_metric must be 
   return(ranked_df)
 }
 
-# Making prediction for first dataset 
+# Making final predictions to load into Quasar 
 
-voter_reg_predict <- function(new_data, latest_untransformed.rds) { # in quotes?
-  best_model <- readRDS("ord_logit_model.rds") # this would have to be updated
+voter_reg_predict <- function(new_data, latest_untransformed.rds) {
+  best_model <- readRDS("models/best_model_ordlogit.rds")
   
-  # to be updated with best model (below is just an example)
-  predictions <- predict(best_model, # update based on metric 
+  predictions <- predict(best_model, 
                          newdata = new_data, 
                          type = "class")
   all_predictions <- 
@@ -634,6 +686,126 @@ voter_reg_predict <- function(new_data, latest_untransformed.rds) { # in quotes?
   
   return(quasar_table)
 }
+
+
+#################################################################
+################ Prediction for New Users #######################
+#################################################################
+
+####################### Load Latest Data #########################
+
+new_users_only <- function(...) {
+  
+  # 1. load from quasar's voter_reg_predictions table 
+  last_voterreg_table <- runQuery(voter_reg_table_query)
+  
+  # 2. query for newest data from quasar & remove under 18, abroad, and unsubscribed 
+  users <- runQuery(users_query)
+  phoenix <- runQuery(phoenix_query)
+  mel <- runQuery(mel_query)
+  campaign <- runQuery(ca_query)
+  campaign_info <- runQuery(ca_info_query)
+  email <- runQuery(email_query)
+  sms <- runQuery(SMS_mes)
+  turbo <- runQuery(turbo_query)  
+  
+  mel <- remove18(mel, users)
+  phoenix <- remove18(phoenix, users)
+  campaign <- remove18(campaign, users)
+  email <- remove18(email, users)
+  sms <- remove18(sms, users)
+  turbo <- remove18(turbo, users)
+  
+  # 3. extract only the newest users and their actions
+  users <- 
+    users %>% 
+    anti_join(last_voterreg_table, by = "northstar_id")
+  phoenix <- 
+    phoenix %>% 
+    anti_join(last_voterreg_table, by = "northstar_id")
+  mel <- 
+    mel %>% 
+    anti_join(last_voterreg_table, by = "northstar_id")
+  campaign <- 
+    campaign %>% 
+    anti_join(last_voterreg_table, by = "northstar_id") 
+  email <- 
+    email %>%
+    anti_join(last_voterreg_table, by = "northstar_id")
+  sms <- 
+    sms %>% 
+    anti_join(last_voterreg_table, by = "northstar_id")
+  turbo <- 
+    turbo %>%
+    anti_join(last_voterreg_table, by = "northstar_id")
+  
+  data_list <- list(users = users, 
+                    phoenix = phoenix,
+                    mel = mel,
+                    campaign = campaign,
+                    campaign_info = campaign_info,
+                    email = email,
+                    sms = sms,
+                    turbo = turbo)
+  
+  return(data_list)
+  
+}
+
+################# Create master dataset for new members ################
+
+create_master <- function(...){
+  
+  # predicted variable 
+  voter_reg_status <- predicted_feature(users, turbo, campaign, phoenix, email)
+  
+  # predictor variables based on initial modeling culling (more info available in voter_reg.Rmd file)
+  gender <- gender_feature(users)
+  age <- age_feature(users)
+  ses <- ses_feature(users)
+  state_politics <- dem_rep_feature(users)
+  email_opened <- 
+    email_feature(email) %>% 
+    select(northstar_id, email_opened)
+  time_mostactive <- time_mostactive_feature(phoenix, mel) 
+  gambit_signup_sitelogin <- 
+    MAM_action_feature(mel) %>%
+    select(northstar_id, messaged_gambit, signup, site_login) 
+  last_action <- last_action_feature(mel)
+  
+  # create master dataset
+  master <- 
+    users %>% 
+    select(northstar_id) %>% 
+    left_join(voter_reg_status, by = "northstar_id") %>% 
+    left_join(gender, by = "northstar_id") %>% 
+    left_join(age, by = "northstar_id") %>% 
+    left_join(ses, by = "northstar_id") %>% 
+    left_join(state_politics, by = "northstar_id") %>% 
+    left_join(email_opened, by = "northstar_id") %>% 
+    left_join(time_mostactive, by = "northstar_id") %>% 
+    left_join(gambit_signup_sitelogin, by = "northstar_id") %>% 
+    left_join(last_action, by = "northstar_id")
+  
+  # clean up: replace NAs 
+  # NA-replacement for numeric predictors 
+  vector_mean <- "age" # age or any other appropriate column that should be imputed with mean
+  vector_zeros <- # vector of column names 
+    colnames(master %>% 
+               select_if(is.numeric) %>% 
+               select(-age)) 
+  master <- replace_na_numeric(master, vector_mean, vector_zeros) 
+  
+  # NA-replacement for factor variables
+  master <- replace_na_else(master) 
+  
+  # Save untransformed dataset
+  saveRDS(master, "future_predictions/join_quasar.rds")
+  
+  return(master)
+  
+}
+
 
 
 

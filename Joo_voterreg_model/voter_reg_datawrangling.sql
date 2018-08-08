@@ -125,7 +125,7 @@ UNION ALL
 		AND last_messaged_at IS NOT NULL 
 
 
-
+SELECT 
 
 
 
