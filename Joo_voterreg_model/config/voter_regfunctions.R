@@ -800,7 +800,7 @@ create_master <- function(...){
   master <- replace_na_else(master) 
   
   # Save untransformed dataset
-  saveRDS(master, "future_predictions/join_quasar.rds")
+  saveRDS(master, "join_quasar.rds")
   
   return(master)
   
