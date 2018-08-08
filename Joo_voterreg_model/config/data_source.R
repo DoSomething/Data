@@ -46,6 +46,7 @@ WHERE m.northstar_id IS NOT NULL"
 # campaign_activity dataset 
 
 ca_query <- "SELECT c.northstar_id,
+c.campaign_id,
 c.campaign_run_id,
 c.post_type,
 c.reportback_volume,
@@ -107,4 +108,14 @@ ds_registration_date,
 file
 FROM turbovote_file
 WHERE nsid IS NOT null"
+
+# voter_reg_predictions file 
+
+voter_reg_table_query <- "SELECT 
+northstar_id,
+voter_reg_status
+FROM voter_reg_predictions
+"
+
+
 
