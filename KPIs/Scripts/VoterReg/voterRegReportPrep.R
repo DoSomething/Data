@@ -7,7 +7,8 @@ library(reshape2)
 
 vr <-
   rtv %>%
-  bind_rows(tv)
+  bind_rows(tv) %>%
+  select(-F)
 
 if(dbExistsTable(pg,c("public", "turbovote_file"))) {
 
