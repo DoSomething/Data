@@ -109,13 +109,27 @@ file
 FROM turbovote_file
 WHERE nsid IS NOT null"
 
+# gender list file 
+
+gender_query <- "SELECT * 
+FROM voter_reg_gender_list"
+
+# email list with voter_registration asks 
+
+related_emails_query <- "SELECT * 
+FROM voter_reg_related_emails"
+
+# list of zipcode and socioeconomic statuses 
+
+zipcode_ses_query <- "SELECT * 
+FROM voter_reg_zipcode_ses"
+
 # voter_reg_predictions file 
 
 voter_reg_table_query <- "SELECT 
 northstar_id,
 voter_reg_status
-FROM voter_reg_predictions
-"
+FROM voter_reg_predictions"
 
 
 

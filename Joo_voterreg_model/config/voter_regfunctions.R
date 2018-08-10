@@ -8,71 +8,36 @@ source('config/pgConnect.R')
 
 ###################### Load Data Set ############################
 
-load_data <- function(days_refreshed) { # set number of days since last running the query
-  if (difftime(Sys.Date(), file.mtime("Rdata/users.rds")) > days_refreshed) {
-    
-    # run queries for latest data from Quasar
-    users <- runQuery(users_query)
-    phoenix <- runQuery(phoenix_query)
-    mel <- runQuery(mel_query)
-    campaign <- runQuery(ca_query)
-    campaign_info <- runQuery(ca_info_query)
-    email <- runQuery(email_query)
-    sms <- runQuery(SMS_mes)
-    turbo <- runQuery(turbo_query)  
-    
-    # remove northstar_ids that are under 18, do not live in the US, and are unsubscribed based on users data
-    mel <- remove18(mel, users)
-    phoenix <- remove18(phoenix, users)
-    campaign <- remove18(campaign, users)
-    email <- remove18(email, users)
-    sms <- remove18(sms, users)
-    turbo <- remove18(turbo, users)
-    
-    # save the files as Rdata files
-    saveRDS(users, "Rdata/users.rds")
-    saveRDS(phoenix, "Rdata/phoenix.rds")
-    saveRDS(mel, "Rdata/mel.rds")
-    saveRDS(campaign, "Rdata/campaign.rds")
-    saveRDS(campaign_info, "Rdata/campaign_info.rds")
-    saveRDS(email, "Rdata/email.rds")
-    saveRDS(sms, "Rdata/sms.rds")
-    saveRDS(turbo, "Rdata/turbo.rds")
-    
-    data_list <- list(users = users, 
-                      phoenix = phoenix,
-                      mel = mel,
-                      campaign = campaign,
-                      campaign_info = campaign_info,
-                      email = email,
-                      sms = sms,
-                      turbo = turbo)
-    
-  } else {
-    
-    # load the files 
-    users <- readRDS("Rdata/users.rds")
-    phoenix <- readRDS("Rdata/phoenix.rds")
-    mel <- readRDS("Rdata/mel.rds")
-    campaign <- readRDS("Rdata/campaign.rds")
-    campaign_info <- readRDS("Rdata/campaign_info.rds")
-    email <- readRDS("Rdata/email.rds")
-    sms <- readRDS("Rdata/sms.rds")
-    turbo <- readRDS("Rdata/turbo.rds")
-    
-    data_list <- list(users = users, 
-                      phoenix = phoenix,
-                      mel = mel,
-                      campaign = campaign,
-                      campaign_info = campaign_info,
-                      email = email,
-                      sms = sms,
-                      turbo = turbo)
-    
-  }
+load_data <- function(...) {
+  
+  # run queries for latest data from Quasar
+  users <- runQuery(users_query)
+  phoenix <- runQuery(phoenix_query)
+  mel <- runQuery(mel_query)
+  campaign <- runQuery(ca_query)
+  campaign_info <- runQuery(ca_info_query)
+  email <- runQuery(email_query)
+  sms <- runQuery(SMS_mes)
+  turbo <- runQuery(turbo_query)  
+  
+  # remove northstar_ids that are under 18, do not live in the US, and are unsubscribed based on users data
+  mel <- remove18(mel, users)
+  phoenix <- remove18(phoenix, users)
+  campaign <- remove18(campaign, users)
+  email <- remove18(email, users)
+  sms <- remove18(sms, users)
+  turbo <- remove18(turbo, users)
+  
+  data_list <- list(users = users, 
+                    phoenix = phoenix,
+                    mel = mel,
+                    campaign = campaign,
+                    campaign_info = campaign_info,
+                    email = email,
+                    sms = sms,
+                    turbo = turbo)
   
   return(data_list)
-    
 }
 
 
@@ -128,21 +93,21 @@ predicted_feature <- function(users, turbo, campaign, phoenix, email) {
       voter_reg_status == "registration_started" ~ 2,
       voter_reg_status == "ineligible" ~ 3,
       TRUE ~ 4
-      )) %>%
+    )) %>%
     group_by(northstar_id) %>%
     dplyr::slice(which.min(ordered)) %>%
     select(northstar_id, voter_reg_status)
   
   # voter reg status (any interaction) from campaign, phoenix, email 
-  voter_reg_emails <- read.csv("voter_reg_emails.csv") # contains template_ids of all emails re: voter reg 
+  voter_reg_emails <- runQuery(related_emails_query) # contains template_ids of all emails re: voter reg 
   
   # campaign_run_ids & campaign_ids for voter registration campaigns 
   voter_runids <- c("8022", # gtm
-                     "7060", "7944", "8105", "8128", "8152", # lose your v-card
-                     "6223", "8103", # school the vote
-                     "8151", # red, white, and booth
-                     "7952", # do something about gun violence (members asked to register in the affirmation)
-                     "7928") # defend dreamers (members asked to register in the affirmation) 
+                    "7060", "7944", "8105", "8128", "8152", # lose your v-card
+                    "6223", "8103", # school the vote
+                    "8151", # red, white, and booth
+                    "7952", # do something about gun violence (members asked to register in the affirmation)
+                    "7928") # defend dreamers (members asked to register in the affirmation) 
   voter_ids <- c("8017", # gtm
                  "7059", # lose your v-card
                  "822", # school the vote
@@ -190,7 +155,7 @@ predicted_feature <- function(users, turbo, campaign, phoenix, email) {
 
 # gender feature (extracts gender using list "name_gender.csv")
 gender_feature <- function(users) {
-  gender_list <- read.csv("name_gender.csv")
+  gender_list <- runQuery(gender_query)
   users$first_name <- tolower(users$first_name)
   gender_list$name <- tolower(gender_list$name)
   gender <- 
@@ -223,7 +188,7 @@ age_feature <- function(users) {
 
 # SES feature (extracts ses_status using list "zipcode_ses.csv")
 ses_feature <- function(users) {
-  ses_list <- read.csv("zipcode_ses.csv")
+  ses_list <- runQuery(zipcode_ses_query)
   users$zipcode <- as.integer(users$zipcode)
   output <- 
     users %>% 
@@ -333,7 +298,7 @@ rb_feature <- function(campaign, users) {
 
 # when user is most active 
 ## if user active during multiple times, categorized as "all_day"
-time_mostactive_feature <- function(phoenix, mel) {
+time_mostactive_feature <- function(phoenix, mel, users) {
   web_time <- 
     phoenix %>% 
     filter(event_name %in% c("view", "visit", "open modal")) %>% 
@@ -342,8 +307,13 @@ time_mostactive_feature <- function(phoenix, mel) {
   mel_time <- 
     mel %>% 
     select(northstar_id, timestamp)
+  brand_new_signups <-
+    users %>% 
+    anti_join(mel, by = "northstar_id") %>% 
+    select(northstar_id, created_at) %>% 
+    rename(timestamp = created_at)
   most_active <- 
-    bind_rows(web_time, mel_time) %>% 
+    bind_rows(web_time, mel_time, brand_new_signups) %>% 
     mutate(time_active = case_when(
       hour(timestamp) %in% c(0:5) ~ "night",
       hour(timestamp) %in% c(6:11) ~ "morning",
@@ -637,7 +607,7 @@ mod_perf_function <- function(model_name, predictions, test_data) { # model_name
   
   return(perf_list) 
 }
- 
+
 
 # Comparing performance of all models 
 
@@ -650,7 +620,7 @@ model_comparison <- function(rf_results, ord_logit_results, nnet_results,
     left_join(xgboost_results[[2]], by = "metric") %>% 
     left_join(xgboost_tree_results[[2]], by = "metric") %>%
     left_join(gbm_results[[2]], by = "metric") 
-    
+  
   return(df)
 }
 
@@ -670,17 +640,22 @@ model_select <- function(performance_df, which_metric) { # which_metric must be 
 # Making final predictions to load into Quasar 
 
 voter_reg_predict <- function(new_data, latest_untransformed.rds) {
-  best_model <- readRDS("models/best_model_ordlogit.rds")
+  best_model <- readRDS("best_model_ordlogit.rds")
   
-  predictions <- predict(best_model, 
-                         newdata = new_data, 
-                         type = "class")
+  predictions_prob <- predict(best_model, 
+                              newdata = new_data, 
+                              type = "prob")
+  predictions_class <- 
+    predictions_prob %>% 
+    as.data.frame() %>% 
+    mutate(predictions = colnames(predictions_prob)[max.col(predictions_prob, ties.method = "first")])
+  
   all_predictions <- 
-    cbind(new_data, predictions) %>% 
-    select(northstar_id, predictions)
+    cbind(new_data, predictions_class) %>% 
+    select(northstar_id, no_interaction, any_interaction, registration_started, registration_complete, predictions)
   
   full_data <- readRDS(latest_untransformed.rds)
-  quasar_table<- 
+  quasar_table <- 
     full_data %>% 
     full_join(all_predictions, by = "northstar_id")
   
@@ -767,7 +742,7 @@ create_master <- function(...){
   email_opened <- 
     email_feature(email) %>% 
     select(northstar_id, email_opened)
-  time_mostactive <- time_mostactive_feature(phoenix, mel) 
+  time_mostactive <- time_mostactive_feature(phoenix, mel, users) 
   gambit_signup_sitelogin <- 
     MAM_action_feature(mel) %>%
     select(northstar_id, messaged_gambit, signup, site_login) 
@@ -785,15 +760,17 @@ create_master <- function(...){
     left_join(email_opened, by = "northstar_id") %>% 
     left_join(time_mostactive, by = "northstar_id") %>% 
     left_join(gambit_signup_sitelogin, by = "northstar_id") %>% 
-    left_join(last_action, by = "northstar_id")
+    left_join(last_action, by = "northstar_id") %>% 
+    ungroup()
   
   # clean up: replace NAs 
   # NA-replacement for numeric predictors 
   vector_mean <- "age" # age or any other appropriate column that should be imputed with mean
-  vector_zeros <- # vector of column names 
-    colnames(master %>% 
-               select_if(is.numeric) %>% 
-               select(-age)) 
+  numeric_only <- # vector of column names 
+    master %>% 
+    select_if(is.numeric) %>% 
+    select(-age) 
+  vector_zeros <- colnames(numeric_only)
   master <- replace_na_numeric(master, vector_mean, vector_zeros) 
   
   # NA-replacement for factor variables
@@ -805,6 +782,8 @@ create_master <- function(...){
   return(master)
   
 }
+
+
 
 
 
