@@ -84,7 +84,7 @@ ggplot(sourceTime, aes(x=date, y=runningTotal, color=source)) +
 
 #### Source Details
 
-```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=10, fig.height=30}
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=10, fig.height=36}
 library(gridExtra)
 ss <- split(sourceStep, f=sourceStep$source)
 p1 <- ggplot(ss$email, aes(x=status, y=value, fill=reorder(details, value))) +
@@ -104,8 +104,9 @@ p3 <- p1 %+% ss$social %+% ggtitle('Social')
 p4 <- p1 %+% ss$web %+% ggtitle('Web')
 p1 <- p1 %+% ss$email %+% ggtitle('Email')
 p5 <- p1 %+% ss$partner %+% ggtitle('Partner')
+p6 <- p1 %+% ss$ads %+% ggtitle('Ads')
 grid.arrange(
-  p1,p2,p3,p4,p5,ncol=1,
+  p1,p2,p3,p4,p5,p6,ncol=1,
   top='Counts and Proportions of Form Status split by Source and Details',
   bottom=leg
   )
