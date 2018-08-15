@@ -8,11 +8,11 @@ pg <- pgConnect()
 poll_call <-"select
 u.first_name,
 age(now(),u.birthdate) as age,
-p.caption
-from rogue.posts p
+ca.caption
+from campaign_activity ca
 left join public.users u
-on u.northstar_id = p.northstar_id
-where p.campaign_id in ('8167') and p.created_at >= '2018-08-08' and p.created_at <'2018-08-15'"
+on u.northstar_id = ca.northstar_id
+where ca.campaign_id in ('8167') and ca.post_created_at >= '2018-08-08' and ca.post_created_at <'2018-08-15'"
 
 poll_call <- runQuery(poll_call)
 
