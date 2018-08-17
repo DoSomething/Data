@@ -1,5 +1,6 @@
-sourcr('config/init.R')
-source('config/customFunctions.R')
+setwd("/Users/jli/Data/Member Surveys")
+source('config/init.R')
+source('config/pgConnect.R')
 library(naniar)
 library(openxlsx)
 library(glue)
@@ -13,8 +14,8 @@ library(scales)
 library(lubridate)
 pg <- pgConnect()
 
-#Import latest Question Pro data pulled on July 17th (N=3583)
-# member_survey_2018 <- read.xlsx('~/Documents/Member Surveys/Member Survey 2018 /2018 Member Survey final .xlsx')
+#Import latest Question Pro data pulled on August 3rd (N=3583)
+#member_survey_2018 <- read.xlsx('~/Documents/Member Surveys/Member Survey 2018 /2018 Member Survey DSS Aug 3.xlsx')
 
 #Import member survey data from PostGres (N should equal 3538)
 mem_survey <- "select *
@@ -22,110 +23,21 @@ mem_survey <- "select *
 
 member_survey_2018 <- runQuery(mem_survey)
 
-#########################################################################
-######################## DATA CLEANING ##################################
-#########################################################################
-
-#Recode race categories
-collapseRace <- function(dat) {
-
-  raceSet <- dat %>% select(questionpro_id, starts_with('race'))
-  raceVars <- raceSet %>% select(starts_with('race')) %>% names()
-
-  setRace <-
-    member_survey_2018 %>%
-    mutate_at(
-
-      .vars = vars(starts_with('race_')),
-      .funs = funs(ifelse(is.na(.),0,1))
-
-    ) %>%
-    mutate(
-
-      ticks = rowSums(select(., contains("race_"))),
-
-      race = case_when(
-        ticks > 1 ~ 'Multiracial',
-        get(raceVars[1])==1 & ticks==1 ~ 'White',
-        get(raceVars[2])==1 & ticks==1 ~ 'Hispanic/Latino',
-        get(raceVars[3])==1 & ticks==1 ~ 'Black',
-        get(raceVars[4])==1 & ticks==1 ~ 'Native American',
-        get(raceVars[5])==1 & ticks==1 ~ 'Asian',
-        get(raceVars[6])==1 & ticks==1 ~ 'Pacific Islander',
-        TRUE ~ 'Uncertain'
-      )
-
-    ) %>%
-    select(-starts_with('race.'), -ticks)
-
-}
-
-member_survey_2018 <-collapseRace(member_survey_2018)
-
-## Create new variables ##
-member_survey_2018 <- member_survey_2018%>%
-  mutate(registered_cat=
-           case_when(voter_reg_status=='Are not now registered to vote' ~ 'Not registered or out of date',
-                     voter_reg_status=='IÕm not sure'~ 'Dont know',
-                     (voter_reg_status=='Are registered to vote at a permanent address while residing at a temporary address (e.g. school, serving in the military)' |
-                        voter_reg_status=='Are registered to vote at your current address' |
-                        voter_reg_status=='Are registered to vote, but your address is out of date') ~ 'Registered'),
-         gender_cat=
-           case_when(gender=='Woman' ~ 'Woman',
-                     gender=='Man' ~ 'Man',
-                     (gender=='Gender Non-conforming/Non-binary/Two-Spirit' |
-                        gender=='Prefer not to say' |
-                        gender=='ÊI dont see my identity represented' ~ 'Other')),
-         gender_dummy=
-           case_when(gender=='Woman' ~ 'Woman',
-                     gender=='Man' ~ 'Man'))
-
-member_survey_2018 <- member_survey_2018%>%
-  mutate(registered_dummy=
-           case_when(registered_cat=='Not registered or out of date' ~ 0,
-                     registered_cat=='Registered' ~ 1),
-         race_cat=
-           case_when(race=='White' ~ 'race1_White',
-                     race=='Black' ~ 'race2_Black',
-                     race=='Asian' ~ 'race4_Asian',
-                     race=='Hispanic/Latino' ~ 'race3_Hispanic/Latino',
-                     race=='Multiracial' ~ 'race4_Multiracial'),
-         age_dummy=
-           case_when((age<18 | age =='Younger than 13') ~ 'Younger than 18',
-                     age>=18 | age=='Older than 25' ~ '18 or Older'),
-         gpa_rec=
-           case_when(gpa=='A- to A+' ~ 'A- to A+',
-                     gpa=='B- to B+' ~ 'B- to B+',
-                     gpa=='C- to C+' ~ 'C- to C+'),
-         volunteer_cat=
-           case_when(volunteer_frequency=='More than once a week' |
-                       volunteer_frequency=='About once a week'|
-                       volunteer_frequency=='2-3 times a month'|
-                       volunteer_frequency=='About once a month' ~ 'At least once a month',
-                     volunteer_frequency=='Once every few months' |
-                       volunteer_frequency=='One time only'~ 'Once every few months',
-                     volunteer_frequency=='Never' ~ 'Never'),
-         political_view_rec=
-           case_when(political_view=='Conservative' | political_view=='Very conserative' ~ 'Conservative',
-                     political_view=='Moderate' ~'Moderate',
-                     political_view=='Liberal' | political_view=='Very liberal' ~ 'Liberal'),
-         asked_ds =
-           case_when(voter_reg_ask_dosomething=='Asked by DoSomething.org' ~ 1,
-                     voter_reg_ask_dosomething=is.na(voter_reg_ask_dosomething) ~ 0),
-         nps_cat = case_when(nps<7 ~ 'Detractor',
-                             nps %in% c(7,8) ~ 'Persuadable',
-                             nps>8 ~ 'Promoter')
-         )
-
 ####################################################
 #################### ANALYSES ######################
 ####################################################
 
-#Remove duplicates and rename nsid to northstar_id
-membersurvey_dedup <- member_survey_2018%>%
-  filter(!duplicated(nsid))%>%
-  rename(northstar_id=nsid)
+## Create NPS category variable ##
+member_survey_2018 <- member_survey_2018%>%
+  mutate(nps_cat = case_when(nps<7 ~ 'Detractor',
+                             nps %in% c(7,8) ~ 'Persuadable',
+                             nps>8 ~ 'Promoter')
+  )
 
+#Remove duplicates and rename nsid to northstar_id. Remove NA nsids.
+membersurvey_dedup <- member_survey_2018%>%
+  filter(!duplicated(nsid) & !is.na(nsid))%>%
+  rename(northstar_id=nsid)
 
 #Pull member data from database
 members <- glue_sql("select u.northstar_id,
@@ -185,7 +97,7 @@ CrossTable(merged_member_survey$questionpro_customvar1,merged_member_survey$sour
  # CrossTable(nps$source, nps$source_segment, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
  # CrossTable(nps$source_segment, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
 
- #Look at NPS scores for only respondents with sign ups in last year and no missing NPS scores
+ #Look at NPS scores for only respondents with sign ups in last year and no missing NPS scores (leave in respondents who might not have completed the entire survey)
  nps<-nps%>%
    filter(last_signup_date>'2017-06-13' & nps_cat!=is.na(nps_cat))%>%
    select(northstar_id, source, source_niche, nps, nps_cat, last_signup_date, source_sms,birthdate, source_segment)
@@ -197,12 +109,17 @@ CrossTable(merged_member_survey$questionpro_customvar1,merged_member_survey$sour
  nps_score <- getNPS(nps$nps,10)
  nps_score
 
+ #######################################################
+ ################## CREATE WEIGHTING ##################
+ #######################################################
+
  #Membership Breakdown
  getPopBreakdown <- function() {
    breakdown <- paste0("
                        SELECT count(*) AS total_active,
-                       SUM(CASE WHEN cio_status <> 'subscribed' AND sms_status IN ('less','pending','active') THEN 1 ELSE 0 END) AS sms_only,
-                       SUM(CASE WHEN source='niche' THEN 1 ELSE 0 END) AS niche
+                       COUNT(DISTINCT (CASE WHEN u.sms_status IN ('active', 'less', 'pending') AND (u.cio_status <> 'customer_subscribed' OR u.cio_status IS NULL)
+                       THEN u.northstar_id else null end)) AS SMS_only,
+                       COUNT(DISTINCT(CASE WHEN u.source='niche' THEN u.northstar_id ELSE NULL END)) AS Niche
                        FROM public.users u
                        WHERE (u.subscribed_member = true)
                        AND (u.email NOT LIKE '%dosomething.org' OR u.email IS NULL OR u.email = '')"
@@ -210,34 +127,49 @@ CrossTable(merged_member_survey$questionpro_customvar1,merged_member_survey$sour
 
    mem_breakdown <- runQuery(breakdown)
 
-   pop <-
+    pop <-
      mem_breakdown %>%
      mutate(
        other = total_active-sms_only-niche
      ) %>%
      melt() %>%
      filter(variable!='total_active') %>%
-     setNames(c('group','n')) %>%
-     mutate(p=n/sum(n))
+     setNames(c('source_segment','n')) %>%
+     mutate(ds_pct=n/sum(n))
 
    return(pop)
  }
 
  mem_pop <-getPopBreakdown()
 
- #Create engaged Niche group and Set survey weights so they match DS membership breakdown. Hard coded weights, ref: https://docs.google.com/document/d/19fg-9-UQpXn47eOsV7ljr5o9TB0Qurnf8TJEri9gQcE/edit
- nps<-nps %>%
-   mutate(
-     weight_survey=
-       case_when(
-         source_segment=='Niche' ~ 1.263332932,
-         source_segment=='SMS only' ~ 0.609513782,
-         source_segment=='Typical' ~ 1.127987058,
-         source_segment=is.na(source_segment) ~ 1)
-   )
+ #rename segments to match nps table
+ mem_pop <- mem_pop%>%
+   mutate(source_segment=
+            case_when(source_segment=='niche' ~ 'Niche',
+                      source_segment=='sms_only' ~ 'SMS only',
+                      source_segment=='other' ~ 'Typical'))
+
+ #Set survey weights so they match DS membership breakdown.
+
+ #Breakdown for Survey responses
+ survey_breakdown <- count(nps, source_segment)%>%
+   mutate(survey_pct=n/sum(n))
+
+#Join ds membership breakdown with survey breakdown tables and calculate weight
+weights_nps <- survey_breakdown%>%
+   inner_join(mem_pop,by ="source_segment")%>%
+  select(source_segment,survey_pct, ds_pct)%>%
+  mutate(weight=1/(survey_pct/ds_pct))
+
+weights_nps <-weights_nps%>%
+  select(source_segment,weight)
+
+#Add weights to dataset
+nps <- nps%>%
+   inner_join(weights_nps,by ="source_segment")
 
  #set weights
- nps.w<-svydesign(id = ~1, data = nps, weights = nps$weight_survey)
+ nps.w<-svydesign(id = ~1, data = nps, weights = nps$weight)
 
  #Check weighting
  #Weighted Reg Source
@@ -266,13 +198,12 @@ age13 <- Sys.Date() - (365.25*13)
 age25 <- Sys.Date() - (365.25*25)
 
 sampled <- glue_sql("
-            SELECT
-            u.northstar_id, u.email,u.source,u.cio_status,
+            SELECT u.northstar_id, u.email,u.source,u.cio_status,
             CASE WHEN u.source = 'niche'
             AND u.birthdate >= '{age25*}'
             AND u.birthdate < '{age13*}'
             THEN 1 ELSE 0 END as niche,
-            CASE WHEN u.cio_status <> 'subscribed' AND u.sms_status IN ('less','pending','active') THEN 1 ELSE 0 END AS sms_only,
+            CASE WHEN (u.cio_status <> 'customer_subscribed' OR u.cio_status IS NULL) AND u.sms_status IN ('less','pending','active') THEN 1 ELSE 0 END AS sms_only,
             c.signup_created_at
             FROM public.users u
             INNER JOIN public.campaign_activity c ON c.northstar_id = u.northstar_id
@@ -295,6 +226,15 @@ avgSignup <-
 
 ggplot(avgSignup, aes(x=avg_signup)) +
   geom_density() + labs(x='Average Signup Date', title = 'Average Signup Date of Respondents')
+
+#Look at last sign up dates
+LastSignup <-
+  sample %>%
+  group_by(northstar_id) %>%
+  summarise(last_signup = max(signup_created_at))
+
+ggplot(LastSignup, aes(x=last_signup)) +
+  geom_density() + labs(x='Last Signup Date', title = 'Last Signup Date of Respondents')
 
 
 #Get earliest signup date
@@ -343,7 +283,7 @@ dat %<>%
 #Merge Member Survey data with db data so you can use source_segment created in NPS section (more reliable to use than membership db source code)
 weighted_members_nps <- dat%>%
   inner_join(nps,by ="northstar_id")%>%
-  mutate(weight_sampling = prob*weight_survey)
+  mutate(weight_sampling = prob*weight)
 
 niche_weighted <-weighted_members_nps %>%
   select(northstar_id, source_segment, weight_sampling, nps, first_signup_date,last_signup_date.x,avg_signup_date, prob)%>%
@@ -357,7 +297,7 @@ for (i in 1:1000) {
   scores <- c(scores, score)
 }
 
-score
+mean(score)
 
 sms_weighted <-weighted_members_nps%>%
   filter(source_segment=='SMS only')%>%
@@ -371,7 +311,7 @@ for (i in 1:1000) {
   scores <- c(scores, score)
 }
 
-score
+mean(score)
 
 typical_weighted <-weighted_members_nps %>%
   filter(source_segment=='Typical')%>%
@@ -385,7 +325,7 @@ for (i in 1:1000) {
   scores <- c(scores, score)
 }
 
-score
+mean(score)
 
 scores <- numeric()
 for (i in 1:1000) {
@@ -395,7 +335,7 @@ for (i in 1:1000) {
   scores <- c(scores, score)
 }
 
-score
+mean(score)
 
 #####charts #########
 sampleNiche <-
@@ -430,94 +370,4 @@ sampleAll <-
 ggplot(sampleAll, aes(x=last_signup_date.x, y=nps)) +
   geom_point() + geom_smooth() + ggtitle('All members') +
   scale_x_date(breaks=pretty_breaks(5))
-
-##################################################################################
-######################## Compare Gender ##########################################
-##################################################################################
-
-count(membersurvey_dedup, gender, sort = TRUE)%>% filter(gender!=is.na(gender))%>% mutate(p=n/sum(n))
-count(membersurvey_dedup, gender_dummy, sort = TRUE)%>% filter(gender_dummy!=is.na(gender_dummy))%>%mutate(p=n/sum(n))
-
-#import list of names
-names <- read.csv('~/Desktop/Gender First Name Master File.csv')
-#upcase names
-names <- mutate_all(names, funs(toupper))
-
-
-#pull first names of survey respondents from db
-db_names <- members_postgres%>%
-  select(northstar_id,first_name)
-#upcase names
-db_names <- db_names%>%
-  mutate(first_name = toupper(gsub("[^[:alnum:] ]", "", first_name)))
-
-
-#join names from list to survey respondents
-names_respondents<- db_names%>%
- left_join(names, by='first_name')
-
-#Compare frequencies of gender from db to seld-reported gender
-count(names_respondents, gender, sort = TRUE)%>% mutate(p=n/sum(n))
-count(names_respondents, gender, sort = TRUE)%>%filter(gender!=is.na(gender))%>% mutate(p=n/sum(n))
-
-
-###############################################################################
-################################ VOTER REG ####################################
-###############################################################################
-
-#freqs
-count(membersurvey_dedup, voter_reg_status, sort = TRUE)%>%filter(voter_reg_status!=is.na(voter_reg_status))%>% mutate(p=n/sum(n))
-count(membersurvey_dedup, registered_cat, sort = TRUE)%>%filter(registered_cat!=is.na(registered_cat))%>% mutate(p=n/sum(n))
-
-# count(membersurvey_dedup, asked_ds, sort = TRUE)%>% mutate(p=n/sum(n))
-
-#count(membersurvey_dedup, gender_dummy, sort = TRUE)%>% filter(gender_dummy!=is.na(gender_dummy))%>% mutate(p=n/sum(n))
-#count(membersurvey_dedup, gpa, sort = TRUE)%>% filter(gpa!=is.na(gpa))%>% mutate(p=n/sum(n))
-#count(membersurvey_dedup, age, sort = TRUE)%>% filter(age!=is.na(age))%>% mutate(p=n/sum(n))
-#count(membersurvey_dedup, sub_urb, sort = TRUE)%>% filter(sub_urb!=is.na(sub_urb))%>% mutate(p=n/sum(n))
-
-#Exploring
-CrossTable(membersurvey_dedup$gender_dummy, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-CrossTable(membersurvey_dedup$fam_finances, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-CrossTable(membersurvey_dedup$sub_urb, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-CrossTable(membersurvey_dedup$political_view_rec, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-CrossTable(membersurvey_dedup$political_party, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-CrossTable(membersurvey_dedup$contacted_official, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-CrossTable(membersurvey_dedup$race_cat, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-#CrossTable(membersurvey_dedup$gender_dummy, membersurvey_dedup$registered_dummy, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-#CrossTable(membersurvey_dedup$gender_dummy, membersurvey_dedup$registered_dummy, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-#CrossTable(member_survey_2018$registered_cat, member_survey_2018$sub_urb, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-#CrossTable(member_survey_2018$registered_cat, member_survey_2018$gender_dummy, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
-
-
-#Logistic regression model - RACE
-logreg_registered <-glm(registered_dummy~race_cat,
-                        data=membersurvey_dedup, family=binomial(link="logit"))
-
-summary(logreg_registered)
-exp(coef(logreg_registered))
-
-
-#Logistic regression model - GENDER
-logreg_registered_gender <-glm(registered_dummy~gender_dummy,
-                               data=membersurvey_dedup, family=binomial(link="logit"))
-
-summary(logreg_registered_gender)
-exp(coef(logreg_registered_gender))
-
-
-#Logistic regression model - POL PARTY
-logreg_registered_polparty <-glm(registered_dummy~political_party,
-                        data=membersurvey_dedup, family=binomial(link="logit"))
-
-summary(logreg_registered_polparty)
-exp(coef(logreg_registered_polparty))
-
 
