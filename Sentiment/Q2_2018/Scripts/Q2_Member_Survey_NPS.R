@@ -34,11 +34,10 @@ member_survey_2018 <- member_survey_2018%>%
                              nps>8 ~ 'Promoter')
   )
 
-#Remove duplicates and rename nsid to northstar_id
+#Remove duplicates and rename nsid to northstar_id. Remove NA nsids.
 membersurvey_dedup <- member_survey_2018%>%
-  filter(!duplicated(nsid))%>%
+  filter(!duplicated(nsid) & !is.na(nsid))%>%
   rename(northstar_id=nsid)
-
 
 #Pull member data from database
 members <- glue_sql("select u.northstar_id,
@@ -110,12 +109,17 @@ CrossTable(merged_member_survey$questionpro_customvar1,merged_member_survey$sour
  nps_score <- getNPS(nps$nps,10)
  nps_score
 
+ #######################################################
+ ################## CREATE WEIGHTING ##################
+ #######################################################
+
  #Membership Breakdown
  getPopBreakdown <- function() {
    breakdown <- paste0("
                        SELECT count(*) AS total_active,
-                       SUM(CASE WHEN cio_status <> 'subscribed' AND sms_status IN ('less','pending','active') THEN 1 ELSE 0 END) AS sms_only,
-                       SUM(CASE WHEN source='niche' THEN 1 ELSE 0 END) AS niche
+                       COUNT(DISTINCT (CASE WHEN u.sms_status IN ('active', 'less', 'pending') AND (u.cio_status <> 'customer_subscribed' OR u.cio_status IS NULL)
+                       THEN u.northstar_id else null end)) AS SMS_only,
+                       COUNT(DISTINCT(CASE WHEN u.source='niche' THEN u.northstar_id ELSE NULL END)) AS Niche
                        FROM public.users u
                        WHERE (u.subscribed_member = true)
                        AND (u.email NOT LIKE '%dosomething.org' OR u.email IS NULL OR u.email = '')"
@@ -123,34 +127,49 @@ CrossTable(merged_member_survey$questionpro_customvar1,merged_member_survey$sour
 
    mem_breakdown <- runQuery(breakdown)
 
-   pop <-
+    pop <-
      mem_breakdown %>%
      mutate(
        other = total_active-sms_only-niche
      ) %>%
      melt() %>%
      filter(variable!='total_active') %>%
-     setNames(c('group','n')) %>%
-     mutate(p=n/sum(n))
+     setNames(c('source_segment','n')) %>%
+     mutate(ds_pct=n/sum(n))
 
    return(pop)
  }
 
  mem_pop <-getPopBreakdown()
 
- #Create engaged Niche group and Set survey weights so they match DS membership breakdown. Hard coded weights, ref: https://docs.google.com/document/d/19fg-9-UQpXn47eOsV7ljr5o9TB0Qurnf8TJEri9gQcE/edit
- nps<-nps %>%
-   mutate(
-     weight_survey=
-       case_when(
-         source_segment=='Niche' ~ 1.263332932,
-         source_segment=='SMS only' ~ 0.609513782,
-         source_segment=='Typical' ~ 1.127987058,
-         source_segment=is.na(source_segment) ~ 1)
-   )
+ #rename segments to match nps table
+ mem_pop <- mem_pop%>%
+   mutate(source_segment=
+            case_when(source_segment=='niche' ~ 'Niche',
+                      source_segment=='sms_only' ~ 'SMS only',
+                      source_segment=='other' ~ 'Typical'))
+
+ #Set survey weights so they match DS membership breakdown.
+
+ #Breakdown for Survey responses
+ survey_breakdown <- count(nps, source_segment)%>%
+   mutate(survey_pct=n/sum(n))
+
+#Join ds membership breakdown with survey breakdown tables and calculate weight
+weights_nps <- survey_breakdown%>%
+   inner_join(mem_pop,by ="source_segment")%>%
+  select(source_segment,survey_pct, ds_pct)%>%
+  mutate(weight=1/(survey_pct/ds_pct))
+
+weights_nps <-weights_nps%>%
+  select(source_segment,weight)
+
+#Add weights to dataset
+nps <- nps%>%
+   inner_join(weights_nps,by ="source_segment")
 
  #set weights
- nps.w<-svydesign(id = ~1, data = nps, weights = nps$weight_survey)
+ nps.w<-svydesign(id = ~1, data = nps, weights = nps$weight)
 
  #Check weighting
  #Weighted Reg Source
@@ -179,13 +198,12 @@ age13 <- Sys.Date() - (365.25*13)
 age25 <- Sys.Date() - (365.25*25)
 
 sampled <- glue_sql("
-            SELECT
-            u.northstar_id, u.email,u.source,u.cio_status,
+            SELECT u.northstar_id, u.email,u.source,u.cio_status,
             CASE WHEN u.source = 'niche'
             AND u.birthdate >= '{age25*}'
             AND u.birthdate < '{age13*}'
             THEN 1 ELSE 0 END as niche,
-            CASE WHEN u.cio_status <> 'subscribed' AND u.sms_status IN ('less','pending','active') THEN 1 ELSE 0 END AS sms_only,
+            CASE WHEN (u.cio_status <> 'customer_subscribed' OR u.cio_status IS NULL) AND u.sms_status IN ('less','pending','active') THEN 1 ELSE 0 END AS sms_only,
             c.signup_created_at
             FROM public.users u
             INNER JOIN public.campaign_activity c ON c.northstar_id = u.northstar_id
@@ -208,6 +226,15 @@ avgSignup <-
 
 ggplot(avgSignup, aes(x=avg_signup)) +
   geom_density() + labs(x='Average Signup Date', title = 'Average Signup Date of Respondents')
+
+#Look at last sign up dates
+LastSignup <-
+  sample %>%
+  group_by(northstar_id) %>%
+  summarise(last_signup = max(signup_created_at))
+
+ggplot(LastSignup, aes(x=last_signup)) +
+  geom_density() + labs(x='Last Signup Date', title = 'Last Signup Date of Respondents')
 
 
 #Get earliest signup date
@@ -256,7 +283,7 @@ dat %<>%
 #Merge Member Survey data with db data so you can use source_segment created in NPS section (more reliable to use than membership db source code)
 weighted_members_nps <- dat%>%
   inner_join(nps,by ="northstar_id")%>%
-  mutate(weight_sampling = prob*weight_survey)
+  mutate(weight_sampling = prob*weight)
 
 niche_weighted <-weighted_members_nps %>%
   select(northstar_id, source_segment, weight_sampling, nps, first_signup_date,last_signup_date.x,avg_signup_date, prob)%>%
@@ -270,7 +297,7 @@ for (i in 1:1000) {
   scores <- c(scores, score)
 }
 
-score
+mean(score)
 
 sms_weighted <-weighted_members_nps%>%
   filter(source_segment=='SMS only')%>%
@@ -284,7 +311,7 @@ for (i in 1:1000) {
   scores <- c(scores, score)
 }
 
-score
+mean(score)
 
 typical_weighted <-weighted_members_nps %>%
   filter(source_segment=='Typical')%>%
@@ -298,7 +325,7 @@ for (i in 1:1000) {
   scores <- c(scores, score)
 }
 
-score
+mean(score)
 
 scores <- numeric()
 for (i in 1:1000) {
@@ -308,7 +335,7 @@ for (i in 1:1000) {
   scores <- c(scores, score)
 }
 
-score
+mean(score)
 
 #####charts #########
 sampleNiche <-
