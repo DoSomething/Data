@@ -314,7 +314,7 @@ getGroupedComposition <- function(dat, outcome, pivot) {
   biFreq <-
     ggplot(
       bivarDat,
-      aes(x=outcome, y=p, fill=reorder(pivot,p))
+      aes(x=outcome, y=p, fill=pivot)
     ) +
     geom_bar(stat='identity', width = .65, position='stack') +
     geom_text(
@@ -348,7 +348,7 @@ getFacetComposition <- function(dat, outcome, pivot, facet) {
   facetFreq <-
     ggplot(
       pDat,
-      aes(x=outcome, y=p, fill=reorder(pivot,p))
+      aes(x=outcome, y=p, fill=pivot)
     ) +
     geom_bar(stat='identity', width = .65, position='stack') +
     geom_text(
@@ -363,7 +363,8 @@ getFacetComposition <- function(dat, outcome, pivot, facet) {
     ) +
     theme(plot.title = element_text(hjust = 0.5)) +
     guides(fill=guide_legend(title=quo_text(pivot))) +
-    scale_fill_brewer(palette="Set2")
+    scale_fill_brewer(palette="Set2") +
+    coord_flip()
 
 }
 
