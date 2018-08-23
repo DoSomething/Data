@@ -34,31 +34,36 @@ financeComp <-
   guides(fill=guide_legend(title="Family Finances"))
 ggsave(plot=financeComp, 'Visuals/financeGroup.png', width = 7, height = 4)
 
-parentEduGroup <-
+parentComp <-
   parentEduGroup$Composition + ggtitle('Parental Education') +
   guides(fill=guide_legend(title="Education"))
-ggsave(plot=financeComp, 'Visuals/parentEduGroup.png', width = 7, height = 4)
+ggsave(plot=parentComp, 'Visuals/parentEduGroup.png', width = 7, height = 4)
 
 religiousComp <-
   religiousGroup$Composition + ggtitle('Religiosity') +
   guides(fill=guide_legend(title="Frequency"))
-ggsave(plot=financeComp, 'Visuals/religiousGroup.png', width = 7, height = 4)
+ggsave(plot=religiousComp, 'Visuals/religiousGroup.png', width = 7, height = 4)
 
 partyComp <-
   partyGroup$Composition + ggtitle('Political Party') +
   guides(fill=guide_legend(title="Political Party"))
-ggsave(plot=financeComp, 'Visuals/politicalPartyGroup.png', width = 7, height = 4)
+ggsave(plot=partyComp, 'Visuals/politicalPartyGroup.png', width = 7, height = 4)
 
 politicsComp <-
   politicsGroup$Composition + ggtitle('Political Views') +
   guides(fill=guide_legend(title="Political View"))
-ggsave(plot=financeComp, 'Visuals/politicsGroup.png', width = 7, height = 4)
+ggsave(plot=politicsComp, 'Visuals/politicsGroup.png', width = 7, height = 4)
 
 groupPartyView <-
   stylePickOneList(set, Group, political_party, political_view)$Facetted
-ggsave(plot=financeComp, 'Visuals/politicsDive.png', width = 7, height = 4)
+ggsave(plot=groupPartyView, 'Visuals/politicsDive.png', width = 7, height = 4)
 
-stylePickOneList(set, Group, political_party, political_view)$Facetted
+politicsAge <-
+  stylePickOneList(set, age, political_party, Group)$Facetted +
+  facet_wrap(~facet,ncol=1) +
+  scale_x_continuous(breaks=seq(13,25,1)) + ggtitle('Political Party by Age') +
+  guides(fill=guide_legend(title="Political View"))
+ggsave(plot=politicsAge, 'Visuals/politicsAge.png', width = 8, height = 6)
 
 # Social Action Types by Age ----------------------------------------------
 
