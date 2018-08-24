@@ -105,8 +105,10 @@ p4 <- p1 %+% ss$web %+% ggtitle('Web')
 p1 <- p1 %+% ss$email %+% ggtitle('Email')
 p5 <- p1 %+% ss$partner %+% ggtitle('Partner')
 p6 <- p1 %+% ss$ads %+% ggtitle('Ads')
+p7 <- p1 %+% ss$influencer %+% ggtitle('Influencer')
+
 grid.arrange(
-  p1,p2,p3,p4,p5,p6,ncol=1,
+  p1,p2,p3,p4,p5,p6,p7,ncol=1,
   top='Counts and Proportions of Form Status split by Source and Details',
   bottom=leg
   )

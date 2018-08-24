@@ -3,304 +3,244 @@ title: "voter_reg_modeling"
 output: html_document
 ---
 
-# 1. Sources & Libraries 
+############ Initial Predictions ###################
+
+# 1. Libraries & Sources 
 
 ```{r, quietly=TRUE}
-source('config/init.R')
-source('config/pgConnect.R')
-source('config/voter_regfunctions.R') # all functions are here
-pg <- pgConnect()
+# Run on all cores for faster processing 
+options(mc.cores = parallel::detectCores())
 
-packages.used <- c("glue", "lubridate", "ggplot2", "caret", "reshape2", "dplyr", "randomForest")
-
-#check packages that need to be installed
+# Libraries 
+packages.used <- c("lubridate", "reshape2", "caret", "MLmetrics", "RPostgreSQL",
+                   "nnet", "xgboost", "gbm", "randomForest", "zoo", "rlang", "dplyr")
 packages.needed <- setdiff(packages.used, intersect(installed.packages()[,1], packages.used))
 
-#install additional packages 
 if (length(packages.needed) > 0) {
   install.packages(packages.needed, dependencies = TRUE)
 }
 
-library(glue)
 library(lubridate)
 library(reshape2)
 library(caret)
-library(ggplot2)
-library(dplyr)
+library(MLmetrics)
+library(RPostgreSQL)
+library(nnet)
+library(xgboost)
+library(gbm)
 library(randomForest)
+library(zoo)
+library(rlang)
+library(dplyr)
+
+# Sources 
+source('config/init.R')
+source('config/pgConnect.R')
+source('config/voter_regfunctions.R') # all functions are here
+source('config/data_source.R') # data sources
+pg <- pgConnect() # you must add a .Renviron file with your quasarpassword for this to run 
 ```
 
-
-# 2. Load datasets 
+# 2. Load datasets
 
 ```{r}
-# Users dataset 
-
-users_query <- 
-"SELECT u.northstar_id,
-u.created_at,
-u.last_logged_in,
-u.last_accessed,
-u.SOURCE,
-u.birthdate,
-u.first_name,
-u.state,
-u.zipcode,
-u.cio_status,
-u.sms_status,
-u.voter_registration_status
-FROM users u
-WHERE u.subscribed_member = 'true'
-	AND u.country = 'US'
-	AND u.birthdate <= current_date - INTERVAL '18 years'" # removing underage members in users file 
-
-users <- runQuery(users_query)
-
-# phoenix_events dataset 
-
-phoenix_query <- "SELECT 
-	northstar_id,
-	event_datetime,
-	event_name,
-	event_source,
-	campaign_id,
-	page_utm_medium,
-	parent_source,
-	browser_size
-FROM phoenix_events
-WHERE northstar_id IS NOT NULL 
-	AND event_name IN ('view', 'visit', 'open modal')"
-
-phoenix <- runQuery(phoenix_query)
-
-# member_event_log dataset 
-
-mel_query <- "SELECT 
-	m.northstar_id,
-	m.timestamp,
-	m.action_type,
-	m.SOURCE
-FROM member_event_log m
-WHERE m.northstar_id IS NOT NULL"
-
-mel <- runQuery(mel_query)
-
-# campaign_activity dataset 
-
-ca_query <- "SELECT c.northstar_id,
-c.campaign_run_id,
-c.post_type,
-c.reportback_volume,
-c.post_status,
-c.quantity,
-c.signup_source,
-c.post_source,
-c.signup_created_at,
-c.reported_back,
-c.post_attribution_date
-FROM campaign_activity c
-WHERE c.northstar_id IS NOT NULL"
-
-campaign <- runQuery(ca_query)
-
-# email data
-
-email_query <- "SELECT customer_id AS northstar_id,
-email_address,
-subject,
-timestamp,
-event_type
-FROM email_event 
-WHERE customer_id IS NOT NULL"
-
-email <- runQuery(email_query)
-
-# SMS
-
-SMS_mes <- "SELECT 
-northstar_id,
-click_time AS SMS_time,
-'SMS message' AS action_type
-FROM bertly_clicks
-WHERE northstar_id IS NOT NULL
-UNION ALL 
-	SELECT 
-		id AS northstar_id,
-		last_messaged_at AS SMS_time,
-		'SMS link click' AS action_type
-	FROM northstar.users 
-	WHERE id IS NOT NULL 
-		AND last_messaged_at IS NOT NULL"
-
-sms <- runQuery(SMS_mes)
-
-# Turbovote file 
-turbo_query <- "SELECT 
-	nsid AS northstar_id,
-	SOURCE,
-	campaign_id,
-	ds_vr_status,
-	ds_registration_date,
-	file
-FROM turbovote_file
-WHERE nsid IS NOT null"
-
-turbo <- runQuery(turbo_query)  
+data_list <- load_data()
+list2env(data_list, .GlobalEnv)
 ```
 
-# Save as R data files 
-
-```{r}
-saveRDS(users, "Rdata/users.rds")
-saveRDS(phoenix, "Rdata/phoenix.rds")
-saveRDS(campaign, "Rdata/campaign.rds")
-saveRDS(email, "Rdata/email.rds")
-saveRDS(sms, "Rdata/sms.rds")
-saveRDS(turbo, "Rdata/turbo.rds")
-```
-
-# Load R data files 
-
-```{r}
-users <- readRDS("Rdata/users.rds")
-phoenix <- readRDS("Rdata/phoenix.rds")
-campaign <- readRDS("Rdata/campaign.rds")
-email <- readRDS("Rdata/email.rds")
-sms <- readRDS("Rdata/sms.rds")
-turbo <- readRDS("Rdata/turbo.rds")
-```
-
-
-# Data wrangling 
-
-## Remove records of under 18 northstar_ids in all datasets 
-
-```{r}
-# only keep rows whose age < 18, in US, and members in relevant datasets. 
-# (y should be public.users data or any other membership data).
-
-phoenix1 <- remove18(phoenix, users)
-campaign1 <- remove18(campaign, users)
-email1 <- remove18(email, users)
-sms1 <- remove18(sms, users)
-turbo1 <- remove18(turbo, users)
-
-users1 <- users
-```
+# 3. Data wrangling 
 
 ## Extracting predicted feature (voter registration status)
 
 ```{r}
-# this code will soon become obsolete as Jen is leading the sprint to combine for all columns 
-reg_status <- predicted(users1, turbo1)
-reg_status$voter_reg_status[reg_status$voter_reg_status == "register-form"] <- "registration_complete"
-reg_status$voter_reg_status[reg_status$voter_reg_status == "register-OVR"] <- "registration_complete"
-table(reg_status$voter_reg_status)
+# a part of this code will soon become obsolete as Jen is leading the sprint to combine for all columns 
+reg_status <- predicted_feature(users, turbo, campaign, phoenix, email)
 ```
 
 
-## Extracting demographic features 
+## Selecting demographic features 
 
 ```{r}
-# gender feature 
-gender <- gender_feature(users1)
+# gender  
+gender <- gender_feature(users)
 
-# age feature 
-age <- age_feature(users1)
+# age 
+age <- age_feature(users)
 
-# SES feature 
-ses <- ses_feature(users1)
+# socioeconomic status
+ses <- ses_feature(users)
+
+# whether state turned Democratic or Republican in 2016 election 
+state_politics <- dem_rep_feature(users)
 ```
 
-
-## Extracting behavioral features 
+## Selecting behavioral features 
 
 ```{r}
-# returns variables of email clicked, converted, opened, unsubscribed & total number of email actions per northstar_id 
-email_count <- email_feature(email1)
+# email clicked, converted, opened, unsubscribed & total number of email actions 
+email_count <- email_feature(email)
 
-# returns columns of SMS action by type & total number of sms actions per northstar_id 
-sms_count <- sms_feature(sms1)
+# SMS action by type & total number of sms actions
+sms_count <- sms_total_feature(sms)
 
-# returns columns of browser size by northstar_id 
-browser_size <- browser_size_feature(phoenix1)
+# browser size (small, medium, large)
+browser_size <- browser_size_feature(phoenix)
 
-# returns number of total actions per northstar_id 
-total_action <- total_actions_feature(phoenix1, campaign1, email1, sms1)
+# number of total actions
+total_action <- total_actions_feature(phoenix, mel)
 
+# how many reportbacks a user has done 
+rb_count <- rb_feature(campaign, users)
 
+# time of day when most active (morning, afternoon, evening, night, and all_day for those active throughout the day)
+time_mostactive <- time_mostactive_feature(phoenix, mel, users) 
+
+# MAM eligible action count by action type 
+mam_actions <- MAM_action_feature(mel)
+
+# cause space 
+cause_space <- cause_space_feature(users, campaign, campaign_info)
+
+# days since last active
+last_action <- last_action_feature(mel)
 ```
 
-# Create a dataset with desired features 
+## Create a dataset with desired features 
 
 ```{r}
-df <- 
+master <- 
   reg_status %>% 
   left_join(gender, by = "northstar_id") %>% 
-  left_join(age, by = "northstar_id") %>%
-  left_join(email_count, by = "northstar_id") %>% 
-  left_join(sms_count, by = "northstar_id") %>%
+  left_join(age, by = "northstar_id") %>% 
+  left_join(ses, by = "northstar_id") %>% 
+  left_join(state_politics, by = "northstar_id") %>%
+  left_join(email_count, by = "northstar_id") %>%
+  left_join(sms_count, by = "northstar_id") %>% 
   left_join(browser_size, by = "northstar_id") %>% 
-  left_join(total_action, by = "northstar_id")
+  left_join(total_action, by = "northstar_id") %>% 
+  left_join(rb_count, by = "northstar_id") %>% 
+  left_join(time_mostactive, by = "northstar_id") %>% 
+  left_join(mam_actions, by = "northstar_id") %>% 
+  left_join(cause_space, by = "northstar_id") %>% 
+  left_join(last_action, by = "northstar_id")
 
-df <- replace_na_numeric(df) # replace NAs in numeric columns with 0's
-df <- replace_na_else(df) # replace NAs in non-numeric columns with "unknown"
+master <- master %>% ungroup() # ungrouping for further processing
 ```
+
+
+## Replace NAs 
+
+```{r}
+# replace NA's in numeric columns with either 0s or means
+
+# create vector for age or any other appropriate column that should be imputed with mean
+vector_mean <- "age" 
+
+# create vector for all other numeric variables that should be imputed with 0's
+numeric_only <- # vector of column names 
+  master %>% 
+  select_if(is.numeric) %>% 
+  select(-age) 
+vector_zeros <- colnames(numeric_only)
+master <- replace_na_numeric(master, vector_mean, vector_zeros) 
+
+# replace NAs in non-numeric columns (except voter_reg_status) with "unknown" 
+master <- replace_na_else(master)  
+```
+
 
 ## Identify & eliminate near zero-variance variables
 
 (zero-variance variables are variables that have only a handful of unique values that occur with very low frequency - may need to be eliminated prior to modeling for fit to be stable)
 
 ```{r}
-df_list <- remove_nzv(df) 
+df_list <- remove_nzv(master) 
 
-df_filtered <- df_list[[2]] # keeps only the dataframe
+master <- df_list[[2]] # keeps only the dataframe
 ```
 
 ## Identify & eliminate highly correlated predictors
 
 ```{r}
-df_list2 <- remove_highcor(df_filtered)
+df_list2 <- remove_highcor(master)
 
-df_filtered <- df_list2[[3]] # keeps only the dataframe
+master <- df_list2[[3]] # keeps only the dataframe
 ```
 
-# Split into training & testing
-
-## Confirmed vs. Unregistered 
-### 1. Divide into training and testing 
+## Find & remove linear dependencies 
 
 ```{r}
-set.seed(12345)
-
-df_selfreport <- 
-  df_filtered %>% 
-  filter(voter_reg_status %in% c("confirmed", "unregistered"))
-
-df_selfreport$voter_reg_status <- # factor to only include the selected levels 
-  factor(df_selfreport$voter_reg_status, 
-       levels = c("confirmed", "unregistered"),
-       labels = c("confirmed", "unregistered"))
-
-in_train <- createDataPartition(y = df_selfreport$voter_reg_status, p = 3 / 4, list = FALSE)
-training <- df_selfreport[in_train, ]
-testing  <- df_selfreport[-in_train, ]
+numeric_only <- master %>% select_if(is.numeric)
+comboinfo <- findLinearCombos(numeric_only) # nothing to remove
 ```
 
-The dataset is unbalanced because there are more "confirmed" than "unregistered" folks, which would bias the model into favoring predictions for those who are confirmed. I will use the caret upsample function to increase the "unregistered" values, with replacement. (May use SMOTE with larger data)
+## Save for quasar table 
 
 ```{r}
-up_train <- upSample(x = select(training, -c(voter_reg_status, northstar_id)),
-                     y = training$voter_reg_status,
-                     yname = "voter_reg_status")
+# all user records + untransformed predictors & predicted 
+saveRDS(master, "join_quasar.rds")
 ```
 
-Centering and scaling data ensures that some features do not dominate the algorithm AND and the features are unit-independent. 
+## Centering and scaling data 
+
+Ensures that some features do not dominate the algorithm and the features are unit-independent. 
 
 ```{r}
-preprocvalues <- preProcess(up_train, method = c("center", "scale")) # estimates required parameters to be centered & scaled 
-train_transformed <- predict(preprocvalues, up_train) # this function actually centers and scales based on the parameters defined above 
-test_transformed <- predict(preprocvalues, testing)
+preprocvalues <- preProcess(master, method = c("center", "scale")) # estimates required parameters to be centered & scaled 
+master <- predict(preprocvalues, master) # this function actually centers and scales based on the parameters defined above 
+```
+
+## Save data for prediction 
+(Only includes voter_reg_status = NA rows whose likelihood score will be predicted)
+
+```{r}
+data_ready_predict <- 
+  master %>% 
+  filter(is.na(voter_reg_status))
+
+# save data for final prediction
+saveRDS(data_ready_predict, "data_ready_predict.rds")
+```
+
+## Finalize modeling train + test dataset with desired ordered factor levels 
+(Creates a sample of no_interaction category data from NA's)
+
+```{r}
+master <- master_final(master)
+```
+
+## Remove datasets no longer needed to free up RAM 
+
+```{r}
+rm(age, browser_size, email_count, gender, rb_status, reg_status,
+   ses, sms_count, state_politics, time_of_day, total_action, df_list, df_list2, 
+   campaign, email, mel, phoenix, sms, turbo, users, mam_actions, campaign_info, 
+   campaign_with_id, cause_space, comboinfo, output) 
+```
+
+# 4. Modeling 
+
+## Split into training & testing
+
+```{r}
+in_train <- createDataPartition(y = master$voter_reg_status, p = 3 / 4, list = FALSE)
+training <- master[in_train, ]
+testing  <- master[-in_train, ]
+```
+
+## Balance the dataset
+
+The dataset is unbalanced because there is a significantly greater number of "any_interaction" & "no_interaction" classes than "registration complete" & "registration_started" classes, which would bias the model into favoring predictions for the higher frequency classes. 
+
+I am going to randomly sample from all classes to create a balanced dataset. 
+
+```{r}
+training <- balance_data(training, 50000) # 50000 samples per group
+```
+
+```{r}
+saveRDS(testing, "testing.rds")
+saveRDS(training, "training.rds")
 ```
 
 Using the caret package to set a 10-fold cross-validation for models with tuning parameters. 
@@ -308,108 +248,295 @@ Using the caret package to set a 10-fold cross-validation for models with tuning
 ```{r}
 ctrl <- trainControl(method = "cv",
                      number = 10,
-                     summaryFunction = twoClassSummary,
+                     summaryFunction = multiClassSummary, 
                      classProbs = TRUE)
 ```
 
-
-## Random Forest
+Remove northstar_id (character variable causes issues for some models)
 
 ```{r}
-rf_fit <- train(voter_reg_status ~ ., 
-                data = train_transformed,
+training <- 
+  training %>% 
+  select(-northstar_id)
+
+set.seed(12345)
+```
+
+
+## Model development and assessment
+
+### Random Forest 
+
+```{r}
+rf_fit <- train(voter_reg_status ~ .
+                data = training, 
                 method = "rf",
                 trControl = ctrl,
-                metric = "Kappa", #?
                 verbose = FALSE)
-rf_fit
-
+rf_fit$bestTune
 rf_model <- randomForest(voter_reg_status ~ .,
-             data = train_transformed,
-             mtry = 5, # why sampling 6?
-             importance = TRUE)
-rf_model
-
-yhat_rf <- predict(rf_model, 
-                   newdata = test_transformed, 
-                   type = "class")
-
-table_rf <- table(test_transformed$voter_reg_status, yhat_rf)
-
-# simple accuracy 
-sum(diag(table_rf)) / sum(table_rf) 
-
-# AUC (true positive rate vs. false positive rate)
-test1 <- test_transformed
-test1$voter_reg_status <- ifelse(test1$voter_reg_status == "confirmed", 1, 0)
-yhat_rf1 <- yhat_rf
-yhat_rf1 <- ifelse(yhat_rf1 == "confirmed", 1, 0)
-roc_obj <- roc(test1$voter_reg_status, yhat_rf1)
-auc(roc_obj)
+                         data = training,
+                         mtry = 7,
+                         importance = TRUE)
+varImpPlot(rf_model)
+rf_model$importance
+rf_pred <- predict(rf_model, newdata = testing, type = "class")
+rf_results <- mod_perf_function("random_forest", rf_pred, testing)
 ```
 
-# Descriptive Stats 
+
+### Ordinal Logistic
 
 ```{r}
-#gender 
-gender_freq <- 
-  users1 %>%
-  group_by(gender) %>% 
-  summarize(freq = n()) %>%
-  mutate(perc = freq / sum(freq))
+# rank-deficient: ses_status
+# glm.fit (fitted probabilities numerically 0 or 1 occurred): site_login
 
-ggplot(gender_freq, aes(x = gender, y = freq, fill = gender, label = perc)) +
-  geom_bar(stat = "identity") + 
-  geom_text(size = 4, position = position_stack(vjust = 0.7))
+train_ord <- 
+  training %>% 
+  select(-c(ses_status, site_login)) # remove variables that are causing above errors 
 
-# age 
-summary(age_freq)
-
-age_freq <- 
-  users1 %>% 
-  group_by(age) %>%
-  summarise(freq = n()) %>%
-  mutate(perc = freq / sum(freq) * 100)
-
-ggplot(age_freq, aes(x = age, y = freq)) +
-  geom_bar(stat = "identity") +
-  xlim(18, 40)
+ord_logit_model <- MASS::polr(voter_reg_status ~ .,
+                              data = train_ord) 
+ord_logit_model
+ord_logit_pred <- predict(ord_logit_model, newdata = testing, type = "class")
+ord_logit_results <- mod_perf_function("ordinal_logit", ord_logit_pred, testing)
 ```
+
+### Neural Network 
 
 ```{r}
-# how many were active this year? 
-activity <- 
-  users1 %>%
-  mutate(year_active = year(last_accessed),
-            month_active = month(last_accessed)) %>%
-  filter(year_active == year(Sys.Date()) %>% 
-  select(year_active, month_active) %>% 
-  gather(`year_active`, `month_active`, key = "active_period", value = length()) %>%
-  rename(cont = "length()") %>%
-  group_by(cont) %>%
-  tally
+nnet_fit <- train(voter_reg_status ~ ., 
+                data = training,
+                method = "nnet",
+                trControl = ctrl,
+                verbose = FALSE)
+nnet_fit$bestTune
+
+nnet_model <- nnet(voter_reg_status ~ .,
+                  data = training,
+                  size = 5, 
+                  decay = .0001)
+nnet_pred <- predict(nnet_model, newdata = testing, type = "class")
+nnet_pred <- factor(nnet_pred,
+                    levels = c("no_interaction", "any_interaction", 
+                               "registration_started", "registration_complete"),
+                    labels = c("no_interaction", "any_interaction", 
+                               "registration_started", "registration_complete"))
+nnet_results <- mod_perf_function("nnet", nnet_pred, testing)
 ```
+
+### xgboost (linear)
 
 ```{r}
-# how many members were active this month?
-  mel1 %>%
-  mutate(year_active = year(timestamp),
-         month_active = month(timestamp)) %>%
-  filter(year_active == year(Sys.Date()) & month_active == month(Sys.Date())) %>% 
-  select(northstar_id, month_active) %>% 
-  gather(`month_active`, key = "active_month", value = length()) %>%
-  rename(month = "length()") %>%
-  summarise(n_distinct(northstar_id))
+xgboost_fit <- train(voter_reg_status ~ .,
+                     data = training,
+                     method = "xgbLinear",
+                     trControl = ctrl,
+                     verbose = FALSE)
+xgboost_fit$bestTune
+
+# transform training data to work with xgboost 
+train_xgboost <- xgboost_data_transform_function(training)
+
+# transform testing data to work with xgboost
+test_xgboost <- xgboost_data_transform_function(testing)
+
+xgboost_model <- xgb.train(data = train_xgboost,
+                           nrounds = 150,
+                           lambda = 0.0001, 
+                           alpha = 0,
+                           eta = 0.3,
+                           objective = "multi:softmax",
+                           num_class = 4)
+xgboost_pred <- predict(xgboost_model, 
+                        newdata = test_xgboost,
+                        reshape = TRUE) 
+
+xgboost_pred <- factor(xgboost_pred,
+                       levels = c(0:3),
+                       labels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"))
+
+xgboost_results <- mod_perf_function("xgoobst", xgboost_pred, testing)
 ```
 
 
+### xgboost (tree)
+
+```{r}
+xgboost_tree_fit <- train(voter_reg_status ~ .,
+                     data = training,
+                     method = "xgbTree",
+                     trControl = ctrl,
+                     verbose = FALSE)
+xgboost_tree_fit$bestTune
+
+xgboost_tree_model <- xgb.train(data = train_xgboost,
+                                nrounds = 150,
+                                max_depth = 3, 
+                                eta = 0.4,
+                                gamma = 0,
+                                colsample_bytree = 0.8,
+                                min_child_weight = 1, 
+                                subsample = 0.75,
+                                objective = "multi:softmax",
+                                num_class = 4)
+xgboost_tree_pred <- predict(xgboost_tree_model, 
+                             newdata = test_xgboost,
+                             reshape = TRUE)
+
+xgboost_tree_pred <- factor(xgboost_tree_pred,
+                       levels = c(0:3),
+                       labels = c("no_interaction", "any_interaction", "registration_started", "registration_complete"))
+
+xgboost_tree_results <- mod_perf_function("xgboost_tree", xgboost_tree_pred, testing)
+```
 
 
+### gbm 
+
+```{r}
+gbm_fit <- train(voter_reg_status ~ ., 
+                 data = training,
+                 method = "gbm",
+                 trControl = ctrl, 
+                 verbose = FALSE)
+gbm_fit$bestTune # includes the best parameters 
+gbm_model <- gbm(voter_reg_status ~ .,
+                 distribution = "multinomial",
+                 data = samp,
+                 n.trees = 150, # parameter determined by 10-fold cross validation
+                 interaction.depth = 3, # parameter determined by 10-fold cross validation
+                 shrinkage = 0.1, # parameter determined by 10-fold cross validation
+                 n.minobsinnode = 10) # parameter determined by 10-fold cross validation
+gbm_pred <- predict(gbm_model, 
+                    newdata = testing,
+                    n.trees = 150,
+                    type = "response")
+gbm_pred <- gbm_transform_function(gbm_pred) # transform predictions into a dataset that can be compared to the test dataset
+
+gbm_results <- mod_perf_function("gbm", gbm_pred, testing)
+```
 
 
+### Comparing performance of models 
+
+```{r}
+model_performance <- model_comparison(rf_results, ord_logit_results, nnet_results, 
+                                      xgboost_results, xgboost_tree_results, gbm_results)
+
+ranked_models <- model_select(model_performance, "AUC: registration_complete")
+
+# best model, which is orginal logit, is saved 
+saveRDS(ord_logit_model, "models/best_model_ordlogit.rds")
+```
+
+# Making final prediction & creating a table to load into Quasar
+
+```{r}
+# use data not trained and tested and which northstar_id took no action (voter_reg_status = NA)
+data_ready_predict <- readRDS("data_ready_predict.rds") 
+
+# create a table that has northstar_id, voter_reg_status, untransformed predictors, and predictions 
+voter_reg_prediction <- voter_reg_predict(data_ready_predict, "join_quasar.rds")
+```
 
 
+# Write it into Quasar 
 
+I have the final prediction, load it into Quasar
+
+```{r}
+channel <- pgConnect()
+
+if(dbExistsTable(channel, c("public", "voter_reg_predictions"))) {
+  dbRemoveTable(channel, c("public", "voter_reg_predictions"))}
+
+dbWriteTable(channel, c("public", "voter_reg_predictions"), voter_reg_prediction, row.names=F)
+
+```
+
+
+#################### Add predictions for new users #######################
+
+# 1. Libraries & Sources 
+
+```{r, quietly=TRUE}
+# Run on all cores for faster processing 
+options(mc.cores = parallel::detectCores())
+
+# Libraries 
+packages.used <- c("lubridate", "reshape2", "caret", "MLmetrics", "RPostgreSQL",
+                   "nnet", "xgboost", "gbm", "randomForest", "zoo", "rlang", "dplyr")
+packages.needed <- setdiff(packages.used, intersect(installed.packages()[,1], packages.used))
+
+if (length(packages.needed) > 0) {
+  install.packages(packages.needed, dependencies = TRUE)
+}
+
+library(lubridate)
+library(reshape2)
+library(caret)
+library(MLmetrics)
+library(RPostgreSQL)
+library(nnet)
+library(xgboost)
+library(gbm)
+library(randomForest)
+library(zoo)
+library(rlang)
+library(dplyr)
+
+# Sources 
+source('config/init.R')
+source('config/pgConnect.R')
+source('config/voter_regfunctions.R') # all functions are here
+source('config/data_source.R') # data sources
+pg <- pgConnect() # you must add a .Renviron file with your quasarpassword for this to run 
+```
+
+# 2. Extract new members since last refreshed 
+
+```{r}
+data_list_new <- new_users_only()
+list2env(data_list_new, .GlobalEnv)
+```
+
+# 3. Create dataset with predicted and predictors (and save untransformed dataset as join.quasar.rds)
+
+```{r}
+master <- create_master()
+```
+
+# 4. Center and scale data
+
+```{r}
+preprocvalues <- preProcess(master, method = c("center", "scale")) 
+master <- predict(preprocvalues, master) 
+```
+
+# 5. Extract data with no voter_reg_status for predictions 
+
+```{r}
+predictions_only  <- 
+  master %>% 
+  filter(is.na(voter_reg_status))
+```
+
+# 6. Make predictions 
+
+```{r}
+voter_reg_prediction <- voter_reg_predict(predictions_only, "join_quasar.rds")
+```
+
+# 7. Add it to Quasar table 
+
+```{r}
+channel <- pgConnect()
+dbWriteTable(channel, 
+             c("public", "voter_reg_predictions"), 
+             voter_reg_prediction, 
+             append=T, row.names=F)
+```
 
 
 

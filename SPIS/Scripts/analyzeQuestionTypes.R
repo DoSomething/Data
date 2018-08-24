@@ -225,9 +225,9 @@ getPivotPlots <- function(dat, pivots, specialPivot=NULL) {
 
   }
 
-  outPlot <- arrangeGrob(grobs=myplots, ncol=min(length(pivots),3))
+  # outPlot <- arrangeGrob(grobs=myplots, ncol=min(length(pivots),3))
 
-  return(outPlot)
+  return(myplots)
 
 }
 
@@ -253,7 +253,7 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
     pivPlot <- getPivotPlots(thisQuestionSet, importantPivots)
     groupPivPlot <- getPivotPlots(thisQuestionSet, importantPivots, 'Group')
-    analysis <- list(freqPlot, grid.arrange(pivPlot), grid.arrange(groupPivPlot))
+    analysis <- list(freqPlot, pivPlot, groupPivPlot)
 
     names(analysis)[1] <- 'frequencyPlot'
     names(analysis)[2] <- 'pivotPlot'
@@ -262,7 +262,7 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
   } else if (is.null(importantPivots) & nSub > 1) {
 
     groupPivPlot <- getPivotPlots(thisQuestionSet, c('Group'))
-    analysis <- list(freqPlot, grid.arrange(groupPivPlot))
+    analysis <- list(freqPlot, groupPivPlot)
 
     names(analysis)[1] <- 'frequencyPlot'
     names(analysis)[2] <- 'groupedPivotPlot'
@@ -271,7 +271,7 @@ stylePickOneOrdinal <- function(dat, outcome, pivots, ...) {
 
     pivPlot <- getPivotPlots(thisQuestionSet, importantPivots)
 
-    analysis <- list(freqPlot, grid.arrange(pivPlot))
+    analysis <- list(freqPlot, pivPlot)
 
     names(analysis)[1] <- 'frequencyPlot'
     names(analysis)[2] <- 'pivotPlot'
@@ -314,7 +314,7 @@ getGroupedComposition <- function(dat, outcome, pivot) {
   biFreq <-
     ggplot(
       bivarDat,
-      aes(x=outcome, y=p, fill=reorder(pivot,p))
+      aes(x=outcome, y=p, fill=pivot)
     ) +
     geom_bar(stat='identity', width = .65, position='stack') +
     geom_text(
@@ -348,7 +348,7 @@ getFacetComposition <- function(dat, outcome, pivot, facet) {
   facetFreq <-
     ggplot(
       pDat,
-      aes(x=outcome, y=p, fill=reorder(pivot,p))
+      aes(x=outcome, y=p, fill=pivot)
     ) +
     geom_bar(stat='identity', width = .65, position='stack') +
     geom_text(
@@ -363,7 +363,8 @@ getFacetComposition <- function(dat, outcome, pivot, facet) {
     ) +
     theme(plot.title = element_text(hjust = 0.5)) +
     guides(fill=guide_legend(title=quo_text(pivot))) +
-    scale_fill_brewer(palette="Set2")
+    scale_fill_brewer(palette="Set2") +
+    coord_flip()
 
 }
 
