@@ -15,7 +15,4 @@ SELECT
 	p.campaign_data #>> '{data,callToAction}' AS campaign_cta
 	--campaign_action_type
 FROM phoenix.campaigns_json p
-
 ;
-
-SELECT * FROM phoenix.campaigns_json WHERE campaign_data #>> '{data,legacyCampaignRunId}' = '8066'
