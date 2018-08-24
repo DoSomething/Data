@@ -2,34 +2,34 @@
 # Frequencies by Group ----------------------------------------------------
 
 sexGroup <-
-  stylePickOneList(set, sex, Group)
+  stylePickOneList(set, Group, sex)
 
 ageGroup <-
   stylePickOneList(set, age, Group)
 
 raceGroup <-
-  stylePickOneList(set, race, Group)
+  stylePickOneList(set, Group, race)
 
 regionGroup <-
-  stylePickOneList(set, region, Group)
+  stylePickOneList(set, Group, region)
 
 stateGroup <-
   stylePickOneList(set, state, Group)
 
 financesGroup <-
-  stylePickOneList(set, fam_finances, Group)
+  stylePickOneList(set, Group, fam_finances)
 
 parentEduGroup <-
-  stylePickOneList(set, parental_education, Group)
+  stylePickOneList(set, Group, parental_education)
 
 partyGroup <-
-  stylePickOneList(set, political_party, Group)
+  stylePickOneList(set, Group, political_party)
 
 politicsGroup <-
-  stylePickOneList(set, political_view, Group)
+  stylePickOneList(set, Group, political_view)
 
 religiousGroup <-
-  stylePickOneList(set, attend_religious_services_freq, Group)
+  stylePickOneList(set, Group, attend_religious_services_freq)
 
 # Impact Attitudes -----------------------------------------------------------------
 
