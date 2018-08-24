@@ -181,7 +181,5 @@ grant <- "grant select on public.legacy_reportbacks to public;"
 dbGetQuery(channel, grant)
 grant <- "grant select on public.legacy_reportbacks to looker;"
 dbGetQuery(channel, grant)
-grant <- "grant select on public.legacy_reportbacks to jjensen;"
-dbGetQuery(channel, grant)
 grant <- "grant select on public.legacy_reportbacks to jli;"
 dbGetQuery(channel, grant)
