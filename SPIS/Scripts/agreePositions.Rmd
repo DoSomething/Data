@@ -1,0 +1,83 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+### Agree With Position
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=10.5, fig.width=9}
+agreePosition.RacismNotIssue$frequencyPlot
+grid.arrange(agreePosition.RacismNotIssue$pivotPlot)
+grid.arrange(agreePosition.RacismNotIssue$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=10.5, fig.width=9}
+agreePosition.GovernmentProvideHealthcare$frequencyPlot
+grid.arrange(agreePosition.GovernmentProvideHealthcare$pivotPlot)
+grid.arrange(agreePosition.GovernmentProvideHealthcare$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=10.5, fig.width=9}
+agreePosition.UndocumentedImmigrantsPathCitizenship$frequencyPlot
+grid.arrange(agreePosition.UndocumentedImmigrantsPathCitizenship$pivotPlot)
+grid.arrange(agreePosition.UndocumentedImmigrantsPathCitizenship$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=10.5, fig.width=9}
+agreePosition.BackgroundChecksForGuns$frequencyPlot
+grid.arrange(agreePosition.BackgroundChecksForGuns$pivotPlot)
+grid.arrange(agreePosition.BackgroundChecksForGuns$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.SexualHarrasmentSignOffSocietalIssue$frequencyPlot
+grid.arrange(agreePosition.SexualHarrasmentSignOffSocietalIssue$pivotPlot)
+grid.arrange(agreePosition.SexualHarrasmentSignOffSocietalIssue$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=10.5, fig.width=9}
+agreePosition.iTrustPoliceMyCommunity$frequencyPlot
+grid.arrange(agreePosition.iTrustPoliceMyCommunity$pivotPlot)
+grid.arrange(agreePosition.iTrustPoliceMyCommunity$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=8.5, fig.width=9}
+agreePosition.WeedLawsTooStrict$frequencyPlot
+grid.arrange(agreePosition.WeedLawsTooStrict$pivotPlot)
+grid.arrange(agreePosition.WeedLawsTooStrict$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=10.5, fig.width=9}
+agreePosition.ClimateChangeHappening$frequencyPlot
+grid.arrange(agreePosition.ClimateChangeHappening$pivotPlot)
+grid.arrange(agreePosition.ClimateChangeHappening$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=8.5, fig.width=9}
+agreePosition.BuildTheWall$frequencyPlot
+grid.arrange(agreePosition.BuildTheWall$pivotPlot)
+grid.arrange(agreePosition.BuildTheWall$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=10.5, fig.width=9}
+agreePosition.OnlyTwoGenders$frequencyPlot
+grid.arrange(agreePosition.OnlyTwoGenders$pivotPlot)
+grid.arrange(agreePosition.OnlyTwoGenders$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=10.5, fig.width=9}
+agreePosition.WomenExperienceWorkplaceDiscrimination$frequencyPlot
+grid.arrange(agreePosition.WomenExperienceWorkplaceDiscrimination$pivotPlot)
+grid.arrange(agreePosition.WomenExperienceWorkplaceDiscrimination$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=10.5, fig.width=9}
+agreePosition.MuslimsDontNeedCloseTabs$frequencyPlot
+grid.arrange(agreePosition.MuslimsDontNeedCloseTabs$pivotPlot)
+grid.arrange(agreePosition.MuslimsDontNeedCloseTabs$groupedPivotPlot)
+```
+
+```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
+agreePosition.DrugsProblemInCommunity$frequencyPlot
+grid.arrange(agreePosition.DrugsProblemInCommunity$pivotPlot)
+grid.arrange(agreePosition.DrugsProblemInCommunity$groupedPivotPlot)
+```
