@@ -22,6 +22,34 @@ shares <-
     action =
       paste0('action-',cumsum(data.url != lag(data.url, default = '')))
   ) %>%
-  left_join(lookup)
+  ungroup() %>%
+  left_join(lookup) %>%
+  mutate(month = substr(to_timestamp, 1, 7))
 
-saveCSV(shares)
+monthList <- unique(shares$month)
+
+for (j in 1:length(monthList)) {
+
+  monthDat <-
+    shares %>%
+    filter(month == monthList[j])
+
+  allSets <- split(monthDat, as.numeric(rownames(monthDat)) %/% 1200)
+
+  for (i in 1:length(allSets)) {
+
+    write_csv(
+      allSets[[i]],
+      path =
+        paste0(
+          'fbShares/shares_',
+          monthList[j],
+          '_',
+          names(allSets[i]),
+          '.csv'
+        )
+    )
+
+  }
+
+}
