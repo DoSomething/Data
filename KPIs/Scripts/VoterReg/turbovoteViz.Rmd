@@ -82,7 +82,7 @@ ggplot(sourceTime, aes(x=date, y=runningTotal, color=source)) +
   theme(plot.title = element_text(hjust=.5))
 ```
 
-#### Source Details
+#### Top Source Details Past 30 Days
 
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=10, fig.height=36}
 library(gridExtra)

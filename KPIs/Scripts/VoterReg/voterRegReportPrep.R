@@ -7,8 +7,7 @@ library(reshape2)
 
 vr <-
   rtv %>%
-  bind_rows(tv) %>%
-  select(-F)
+  bind_rows(tv)
 
 if(dbExistsTable(pg,c("public", "turbovote_file"))) {
 
@@ -75,7 +74,7 @@ fileSource <-
 
 sourceStep <-
   vr %>%
-  filter(source != '') %>%
+  filter(created_at >= (Sys.Date()-31)) %>%
   mutate(
     status = ifelse(grepl('register', ds_vr_status), 'registered', ds_vr_status)
   ) %>%
