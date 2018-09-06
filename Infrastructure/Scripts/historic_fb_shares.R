@@ -7,16 +7,21 @@ pg <- pgConnect()
 fbShare <-
   runQuery('Scripts/historic_fbshare_export.sql')
 
-lookup <- read.xlsx('Data/id_run_lookup.xlsx')
+lookup <-
+  read.xlsx('Data/id_run_lookup.xlsx') %>%
+  rename(
+    campaign_id = data.legacyCampaignId,
+    campaign_run = data.legacyCampaignRunId
+  )
 
 shares <-
   fbShare %>%
   filter(
     !is.na(user.northstarId) &
-    user.northstarId != '' &
-    !grepl('user.id', user.northstarId) &
-    !grepl('NSID', user.northstarId)
-    ) %>%
+      user.northstarId != '' &
+      !grepl('user.id', user.northstarId) &
+      !grepl('NSID', user.northstarId)
+  ) %>%
   group_by(user.northstarId, data.legacyCampaignId) %>%
   mutate(
     action =
@@ -24,7 +29,16 @@ shares <-
   ) %>%
   ungroup() %>%
   left_join(lookup) %>%
-  mutate(month = substr(to_timestamp, 1, 7))
+  mutate(month = substr(to_timestamp, 1, 7)) %>%
+  select(
+    `_id`, meta.id, meta.timestamp, to_timestamp, event.name, event.source,
+    page.path, page.host, page.href, campaign_id, campaign_run,
+    action, type, page.utm.source, page.utm.medium, page.utm.campaign,
+    data.parentSource, data.legacyCampaignId, data.campaignId,
+    data.url, data.source, data.link, data.modalType, data.variant,
+    data.source, data.sourceData.text, page.sessionId, browser.size,
+    user.northstarId, month
+  )
 
 monthList <- unique(shares$month)
 
@@ -39,7 +53,7 @@ for (j in 1:length(monthList)) {
   for (i in 1:length(allSets)) {
 
     write_csv(
-      allSets[[i]],
+      allSets[[i]] %>% select(-month),
       path =
         paste0(
           'fbShares/shares_',
