@@ -1,4 +1,4 @@
-SELECT 
+SELECT
 	e.records #>> '{_id,$oid}' AS _id,
 	e.records #>> '{meta,id}' AS "meta.id",
 	(e.records #>> '{meta,timestamp}')::bigint AS "meta.timestamp",
@@ -8,8 +8,8 @@ SELECT
 	e.records #>> '{page,path}' AS "page.path",
 	e.records #>> '{page,host}' AS "page.host",
 	e.records #>> '{page,href}' AS "page.href",
-	COALESCE(e.records #>> '{data,legacyCampaignId}',p.campaign_id) AS "data.legacyCampaignId",
-	--campaign_run_id,
+	COALESCE(e.records #>> '{data,legacyCampaignId}',p.campaign_id) AS "campaign_id",
+	NULL as "data.legacyCampaignId",
 	'share-social' AS "type",
 	e.records #> '{page,query}' ->> 'utm.source' AS "page.utm.source",
 	e.records #> '{page,query}' ->> 'utm.medium' AS "page.utm.medium",
