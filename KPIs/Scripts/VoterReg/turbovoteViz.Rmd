@@ -1,5 +1,5 @@
 ---
-title: "Bi-Weekly Voter Registration Report"
+title: "Tri-Weekly Voter Registration Report"
 output: html_notebook
 ---
 
