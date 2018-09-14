@@ -134,8 +134,70 @@ purchaseDecision.p <-
   theme(plot.title = element_text(hjust=.5))
 ggsave(plot=purchaseDecision.p, 'Visuals/purchaseDecision.png', width = 10, height = 6)
 
-purchaseInfluence.Price$pivotPlot[[1]]
+purchaseDecision.politics <-
+  purchaseInfluence.CompanyReputationValues$pivotPlot[[1]] +
+  labs(title = 'Pivoted by Political Views', y = 'How Influential') +
+  theme(plot.title=element_text(hjust=.5, size = 10))
 
+purchaseDecision.Gender <-
+  purchaseInfluence.CompanyReputationValues$pivotPlot[[4]] +
+  labs(title='Pivoted by Gender') +
+  theme(plot.title=element_text(hjust=.5, size = 10))
+
+grid.arrange(purchaseDecision.politics, purchaseDecision.Gender,
+             top='Influence of Brand Values on Purchasing Decisions', ncol=2)
+
+willingPayMoreBrandValues$frequencyPlot +
+  labs(title='How Much More Are You Willing to Pay For a Brand Whose Values Align With Your Own?',
+       x='Amount',y='Count') + theme(plot.title=element_text(hjust=.5))
+myPurchaseSupportCauseMakesImpact$frequencyPlot +
+  labs(title='I Feel My Purchases are Making an Impact When the Branch Supports a Cause I Believe In',
+       y='Count') + theme(plot.title=element_text(hjust=.5))
+
+productsUsed$overall +
+  labs(title='Products Used in the Past 12 Months',
+       y='Percent Young People Using') +
+  scale_y_continuous(breaks=pretty_breaks(10))
+
+tickKeepDelete <-
+  whichAppDeleteGroup$Frequency$data %>%
+  count(XTRwhich_delete_first) %>%
+  mutate(
+    p=n/sum(n),
+    variable=gsub(' ','',XTRwhich_delete_first)
+    ) %>%
+  select(variable, Delete=p) %>%
+  left_join(
+    productsUsed$overall$data %>%
+      select(variable, ticked=value) %>%
+      mutate(variable=gsub('_','',variable))
+  ) %>%
+  left_join(
+    whichAppKeepGroup$Frequency$data %>%
+      count(XTRwhich_keep_most) %>%
+      mutate(
+        p=n/sum(n),
+        variable=gsub(' ','',XTRwhich_keep_most)
+      ) %>%
+      select(variable, Keep=p)
+  ) %>%
+  filter(ticked>0)
+
+tickKeepDelete.m <-
+  melt(tickKeepDelete,
+     id.vars=c('variable','ticked'),
+     measure.vars = c('Delete','Keep'),
+     variable.name = 'Group')
+
+ggplot(tickKeepDelete.m, aes(x=reorder(variable, -ticked), y=ticked/2)) +
+  geom_bar(stat='identity', alpha=.6, fill='#9e1f63') +
+  geom_bar(aes(y=value, fill=Group), stat='identity', position='stack') +
+  theme(
+    axis.text.x = element_text(angle = 35, hjust = 1),
+    plot.title=element_text(hjust = .5),
+    legend.title=element_blank()) +
+  scale_y_continuous(breaks=pretty_breaks(20)) +
+  labs(title='App Usage and Preference', x='Application',y='Percent Ticked')
 # Social Action Types by Age ----------------------------------------------
 
 p1 <-
