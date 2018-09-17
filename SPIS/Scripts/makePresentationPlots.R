@@ -198,6 +198,114 @@ ggplot(tickKeepDelete.m, aes(x=reorder(variable, -ticked), y=ticked/2)) +
     legend.title=element_blank()) +
   scale_y_continuous(breaks=pretty_breaks(20)) +
   labs(title='App Usage and Preference', x='Application',y='Percent Ticked')
+
+npAware <-
+  bind_rows(
+    tibble(
+      Feature='We.Org',
+      Value=weighted.mean(nonprofitAwareness.WeDotOrg$frequencyPlot$data$outcome,
+                          nonprofitAwareness.WeDotOrg$frequencyPlot$data$count)
+    ),
+    tibble(
+      Feature='DoSomething',
+      Value=weighted.mean(nonprofitAwareness.DoSomething$frequencyPlot$data$outcome,
+                          nonprofitAwareness.DoSomething$frequencyPlot$data$count)
+    ),
+    tibble(
+      Feature='KeyClub',
+      Value=weighted.mean(nonprofitAwareness.KeyClub$frequencyPlot$data$outcome,
+                          nonprofitAwareness.KeyClub$frequencyPlot$data$count)
+    ),
+    tibble(
+      Feature='4H',
+      Value=weighted.mean(nonprofitAwareness.4H$frequencyPlot$data$outcome,
+                          nonprofitAwareness.4H$frequencyPlot$data$count)
+    ),
+    tibble(
+      Feature='Change.Org',
+      Value=weighted.mean(nonprofitAwareness.ChangeDotOrg$frequencyPlot$data$outcome,
+                          nonprofitAwareness.ChangeDotOrg$frequencyPlot$data$count)
+    ),
+    tibble(
+      Feature='DonorsChoose',
+      Value=weighted.mean(nonprofitAwareness.DonorsChoose$frequencyPlot$data$outcome,
+                          nonprofitAwareness.DonorsChoose$frequencyPlot$data$count)
+    )
+  )
+npAware.p <-
+  ggplot(npAware, aes(x=reorder(Feature, -Value), y=Value)) +
+  geom_bar(stat='identity', fill='#6ac6b4') +
+  labs(x='Organization', y='How Aware',
+       title='How Familiar Are You With These Organizations',
+       caption=
+         "Awareness is the average value where -2 is 'Not at all Familiar', 0 is 'Neutral', and 2 is 'Very Familiar'") +
+  theme(plot.title = element_text(hjust=.5))
+
+nonprofitAwareness.DoSomething$frequencyPlot +
+  labs(title='How Familiar Are You With DoSomething.org', y='Count',x='') +
+  theme(plot.title = element_text(hjust = .5))
+
+grid.arrange(
+  nonprofitAwareness.DoSomething$pivotPlot[[3]] + ggtitle('DoSomething') + ylim(c(-1.75,.1)) + theme(plot.title = element_text(hjust=.5)),
+  nonprofitAwareness.4H$pivotPlot[[7]] + ggtitle('4H') + ylim(c(-1.75,.1)) + theme(plot.title = element_text(hjust=.5)),
+  nonprofitAwareness.DonorsChoose$pivotPlot[[4]] + ggtitle('Donors Choose') + ylim(c(-1.75,.1)) + theme(plot.title = element_text(hjust=.5)),
+  nonprofitAwareness.ChangeDotOrg$pivotPlot[[6]] + ggtitle('Change.Org') + ylim(c(-1.75,.1)) + theme(plot.title = element_text(hjust=.5)),
+  nonprofitAwareness.KeyClub$pivotPlot[[4]] + ggtitle('Key Club') + ylim(c(-1.75,.1)) + theme(plot.title = element_text(hjust=.5)),
+  nonprofitAwareness.WeDotOrg$pivotPlot[[5]] + ggtitle('We.Org') + ylim(c(-1.75,.1)) + theme(plot.title = element_text(hjust=.5)),
+  ncol=3, top='How Familiar Are You with These Organizations', bottom='X-Axis is Age, Y-Axis is Familiarity'
+  )
+
+raceSum <-
+  set %>%
+  filter(!is.na(non_profit_awareness.DoSomething_org)) %>%
+  mutate(
+    non_profit_awareness.DoSomething_org =
+      case_when(
+        non_profit_awareness.DoSomething_org == 'Not at all familiar' ~ -2,
+        non_profit_awareness.DoSomething_org == '2' ~ -1,
+        non_profit_awareness.DoSomething_org == '3' ~ 0,
+        non_profit_awareness.DoSomething_org == '4' ~ 1,
+        non_profit_awareness.DoSomething_org == 'Very familiar' ~ 2
+      )
+  ) %>%
+  group_by(race) %>%
+  summarise(avgValue=mean(non_profit_awareness.DoSomething_org))
+
+ggplot(raceSum, aes(x=race, y=avgValue)) +
+  geom_bar(stat='identity', fill='#6ac6b4') +
+  scale_y_continuous(breaks=pretty_breaks(7)) +
+  labs(x='Race',y='Famliarity',title='Familiarity by Race') +
+  theme(plot.title = element_text(hjust=.5))
+
+ggplot(whereSeeDoSomething$overall$data, aes(y=value, x=reorder(variable, -value))) +
+  geom_bar(stat='identity', alpha=.5, fill='#6ac6b4') +
+  geom_text(aes(y=.0025,label=variable), angle=0, size=3, hjust=0) +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust=.5)
+  ) +
+  labs(title='Where Did You See DoSomething', x='',y='Percent Ticked') +
+  coord_flip()
+
+ggplot(howEngageDoSomething$overall$data %>%
+  filter(variable != 'None_of_the_above_I_have_not_engaged_with_DoSomething_org'),
+  aes(y=value, x=reorder(variable, -value))) +
+  geom_bar(stat='identity', alpha=.5, fill='#6ac6b4') +
+  geom_text(aes(y=.0025,label=variable), angle=0, size=3, hjust=0) +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.title = element_text(hjust=.5)
+  ) +
+  labs(title='How Did You Engage with DoSomething', x='',y='Percent Ticked') +
+  coord_flip()
+
+npsBreakdown +
+  geom_text(stat='count',aes(label=..count..), vjust=-.7, size=3) +
+  geom_text(data=tibble(x=9.5,y=145),aes(x=x,y=y, label=percent((69+112)/nrow(npsBreakdown$data)))) +
+  geom_text(data=tibble(x=3,y=145),aes(x=x,y=y, label=percent((14+9+16+26+50+111+106)/nrow(npsBreakdown$data)))) +
+  geom_text(data=tibble(x=7.5,y=145),aes(x=x,y=y, label=percent((132+124)/nrow(npsBreakdown$data))))
 # Social Action Types by Age ----------------------------------------------
 
 p1 <-
