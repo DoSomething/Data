@@ -306,10 +306,141 @@ npsBreakdown +
   geom_text(data=tibble(x=9.5,y=145),aes(x=x,y=y, label=percent((69+112)/nrow(npsBreakdown$data)))) +
   geom_text(data=tibble(x=3,y=145),aes(x=x,y=y, label=percent((14+9+16+26+50+111+106)/nrow(npsBreakdown$data)))) +
   geom_text(data=tibble(x=7.5,y=145),aes(x=x,y=y, label=percent((132+124)/nrow(npsBreakdown$data))))
-# Social Action Types by Age ----------------------------------------------
+
+# Willingness to take action  ----------------------------------------------
+
+
+whenActionsPolitics <-
+  bind_rows(
+    politicalEventsProtests$pivotPlot[[3]]$data %>% mutate(quest='Attended Protest'),
+    takenActionEncouragedOnline$pivotPlot[[5]]$data %>% mutate(quest='Encouraged Others to Take Action Online'),
+    contactedPolitician$pivotPlot[[5]]$data %>% mutate(quest='Contacted Politician'),
+    signedOnlinePetition$pivotPlot[[5]]$data %>% mutate(quest='Signed a Petition Online'),
+    participateVolunteerOrg$pivotPlot[[5]]$data %>% mutate(quest='Participated in Volunteer Org'),
+    startedDiscussionPolitics$pivotPlot[[5]]$data %>% mutate(quest='Started Classroom Political Discussion'),
+    purchasedBrandToSupportIssue$pivotPlot[[4]]$data %>% mutate(quest='Purchased Brand to Support Cause'),
+    boycottedBrandForIssue$pivotPlot[[3]]$data %>% mutate(quest='Boycotted a Brand'),
+    # stoodUpToBullyForSomeone
+    leaderInClub$pivotPlot[[5]]$data %>% mutate(quest='Held Leadership Role in Club'),
+    collectItemsForHomeless$pivotPlot[[4]]$data %>% mutate(quest='Collected Items for Homeless'),
+    researchSocialIssueOutsideSchool$pivotPlot[[4]]$data %>% mutate(quest='Researched Social Issue Outside School'),
+    engagedCompanyToAdvocate$pivotPlot[[3]]$data %>% mutate(quest='Engaged Company to Advocate for Cause'),
+    plannedSocialImpactActivity$pivotPlot[[5]]$data %>% mutate(quest='Planned an Activity for Social Impact'),
+    donateTimeMoneyToCause$pivotPlot[[5]]$data %>% mutate(quest='Donated Time/Money to Cause'),
+    createdPetition$pivotPlot[[2]]$data %>% mutate(quest='Created a Petition'),
+    startedCampaignToSolveProblem$pivotPlot[[3]]$data %>% mutate(quest='Started a Campaign'),
+    beenPartOfCampaign$pivotPlot[[5]]$data %>% mutate(quest='Took Part in a Campaign')
+  ) %>%
+  group_by(quest) %>%
+  mutate(meanVal = mean(avgVal))
+
+
+ggplot(whenActionsPolitics, aes(x=avgVal, y=reorder(quest, -meanVal), color=political_view)) +
+  geom_point() +
+  scale_x_continuous(
+    labels=c('-1'='Unlikely To do','0'='Might Do','1'='Did Long Ago','2'='Done Past Year'),
+    breaks=c(-1,0,1,2), limits=c(-1,2)
+    ) +
+  labs(y='',x='',title='Which of the Following Actions Have You Taken & When?') +
+  scale_colour_brewer(palette = 'RdYlBu',name='Political Views') +
+  theme(plot.title=element_text(hjust=.5))
+
+
+whenActionsGender <-
+  bind_rows(
+    takenActionEncouragedOnline$pivotPlot[[9]]$data %>% mutate(quest='Encouraged Others to Take Action Online'),
+    contactedPolitician$pivotPlot[[10]]$data %>% mutate(quest='Contacted Politician'),
+    signedOnlinePetition$pivotPlot[[10]]$data %>% mutate(quest='Signed a Petition Online'),
+    participateVolunteerOrg$pivotPlot[[12]]$data %>% mutate(quest='Participated in Volunteer Org'),
+    purchasedBrandToSupportIssue$pivotPlot[[9]]$data %>% mutate(quest='Purchased Brand to Support Cause'),
+    boycottedBrandForIssue$pivotPlot[[6]]$data %>% mutate(quest='Boycotted a Brand'),
+    collectItemsForHomeless$pivotPlot[[6]]$data %>% mutate(quest='Collected Items for Homeless'),
+    researchSocialIssueOutsideSchool$pivotPlot[[9]]$data %>% mutate(quest='Researched Social Issue Outside School'),
+    engagedCompanyToAdvocate$pivotPlot[[7]]$data %>% mutate(quest='Engaged Company to Advocate for Cause'),
+    plannedSocialImpactActivity$pivotPlot[[10]]$data %>% mutate(quest='Planned an Activity for Social Impact'),
+    donateTimeMoneyToCause$pivotPlot[[11]]$data %>% mutate(quest='Donated Time/Money to Cause'),
+    createdPetition$pivotPlot[[5]]$data %>% mutate(quest='Created a Petition'),
+    startedCampaignToSolveProblem$pivotPlot[[7]]$data %>% mutate(quest='Started a Campaign'),
+    beenPartOfCampaign$pivotPlot[[9]]$data %>% mutate(quest='Took Part in a Campaign')
+  ) %>%
+  group_by(quest) %>%
+  mutate(meanVal = mean(avgVal)) %>%
+  filter(sex %in% c('Male','Female','Non-binary'))
+
+ggplot(whenActionsGender, aes(x=avgVal, y=reorder(quest, -meanVal), color=sex)) +
+  geom_point() +
+  scale_x_continuous(
+    labels=c('-1'='Unlikely To do','0'='Might Do','1'='Did Long Ago','2'='Done Past Year'),
+    breaks=c(-1,0,1,2), limits=c(-1,2)
+  ) +
+  labs(y='',x='',title='') +
+  scale_colour_brewer(palette = 'Set2',name='Gender')
+
+whenActionsRace <-
+  bind_rows(
+    politicalEventsProtests$pivotPlot[[7]]$data %>% mutate(quest='Attended Protest'),
+    takenActionEncouragedOnline$pivotPlot[[7]]$data %>% mutate(quest='Encouraged Others to Take Action Online'),
+    contactedPolitician$pivotPlot[[8]]$data %>% mutate(quest='Contacted Politician'),
+    signedOnlinePetition$pivotPlot[[8]]$data %>% mutate(quest='Signed a Petition Online'),
+    participateVolunteerOrg$pivotPlot[[9]]$data %>% mutate(quest='Participated in Volunteer Org'),
+    startedDiscussionPolitics$pivotPlot[[8]]$data %>% mutate(quest='Started Classroom Political Discussion'),
+    purchasedBrandToSupportIssue$pivotPlot[[7]]$data %>% mutate(quest='Purchased Brand to Support Cause'),
+    stoodUpToBullyForSomeone$pivotPlot[[4]]$data %>% mutate(quest='Stood Up to a Bully'),
+    engagedCompanyToAdvocate$pivotPlot[[5]]$data %>% mutate(quest='Engaged Company to Advocate for Cause'),
+    plannedSocialImpactActivity$pivotPlot[[8]]$data %>% mutate(quest='Planned an Activity for Social Impact'),
+    donateTimeMoneyToCause$pivotPlot[[8]]$data %>% mutate(quest='Donated Time/Money to Cause')
+  ) %>%
+  group_by(quest) %>%
+  mutate(meanVal = mean(avgVal)) %>%
+  filter(race %in% c('Asian','Black','Hispanic/Latino','White','Multiracial'))
+
+ggplot(whenActionsRace, aes(x=avgVal, y=reorder(quest, -meanVal), color=race)) +
+  geom_point() +
+  scale_x_continuous(
+    labels=c('-1'='Unlikely To do','0'='Might Do','1'='Did Long Ago','2'='Done Past Year'),
+    breaks=c(-1,0,1,2), limits=c(-1,2)
+  ) +
+  labs(y='',x='',title='') +
+  scale_colour_brewer(palette = 'Set2',name='Race')
+
+for (i in 1:length(beenPartOfCampaign$pivotPlot)) {
+  print(paste(i,beenPartOfCampaign$pivotPlot[[i]]$labels$title))
+}
+
+
+whenActionsReligion <-
+  bind_rows(
+    takenActionEncouragedOnline$pivotPlot[[4]]$data %>% mutate(quest='Encouraged Others to Take Action Online'),
+    contactedPolitician$pivotPlot[[4]]$data %>% mutate(quest='Contacted Politician'),
+    signedOnlinePetition$pivotPlot[[4]]$data %>% mutate(quest='Signed a Petition Online'),
+    participateVolunteerOrg$pivotPlot[[4]]$data %>% mutate(quest='Participated in Volunteer Org'),
+    startedDiscussionPolitics$pivotPlot[[4]]$data %>% mutate(quest='Started Classroom Political Discussion'),
+    leaderInClub$pivotPlot[[4]]$data %>% mutate(quest='Held Leadership Role in Club'),
+    collectItemsForHomeless$pivotPlot[[3]]$data %>% mutate(quest='Collected Items for Homeless'),
+    engagedCompanyToAdvocate$pivotPlot[[2]]$data %>% mutate(quest='Engaged Company to Advocate for Cause'),
+    plannedSocialImpactActivity$pivotPlot[[4]]$data %>% mutate(quest='Planned an Activity for Social Impact'),
+    donateTimeMoneyToCause$pivotPlot[[4]]$data %>% mutate(quest='Donated Time/Money to Cause'),
+    startedCampaignToSolveProblem$pivotPlot[[2]]$data %>% mutate(quest='Started a Campaign'),
+    beenPartOfCampaign$pivotPlot[[4]]$data %>% mutate(quest='Took Part in a Campaign')
+  ) %>%
+  group_by(quest) %>%
+  mutate(meanVal = mean(avgVal))
+
+ggplot(whenActionsReligion, aes(x=avgVal, y=reorder(quest, -meanVal), color=attend_religious_services_freq)) +
+  geom_point() +
+  scale_x_continuous(
+    labels=c('-1'='Unlikely To do','0'='Might Do','1'='Did Long Ago','2'='Done Past Year'),
+    breaks=c(-1,0,1,2), limits=c(-1,2)
+  ) +
+  labs(y='',x='',title='') +
+  scale_colour_brewer(palette = 'RdBu',name='Religiosity')
+
+for (i in 1:length(beenPartOfCampaign$pivotPlot)) {
+  print(paste(i,beenPartOfCampaign$pivotPlot[[i]]$labels$title))
+}
 
 p1 <-
-  signedOnlinePetition$pivotPlot[[7]] +
+  signedOnlinePetition$pivotPlot[[9]] +
   geom_bar(aes(x=age,y=avgVal,fill='#6ac6b4'),stat='identity',alpha=.8) +
   geom_smooth(
     aes(x=age, y=avgVal),
@@ -321,7 +452,7 @@ p1 <-
     title='Signing an Online Petition')
 
 p2 <-
-  participateVolunteerOrg$pivotPlot[[9]] +
+  participateVolunteerOrg$pivotPlot[[10]] +
   geom_bar(aes(x=age,y=avgVal,fill='#6ac6b4'),stat='identity',alpha=.8) +
   geom_smooth(
     aes(x=age, y=avgVal),
