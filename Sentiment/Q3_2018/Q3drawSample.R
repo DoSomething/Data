@@ -147,21 +147,20 @@ CrossTable(Signups_month$avg_month_since_signup, Signups_month$sms_only, prop.c=
 #Sample ALL 6 months avg signups from Regular members (25k) because of low signups during Q3 - the other half should have an average signup date in the last 6 months, filter our news signups in the last 2 weeks.
 Signups_Regular_sample <-Signups_Regular%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup <181)
-  saveCSV(select(Signups_Regular_sample, id))
 ggplot(Signups_Regular_sample, aes(x=avg_signup_date)) +
   geom_density() + ggtitle('Regular Signups in last 6 months') +
   scale_x_date(breaks=pretty_breaks(15))
 #Randomly select the remaining half who had avg signup dates that were 6-12 months ago
 Signups_Regular_sample_older <-Signups_Regular%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup>180)%>%
-  sample_n(28000, replace = F)
-saveCSV(select(Signups_Regular_sample_older, id))
+  sample_n(30000, replace = F)
 ggplot(Signups_Regular_sample_older, aes(x=avg_signup_date)) +
   geom_density() + ggtitle('Regular Signups after 6 months') +
   scale_x_date(breaks=pretty_breaks(15))
 
 #Join before 6m and after 6m samples
 Regular_sample <-rbind(Signups_Regular_sample_older,Signups_Regular_sample)
+saveCSV(select(Regular_sample, id))
 #plot these
 ggplot(Regular_sample, aes(x=avg_signup_date)) +
   geom_density() + ggtitle('Regular Signups Invites') +
@@ -185,41 +184,42 @@ SMS_sample_counts <- Regular_sample_counts%>%
 #Randomly select sample sizes from above to match % of Regular invites
 Signups_SMS_sample_2m <-Signups_SMS%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup <61)%>%
-  sample_n(1547, replace = F)
+  sample_n(1536, replace = F)
 Signups_SMS_sample_3m <-Signups_SMS%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup >60 & time_since_avgsignup<91)%>%
-sample_n(1519, replace = F)
+sample_n(1470, replace = F)
 Signups_SMS_sample_4m <-Signups_SMS%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup >90 & time_since_avgsignup<121)%>%
-sample_n(1976, replace = F)
+sample_n(1861, replace = F)
 Signups_SMS_sample_5m <-Signups_SMS%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup >120 & time_since_avgsignup<151)%>%
-sample_n(1148, replace = F)
+sample_n(1101, replace = F)
 Signups_SMS_sample_6m <-Signups_SMS%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup >150 & time_since_avgsignup<181)%>%
-sample_n(3249, replace = F)
+sample_n(3155, replace = F)
 Signups_SMS_sample_7m <-Signups_SMS%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup >180 & time_since_avgsignup<211)%>%
-sample_n(1314, replace = F)
+sample_n(1350, replace = F)
 Signups_SMS_sample_8m <-Signups_SMS%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup >210 & time_since_avgsignup<241)%>%
-sample_n(2064, replace = F)
+sample_n(2172, replace = F)
 Signups_SMS_sample_9m <-Signups_SMS%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup >240 & time_since_avgsignup<271)%>%
-sample_n(1696, replace = F)
+sample_n(1767, replace = F)
 Signups_SMS_sample_10m <-Signups_SMS%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup >270 & time_since_avgsignup<311)%>%
-sample_n(2117, replace = F)
+sample_n(2213, replace = F)
 Signups_SMS_sample_11m <-Signups_SMS%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup >310 & time_since_avgsignup<341)%>%
-sample_n(1513, replace = F)
+sample_n(1484, replace = F)
 Signups_SMS_sample_12m <-Signups_SMS%>%
   filter(first_signup_date < twoweeks & time_since_avgsignup >340)%>%
-sample_n(1850, replace = F)
+sample_n(1887, replace = F)
 
 SMS_sample <-rbind(Signups_SMS_sample_2m,Signups_SMS_sample_3m,Signups_SMS_sample_4m,Signups_SMS_sample_5m,Signups_SMS_sample_6m,
       Signups_SMS_sample_7m,Signups_SMS_sample_8m,Signups_SMS_sample_9m,Signups_SMS_sample_10m,Signups_SMS_sample_11m,
       Signups_SMS_sample_12m)
+saveCSV(select(SMS_sample, id))
 
 #plot these to see if it matches Regular invites
 ggplot(SMS_sample, aes(x=avg_signup_date)) +
