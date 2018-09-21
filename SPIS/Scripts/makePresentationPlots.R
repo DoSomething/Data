@@ -469,3 +469,209 @@ grid.arrange(
   top=textGrob("Comparison of Action Taken by Age",gp=gpar(fontsize=20)),
   bottom="Values range from -2 to 2 with -2 representing 'Would Never Do' and 2 representing 'Done Recently'"
   )
+
+ggplot(issuesTakenAction$overall$data, aes(x=reorder(variable,-value),y=value)) +
+  geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
+  geom_text(aes(label=percent(value)),vjust=-.5,size=2.8) +
+  labs(
+    title='Which Have You Taken Action on in the Past 12 months?',
+    x=paste0('Average # Ticked = ',round(sum(issuesTakenAction$overall$data$value),2)),
+    y='Percent Ticked'
+    ) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1),
+        plot.title = element_text(hjust = .5)) +
+  scale_y_continuous(breaks=pretty_breaks(10))
+
+levs <-
+  c('Very conservative: Avg # Ticked = 2.51', 'Conservative: Avg # Ticked = 2.7',
+    'Moderate: Avg # Ticked = 3.3','Liberal: Avg # Ticked = 4.61',
+    'Very Liberal: Avg # Ticked = 5.63')
+ggplot(issuesTakenAction$pivotPlots$political_view$data, aes(x=reorder(variable, -value), y=value)) +
+  geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
+  geom_text(aes(label=percent(value)),hjust=-.1,size=2) +
+  facet_wrap(~factor(fac_labs,levels = levs), labeller = label_value, ncol=3) +
+  labs(
+    x='',
+    title='',y='Percentage Ticked'
+  ) +
+  theme(plot.title = element_text(hjust = .5)) +
+  scale_y_continuous(breaks=pretty_breaks(6),limits = c(0,.62)) +
+  coord_flip()
+
+ggplot(issuesTakenAction$pivotPlots$sex$data %>%
+         filter(sex %in% c('Male','Female','Non-binary')),
+       aes(x=reorder(variable, -value), y=value)) +
+  geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
+  geom_text(aes(label=percent(value)),hjust=-.1,size=2.6) +
+  facet_wrap(~fac_labs, labeller = label_value, ncol=3) +
+  labs(
+    x='',
+    title='',y='Percentage Ticked'
+  ) +
+  theme(plot.title = element_text(hjust = .5)) +
+  scale_y_continuous(breaks=pretty_breaks(6),limits = c(0,.92)) +
+  coord_flip()
+
+ggplot(issuesTakenAction$pivotPlots$race$data %>%
+         filter(race %in% c('Asian','Black','White','Hispanic/Latino','Multiracial')),
+       aes(x=reorder(variable, -value), y=value)) +
+  geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
+  geom_text(aes(label=percent(value)),hjust=-.1,size=2.3) +
+  facet_wrap(~fac_labs, labeller = label_value, ncol=3) +
+  labs(
+    x='',
+    title='',y='Percentage Ticked'
+  ) +
+  theme(plot.title = element_text(hjust = .5)) +
+  scale_y_continuous(breaks=pretty_breaks(6),limits = c(0,.5)) +
+  coord_flip()
+
+ggplot(issuesTakenAction$pivotPlots$attend_religious_services_freq$data %>%
+         filter(attend_religious_services_freq %in% c('Multiple times a week','Never, agnostic or atheist')),
+       aes(x=reorder(variable, -value), y=value)) +
+  geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
+  geom_text(aes(label=percent(value)),hjust=-.1,size=2.3) +
+  facet_wrap(~fac_labs, labeller = label_value, ncol=2) +
+  labs(
+    x='Which Issues Have You Taken Action On?',
+    title='How Often do You Attend Religious Services ',y='Percentage Ticked'
+  ) +
+  theme(plot.title = element_text(hjust = .5)) +
+  scale_y_continuous(breaks=pretty_breaks(6),limits = c(0,.5)) +
+  coord_flip()
+
+ggplot(volunteerReason$overall$data, aes(x=reorder(variable, -value), y=value)) +
+  geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
+  geom_text(aes(label=percent(value)),hjust=-.1,size=2.8) +
+  labs(x='',title='Why Did You Volunteer?',y='Percentage Ticked') +
+  theme(plot.title = element_text(hjust = .5)) +
+  scale_y_continuous(breaks=pretty_breaks(6),limits = c(0,.75)) +
+  coord_flip()
+
+planVoteIfEligible$groupedPivotPlot[[9]] +
+  geom_text(aes(x=Group,y=avgVal,label=percent(avgVal)),vjust=-.1,size=2.8) +
+  scale_y_continuous(breaks=pretty_breaks(10))
+
+ggplot(voteWhenEligible$frequencyPlot$data,aes(x=outcome,y=count)) +
+  geom_bar(stat='identity',fill='#6ac6b4',width = .8) +
+  geom_text(aes(x=outcome,y=count,label=round(count)),vjust=-.1,size=3.4) +
+  labs(title='Do You Plan to Vote When You Are Eligible', x='',y='') +
+  scale_x_continuous(breaks=c(-1,0,1),labels = c('No','Undecided','Yes')) +
+  theme(plot.title=element_text(hjust=.5))
+
+
+# The Future --------------------------------------------------------------
+
+for (i in 1:length(willOccur.iRunForPublicOffice$pivotPlot)) {
+  print(paste(i,willOccur.iRunForPublicOffice$pivotPlot[[i]]$labels$title))
+}
+
+for (i in 1:length(willOccur.iWillGetRich$pivotPlot)) {
+  print(paste(i,willOccur.iWillGetRich$pivotPlot[[i]]$labels$title))
+}
+
+for (i in 1:length(willOccur.iWillChangeTheWorld$pivotPlot)) {
+  print(paste(i,willOccur.iWillChangeTheWorld$pivotPlot[[i]]$labels$title))
+}
+
+for (i in 1:length(willOccur.iWillLiveLong$pivotPlot)) {
+  print(paste(i,willOccur.iWillLiveLong$pivotPlot[[i]]$labels$title))
+}
+
+for (i in 1:length(willOccur.iWillHaveBetterLifeThanParents$pivotPlot)) {
+  print(paste(i,willOccur.iWillHaveBetterLifeThanParents$pivotPlot[[i]]$labels$title))
+}
+
+#DS Membership
+willOccur.iRunForPublicOffice$groupedPivotPlot[[1]]
+willOccur.iWillChangeTheWorld$groupedPivotPlot[[5]]
+willOccur.iWillLiveLong$groupedPivotPlot[[7]]
+
+whichWillOccur <-
+  bind_rows(
+    willOccur.iRunForPublicOffice$groupedPivotPlot[[1]]$data %>%
+      filter(reportbacks=='Gen Pop') %>%
+      mutate(quest='I Will Run for Public Office'),
+    tibble(quest='I Will Get Rich',
+           avgVal=
+             weighted.mean(willOccur.iWillGetRich$frequencyPlot$data$outcome,
+                           willOccur.iWillGetRich$frequencyPlot$data$count)),
+    willOccur.iWillChangeTheWorld$groupedPivotPlot[[5]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(quest='I Will Change the World'),
+    willOccur.iWillLiveLong$pivotPlot[[7]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(quest='I Will Live a Long Life'),
+    tibble(quest='I Will Have a Better Life than My Parents',
+           avgVal=
+             weighted.mean(willOccur.iWillHaveBetterLifeThanParents$frequencyPlot$data$outcome,
+                           willOccur.iWillHaveBetterLifeThanParents$frequencyPlot$data$count))
+  ) %>% ungroup() %>%
+  select(quest, avgVal)
+
+ggplot(whichWillOccur, aes(x=reorder(quest,-avgVal), y=avgVal)) +
+  geom_bar(stat='identity', fill='#6ac6b4') +
+  geom_text(aes(x=quest,y=avgVal,label=percent(avgVal)),hjust=-.11,size=3.4) +
+  labs(title='Prospects for the Future', x='',y='Percent Yes') +
+  scale_y_continuous(breaks=pretty_breaks(10),limits = c(0,.55)) +
+  theme(
+    plot.title=element_text(hjust=.5)
+    ) +
+  coord_flip()
+
+#Gender
+willOccur.Gender <-
+  bind_rows(
+    willOccur.iRunForPublicOffice$groupedPivotPlot[[7]]$data %>% mutate(quest='I Will Run for Public Office'),
+    willOccur.iWillGetRich$groupedPivotPlot[[4]]$data %>% mutate(quest='I Will Get Rich'),
+    willOccur.iWillChangeTheWorld$groupedPivotPlot[[4]]$data %>% mutate(quest='I Will Change the World'),
+    willOccur.iWillLiveLong$groupedPivotPlot[[6]]$data %>% mutate(quest='I Will Live a Long Life')
+  ) %>%
+  filter(sex %in% c('Male','Female','Non-binary')) %>%
+  group_by(quest) %>%
+  mutate(meanVal=mean(avgVal))
+
+ggplot(willOccur.Gender, aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=sex), size=2) +
+  facet_wrap(~Group) +
+  labs(title='Which of the Following Will Occur?',x='Percent Yes',y='') +
+  scale_colour_brewer(palette = 'Set2') +
+  scale_x_continuous(breaks=pretty_breaks(10)) +
+  guides(colour=guide_legend(title="Gender")) +
+  theme(plot.title=element_text(hjust=.5))
+
+#Politics
+willOccur.iRunForPublicOffice$groupedPivotPlot[[4]]
+willOccur.iWillChangeTheWorld$groupedPivotPlot[[3]]
+willOccur.iWillLiveLong$groupedPivotPlot[[4]]
+
+willOccur.Politics <-
+  bind_rows(
+    willOccur.iRunForPublicOffice$groupedPivotPlot[[4]]$data %>% mutate(quest='I Will Run for Public Office'),
+    willOccur.iWillChangeTheWorld$groupedPivotPlot[[3]]$data %>% mutate(quest='I Will Change the World'),
+    willOccur.iWillLiveLong$groupedPivotPlot[[4]]$data %>% mutate(quest='I Will Live a Long Life')
+  ) %>%
+  group_by(quest) %>%
+  mutate(meanVal=mean(avgVal))
+
+ggplot(
+  willOccur.iRunForPublicOffice$groupedPivotPlot[[4]]$data,
+  aes(x=political_view, y=avgVal, fill=Group)
+  ) +
+  geom_bar(stat='identity', position='dodge',alpha=.8) +
+  geom_smooth(method='lm', aes(group=Group, colour=Group), se=F, linetype='dashed') +
+  labs(title='I Will Run For Public Office', y='Percent Yes',x='') +
+  scale_color_brewer(palette = 'Set2') +
+  scale_fill_brewer(palette = 'Set2') +
+  theme(plot.title = element_text(hjust=.5)) +
+  scale_y_continuous(breaks=pretty_breaks(8))
+
+
+ggplot(willOccur.Politics, aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=political_view), size=2) +
+  facet_wrap(~Group) +
+  labs(title='Which of the Following Will Occur?',x='Percent Yes',y='') +
+  scale_colour_brewer(palette = 'Set2') +
+  scale_x_continuous(breaks=pretty_breaks(10)) +
+  guides(colour=guide_legend(title="Political Views")) +
+  theme(plot.title=element_text(hjust=.5))
