@@ -675,3 +675,705 @@ ggplot(willOccur.Politics, aes(x=avgVal, y=reorder(quest,-meanVal))) +
   scale_x_continuous(breaks=pretty_breaks(10)) +
   guides(colour=guide_legend(title="Political Views")) +
   theme(plot.title=element_text(hjust=.5))
+
+# Top Issues --------------------------------------------------------------
+
+issuesOvr <-
+  bind_rows(
+    topIssues.Terrorism$groupedPivotPlot[[9]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Terrorism'),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.Education$frequencyPlot$data$outcome,
+        topIssues.Education$frequencyPlot$data$count),
+      Group='Education'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.RacialJustice$frequencyPlot$data$outcome,
+        topIssues.RacialJustice$frequencyPlot$data$count),
+      Group='Racial Justice'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.Immigration$frequencyPlot$data$outcome,
+        topIssues.Immigration$frequencyPlot$data$count),
+      Group='Immigration'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.ClimateChange$frequencyPlot$data$outcome,
+        topIssues.ClimateChange$frequencyPlot$data$count),
+      Group='Climate Change'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.GenderEquality$frequencyPlot$data$outcome,
+        topIssues.GenderEquality$frequencyPlot$data$count),
+      Group='Gender Equality'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.Crime$frequencyPlot$data$outcome,
+        topIssues.Crime$frequencyPlot$data$count),
+      Group='Crime'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.Poverty$frequencyPlot$data$outcome,
+        topIssues.Poverty$frequencyPlot$data$count),
+      Group='Poverty'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.IncomeInequality$frequencyPlot$data$outcome,
+        topIssues.IncomeInequality$frequencyPlot$data$count),
+      Group='Income Inequality'
+    ),
+    topIssues.Jobs$groupedPivotPlot[[8]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Jobs'),
+    topIssues.Military$groupedPivotPlot[[8]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Military'),
+    topIssues.CountryDebt$groupedPivotPlot[[11]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Federal Debt'),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.AccessHealthcare$frequencyPlot$data$outcome,
+        topIssues.AccessHealthcare$frequencyPlot$data$count),
+      Group='Access to Healthcare'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.CostsHealthcare$frequencyPlot$data$outcome,
+        topIssues.CostsHealthcare$frequencyPlot$data$count),
+      Group='Costs of Healthcare'
+    ),
+    topIssues.Economy$groupedPivotPlot[[7]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Economy'),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.CollegeAffordability$frequencyPlot$data$outcome,
+        topIssues.CollegeAffordability$frequencyPlot$data$count),
+      Group='College Affordability'
+    ),
+    topIssues.TaxPolicy$groupedPivotPlot[[8]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Tax Poliicy'),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.CriminalJusticeReform$frequencyPlot$data$outcome,
+        topIssues.CriminalJusticeReform$frequencyPlot$data$count),
+      Group='Criminal Justice Reform'
+    ),
+    topIssues.GunPolicy$groupedPivotPlot[[9]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Gun Policy'),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.Environment$frequencyPlot$data$outcome,
+        topIssues.Environment$frequencyPlot$data$count),
+      Group='The Environment'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        topIssues.ReligiousIntolerance$frequencyPlot$data$outcome,
+        topIssues.ReligiousIntolerance$frequencyPlot$data$count),
+      Group='Religious Intolerance'
+    ),
+    topIssues.DrugOverdoses$groupedPivotPlot[[9]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Drug Overdoses')
+  )
+
+for (i in 1:length(topIssues.DrugOverdoses$pivotPlot)) {
+  print(paste(i,topIssues.DrugOverdoses$pivotPlot[[i]]$labels$title))
+}
+
+ggplot(issuesOvr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
+  geom_bar(stat='identity', fill='#6ac6b4') +
+  geom_text(aes(x=Group,y=avgVal,label=round(avgVal,2)),hjust=-.11,size=3.4) +
+  labs(title='Which of these Issues are Most Important, in Order?',
+       x='',y='Average Importance Rank') +
+  scale_y_continuous(breaks=seq(0,6,1),limits = c(0,6),labels = c('','1st','2nd','3rd','4th','5th','Not Top 5')) +
+  theme(
+    plot.title=element_text(hjust=.5)
+  ) +
+  coord_flip()
+
+issues <- apropos('^topIssues')
+for (j in 1:length(issues)) {
+  for (i in 1:length(get(issues[j])$pivotPlot)) {
+    if (grepl('sex',paste(issues[j],i,get(issues[j])$pivotPlot[[i]]$labels$title))) {
+      print(paste(issues[j],i,get(issues[j])$pivotPlot[[i]]$labels$title))
+    }
+  }
+}
+
+c('political_view','sex')
+
+# political view
+topIssues.AccessHealthcare$groupedPivotPlot[[4]]$data %>% mutate()
+topIssues.ClimateChange$groupedPivotPlot[[3]]$data %>% mutate()
+topIssues.CollegeAffordability$groupedPivotPlot[[3]]$data %>% mutate()
+topIssues.CountryDebt$groupedPivotPlot[[5]]$data %>% mutate()
+topIssues.Crime$groupedPivotPlot[[4]]$data %>% mutate()
+topIssues.CriminalJusticeReform$groupedPivotPlot[[3]]$data %>% mutate()
+topIssues.DrugOverdoses$groupedPivotPlot[[4]]$data %>% mutate()
+topIssues.Economy$groupedPivotPlot[[4]]$data %>% mutate()
+topIssues.Education$groupedPivotPlot[[2]]$data %>% mutate()
+topIssues.Environment$groupedPivotPlot[[2]]$data %>% mutate()
+topIssues.GenderEquality$groupedPivotPlot[[3]]$data %>% mutate()
+topIssues.GunPolicy$groupedPivotPlot[[3]]$data %>% mutate()
+topIssues.Immigration$groupedPivotPlot[[3]]$data %>% mutate()
+topIssues.IncomeInequality$groupedPivotPlot[[2]]$data %>% mutate()
+topIssues.Jobs$groupedPivotPlot[[4]]$data %>% mutate()
+topIssues.Military$groupedPivotPlot[[5]]$data %>% mutate()
+topIssues.Poverty$groupedPivotPlot[[3]]$data %>% mutate()
+topIssues.RacialJustice$groupedPivotPlot[[1]]$data %>% mutate()
+# topIssues.ReligiousIntolerance$groupedPivotPlot[[2]]
+topIssues.TaxPolicy$groupedPivotPlot[[4]]$data %>% mutate()
+topIssues.Terrorism$groupedPivotPlot[[4]]$data %>% mutate()
+
+topIssues.Politics <-
+  bind_rows(
+    topIssues.AccessHealthcare$groupedPivotPlot[[4]]$data %>% mutate(quest='Access to Healthcare'),
+    topIssues.ClimateChange$groupedPivotPlot[[3]]$data %>% mutate(quest='Climate Change'),
+    topIssues.CollegeAffordability$groupedPivotPlot[[3]]$data %>% mutate(quest='College Affordability'),
+    topIssues.CountryDebt$groupedPivotPlot[[5]]$data %>% mutate(quest='Federal Debt'),
+    topIssues.Crime$groupedPivotPlot[[4]]$data %>% mutate(quest='Crime'),
+    topIssues.CriminalJusticeReform$groupedPivotPlot[[3]]$data %>% mutate(quest='Criminal Justice Reform'),
+    topIssues.DrugOverdoses$groupedPivotPlot[[4]]$data %>% mutate(quest='Drug Overdose'),
+    topIssues.Economy$groupedPivotPlot[[4]]$data %>% mutate(quest='Economy'),
+    topIssues.Education$groupedPivotPlot[[2]]$data %>% mutate(quest='Education'),
+    topIssues.Environment$groupedPivotPlot[[2]]$data %>% mutate(quest='The Environment'),
+    topIssues.GenderEquality$groupedPivotPlot[[3]]$data %>% mutate(quest='Gender Equality'),
+    topIssues.GunPolicy$groupedPivotPlot[[3]]$data %>% mutate(quest='Gun Policy'),
+    topIssues.Immigration$groupedPivotPlot[[3]]$data %>% mutate(quest='Immigration'),
+    topIssues.IncomeInequality$groupedPivotPlot[[2]]$data %>% mutate(quest='Income Inequality'),
+    topIssues.Jobs$groupedPivotPlot[[4]]$data %>% mutate(quest='Jobs'),
+    topIssues.Military$groupedPivotPlot[[5]]$data %>% mutate(quest='Military'),
+    topIssues.Poverty$groupedPivotPlot[[3]]$data %>% mutate(quest='Poverty'),
+    topIssues.RacialJustice$groupedPivotPlot[[1]]$data %>% mutate(quest='Racial Justice'),
+    topIssues.TaxPolicy$groupedPivotPlot[[4]]$data %>% mutate(quest='Tax Policy'),
+    topIssues.Terrorism$groupedPivotPlot[[4]]$data %>% mutate(quest='Terrorism')) %>%
+  group_by(quest) %>%
+  mutate(meanVal=mean(avgVal))
+
+ggplot(topIssues.Politics, aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=political_view), size=2) +
+  facet_wrap(~Group) +
+  labs(title='Which of these Issues are Most Important, in Order?',
+       x='Average Rank - Smaller Number Means Greater Importance',y='') +
+  scale_colour_brewer(palette = 'RdYlBu') +
+  scale_x_continuous(breaks=pretty_breaks(8)) +
+  guides(colour=guide_legend(title="Political Views")) +
+  theme(plot.title=element_text(hjust=.5))
+
+# gender
+
+topIssues.Gender <-
+  bind_rows(
+    topIssues.AccessHealthcare$groupedPivotPlot[[8]]$data %>% mutate(quest='Access to Healthcare'),
+    topIssues.CollegeAffordability$groupedPivotPlot[[7]]$data %>% mutate(quest='College Affordability'),
+    topIssues.CountryDebt$groupedPivotPlot[[10]]$data %>% mutate(quest='Federal Debt'),
+    topIssues.Education$groupedPivotPlot[[5]]$data %>% mutate(quest='Education'),
+    topIssues.GenderEquality$groupedPivotPlot[[7]]$data %>% mutate(quest='Gender Equality'),
+    topIssues.Jobs$groupedPivotPlot[[7]]$data %>% mutate(quest='Jobs'),
+    topIssues.RacialJustice$groupedPivotPlot[[4]]$data %>% mutate(quest='Racial Justice'),
+    topIssues.Terrorism$groupedPivotPlot[[8]]$data %>% mutate(quest='Terrorism')) %>%
+  group_by(quest) %>%
+  mutate(meanVal=mean(avgVal)) %>%
+  filter(sex %in% c('Male','Female','Non-binary'))
+
+ggplot(topIssues.Gender, aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=sex), size=2) +
+  facet_wrap(~Group) +
+  labs(title='Which of these Issues are Most Important, in Order?',
+       x='Average Rank - Smaller Number Means Greater Importance',y='') +
+  scale_colour_brewer(palette = 'Set2') +
+  scale_x_continuous(breaks=pretty_breaks(8)) +
+  guides(colour=guide_legend(title="Gender")) +
+  theme(plot.title=element_text(hjust=.5))
+
+
+# Cause Importance --------------------------------------------------------
+
+causes <- apropos('^causeImportance')
+checkThis <- 'Group'
+for (j in 1:length(causes)) {
+  for (i in 1:length(get(causes[j])$pivotPlot)) {
+    if (grepl(checkThis,paste(causes[j],i,get(causes[j])$pivotPlot[[i]]$labels$title))) {
+      print(paste(causes[j],i,get(causes[j])$pivotPlot[[i]]$labels$title))
+    }
+  }
+}
+
+causeImportance.Ovr <-
+  bind_rows(
+    causeImportance.DisasterRelief$groupedPivotPlot[[3]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Disaster Relief'),
+    tibble(
+      avgVal=weighted.mean(
+        causeImportance.AnimalWelfare$frequencyPlot$data$outcome,
+        causeImportance.AnimalWelfare$frequencyPlot$data$count),
+      Group='Animal Welfare'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        causeImportance.Bullying$frequencyPlot$data$outcome,
+        causeImportance.Bullying$frequencyPlot$data$count),
+      Group='Bullying'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        causeImportance.Environment$frequencyPlot$data$outcome,
+        causeImportance.Environment$frequencyPlot$data$count),
+      Group='The Environment'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        causeImportance.HomelessnessPoverty$frequencyPlot$data$outcome,
+        causeImportance.HomelessnessPoverty$frequencyPlot$data$count),
+      Group='Homelessness/Poverty'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        causeImportance.Immigration$frequencyPlot$data$outcome,
+        causeImportance.Immigration$frequencyPlot$data$count),
+      Group='Immigration'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        causeImportance.IncomeInequality$frequencyPlot$data$outcome,
+        causeImportance.IncomeInequality$frequencyPlot$data$count),
+      Group='Income Inequality'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        causeImportance.LGBTQRight$frequencyPlot$data$outcome,
+        causeImportance.LGBTQRight$frequencyPlot$data$count),
+      Group='LGBTQ Rights'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        causeImportance.Mental_Health$frequencyPlot$data$outcome,
+        causeImportance.Mental_Health$frequencyPlot$data$count),
+      Group='Mental Health'
+    ),
+    causeImportance.GenderEquality$groupedPivotPlot[[9]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Gender Equality'),
+    causeImportance.GunViolence$groupedPivotPlot[[9]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Gun Violence'),
+    causeImportance.RacialEquality$groupedPivotPlot[[10]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Racial Equality'),
+    tibble(
+      avgVal=weighted.mean(
+        causeImportance.SexualHarrassmentAssault$frequencyPlot$data$outcome,
+        causeImportance.SexualHarrassmentAssault$frequencyPlot$data$count),
+      Group='Sexual Harrassment/Assault'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        causeImportance.VoterReg$frequencyPlot$data$outcome,
+        causeImportance.VoterReg$frequencyPlot$data$count),
+      Group='Voter Registration'
+    )
+  )
+
+ggplot(causeImportance.Ovr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
+  geom_bar(stat='identity', fill='#6ac6b4') +
+  geom_text(aes(x=Group,y=avgVal,label=round(avgVal,2)),hjust=-.11,size=3.4) +
+  labs(title='How Important are Each of These Causes To You?', #TODO: Check language
+       x='',y='Average Response') +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),limits = c(-2,2.2),
+    labels = c('Not at all important','Not Important','Neutral',
+               'Somewhat Important','Very Important')) +
+  theme(
+    plot.title=element_text(hjust=.5)
+  ) +
+  coord_flip()
+
+for (j in 1:length(causes)) {
+  for (i in 1:length(get(causes[j])$pivotPlot)) {
+    print(paste(causes[j],i,get(causes[j])$pivotPlot[[i]]$labels$title))
+  }
+}
+
+# political view
+
+checkThis <- 'political_view'
+for (j in 1:length(causes)) {
+  for (i in 1:length(get(causes[j])$pivotPlot)) {
+    if (grepl(checkThis,paste(causes[j],i,get(causes[j])$pivotPlot[[i]]$labels$title))) {
+      print(paste(causes[j],i,get(causes[j])$pivotPlot[[i]]$labels$title))
+    }
+  }
+}
+
+causeImport.Politics <-
+  bind_rows(
+    causeImportance.AnimalWelfare$groupedPivotPlot[[2]]$data %>% mutate(quest='Animal Welfare'),
+    causeImportance.Bullying$groupedPivotPlot[[3]]$data %>% mutate(quest='Bullying'),
+    causeImportance.Environment$groupedPivotPlot[[4]]$data %>% mutate(quest='The Environment'),
+    causeImportance.GenderEquality$groupedPivotPlot[[4]]$data %>% mutate(quest='Gender Equality'),
+    causeImportance.GunViolence$groupedPivotPlot[[4]]$data %>% mutate(quest='Gun Violence'),
+    causeImportance.HomelessnessPoverty$groupedPivotPlot[[2]]$data %>% mutate(quest='Homelessness/Poverty'),
+    causeImportance.Immigration$groupedPivotPlot[[1]]$data %>% mutate(quest='Immigration'),
+    causeImportance.IncomeInequality$groupedPivotPlot[[2]]$data %>% mutate(quest='Income Inequality'),
+    causeImportance.LGBTQRight$groupedPivotPlot[[5]]$data %>% mutate(quest='LGBTQ Rights'),
+    causeImportance.Mental_Health$groupedPivotPlot[[3]]$data %>% mutate(quest='Mental Health'),
+    causeImportance.RacialEquality$groupedPivotPlot[[5]]$data %>% mutate(quest='Racial Equality'),
+    causeImportance.SexualHarrassmentAssault$groupedPivotPlot[[3]]$data %>% mutate(quest='Sexual Harrassment/Assault'),
+    causeImportance.VoterReg$groupedPivotPlot[[3]]$data %>% mutate(quest='Voter Registration')
+  ) %>%
+  group_by(quest) %>%
+  mutate(meanVal=mean(avgVal)) %>% ungroup() %>%
+  group_by(Group) %>% mutate(meanBygroup=mean(avgVal))
+
+ggplot(causeImport.Politics, aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=political_view), size=2) +
+  facet_wrap(~Group) +
+  labs(title='How Important are Each of These Causes?',
+       x='Level of Importance',y='') +
+  scale_colour_brewer(palette = 'RdYlBu') +
+  scale_x_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels = c('Not at all important','Not Important','Neutral',
+                                'Somewhat Important','Very Important')) +
+  guides(colour=guide_legend(title="Political Views")) +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1))
+
+# gender
+checkThis <- 'sex'
+for (j in 1:length(causes)) {
+  for (i in 1:length(get(causes[j])$pivotPlot)) {
+    if (grepl(checkThis,paste(causes[j],i,get(causes[j])$pivotPlot[[i]]$labels$title))) {
+      print(paste(causes[j],i,get(causes[j])$pivotPlot[[i]]$labels$title))
+    }
+  }
+}
+
+causeImport.Gender <-
+  bind_rows(
+    causeImportance.AnimalWelfare$groupedPivotPlot[[6]]$data %>% mutate(quest='Animal Welfare'),
+    causeImportance.Bullying$groupedPivotPlot[[5]]$data %>% mutate(quest='Bullying'),
+    causeImportance.GenderEquality$groupedPivotPlot[[8]]$data %>% mutate(quest='Gender Equality'),
+    causeImportance.GunViolence$groupedPivotPlot[[8]]$data %>% mutate(quest='Gun Violence'),
+    causeImportance.HomelessnessPoverty$groupedPivotPlot[[7]]$data %>% mutate(quest='Homelessness/Poverty'),
+    causeImportance.Immigration$groupedPivotPlot[[5]]$data %>% mutate(quest='Immigration'),
+    causeImportance.IncomeInequality$groupedPivotPlot[[7]]$data %>% mutate(quest='Income Inequality'),
+    causeImportance.LGBTQRight$groupedPivotPlot[[9]]$data %>% mutate(quest='LGBTQ Rights'),
+    causeImportance.Mental_Health$groupedPivotPlot[[6]]$data %>% mutate(quest='Mental Health'),
+    causeImportance.RacialEquality$groupedPivotPlot[[9]]$data %>% mutate(quest='Racial Equality'),
+    causeImportance.SexualHarrassmentAssault$groupedPivotPlot[[6]]$data %>% mutate(quest='Sexual Harrassment/Assault')
+  ) %>%
+  group_by(quest) %>%
+  mutate(meanVal=mean(avgVal)) %>% ungroup() %>%
+  group_by(Group) %>% mutate(meanBygroup=mean(avgVal)) %>%
+  filter(sex %in% c('Male','Female','Non-binary'))
+
+ggplot(causeImport.Gender, aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=sex), size=2) +
+  facet_wrap(~Group) +
+  labs(title='How Important are Each of These Causes?',
+       x='Level of Importance',y='') +
+  scale_colour_brewer(palette = 'Set2') +
+  scale_x_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels = c('Not at all important','Not Important','Neutral',
+                                'Somewhat Important','Very Important')) +
+  guides(colour=guide_legend(title="Political Views")) +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1))
+
+# race
+
+causeImport.Race <-
+  bind_rows(
+    causeImportance.AnimalWelfare$groupedPivotPlot[[4]]$data %>% mutate(quest='Animal Welfare'),
+    causeImportance.Environment$groupedPivotPlot[[6]]$data %>% mutate(quest='The Environment'),
+    causeImportance.GenderEquality$groupedPivotPlot[[6]]$data %>% mutate(quest='Gender Equality'),
+    causeImportance.GunViolence$groupedPivotPlot[[6]]$data %>% mutate(quest='Gun Violence'),
+    causeImportance.HomelessnessPoverty$groupedPivotPlot[[4]]$data %>% mutate(quest='Homelessness/Poverty'),
+    causeImportance.Immigration$groupedPivotPlot[[3]]$data %>% mutate(quest='Immigration'),
+    causeImportance.IncomeInequality$groupedPivotPlot[[5]]$data %>% mutate(quest='Income Inequality'),
+    causeImportance.LGBTQRight$groupedPivotPlot[[7]]$data %>% mutate(quest='LGBTQ Rights'),
+    causeImportance.RacialEquality$groupedPivotPlot[[7]]$data %>% mutate(quest='Racial Equality'),
+    causeImportance.VoterReg$groupedPivotPlot[[5]]$data %>% mutate(quest='Voter Registration')
+  ) %>%
+  group_by(quest) %>%
+  mutate(meanVal=mean(avgVal)) %>% ungroup() %>%
+  group_by(Group) %>% mutate(meanBygroup=mean(avgVal)) %>%
+  filter(race %in% c('Asian','Black','Hispanic/Latino','White','Multiracial'))
+
+ggplot(causeImport.Race, aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=race), size=2) +
+  facet_wrap(~Group) +
+  labs(title='How Important are Each of These Causes?',
+       x='Level of Importance',y='') +
+  scale_colour_brewer(palette = 'Set2') +
+  scale_x_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels = c('Not at all important','Not Important','Neutral',
+                                'Somewhat Important','Very Important')) +
+  guides(colour=guide_legend(title="Political Views")) +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1))
+
+
+# Agree Position ----------------------------------------------------------
+
+
+positions <- apropos('^agreePosition.')
+for (j in 1:length(positions)) {
+  for (i in 1:length(get(positions[j])$pivotPlot)) {
+    print(paste(positions[j],i,get(positions[j])$pivotPlot[[i]]$labels$title))
+  }
+}
+checkThis <- 'Group'
+for (j in 1:length(positions)) {
+  for (i in 1:length(get(positions[j])$pivotPlot)) {
+    if (grepl(checkThis,paste(positions[j],i,get(positions[j])$pivotPlot[[i]]$labels$title))) {
+      print(paste(positions[j],i,get(positions[j])$pivotPlot[[i]]$labels$title))
+    }
+  }
+}
+
+# [1] "agreePosition.BackgroundChecksForGuns 10 Group"
+# [1] "agreePosition.BuildTheWall 10 Group"
+# [1] "agreePosition.ClimateChangeHappening 10 Group"
+# [1] "agreePosition.MuslimsDontNeedCloseTabs 9 Group"
+# [1] "agreePosition.RacismNotIssue 10 Group"
+# [1] "agreePosition.UndocumentedImmigrantsPathCitizenship 10 Group"
+# [1] "agreePosition.WomenExperienceWorkplaceDiscrimination 11 Group"
+
+agreePositions.Ovr <-
+  bind_rows(
+    agreePosition.BackgroundChecksForGuns$groupedPivotPlot[[10]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Background Checks are Needed for All Guns'),
+    tibble(
+      avgVal=weighted.mean(
+        agreePosition.DrugsProblemInCommunity$frequencyPlot$data$outcome,
+        agreePosition.DrugsProblemInCommunity$frequencyPlot$data$count),
+      Group='Drugs are Problem in My Community'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        agreePosition.GovernmentProvideHealthcare$frequencyPlot$data$outcome,
+        agreePosition.GovernmentProvideHealthcare$frequencyPlot$data$count),
+      Group='Government Should Provide All Healthcare'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        agreePosition.iTrustPoliceMyCommunity$frequencyPlot$data$outcome,
+        agreePosition.iTrustPoliceMyCommunity$frequencyPlot$data$count),
+      Group='I Trust Police in My Community'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        agreePosition.OnlyTwoGenders$frequencyPlot$data$outcome,
+        agreePosition.OnlyTwoGenders$frequencyPlot$data$count),
+      Group='There are Only Two Genders'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        agreePosition.SexualHarrasmentSignOffSocietalIssue$frequencyPlot$data$outcome,
+        agreePosition.SexualHarrasmentSignOffSocietalIssue$frequencyPlot$data$count),
+      Group='Sexual Harrasment is a Sign of Societal Issues'
+    ),
+    agreePosition.BuildTheWall$groupedPivotPlot[[10]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Need Wall on Mexican Border'),
+    agreePosition.ClimateChangeHappening$groupedPivotPlot[[10]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Climate Change is Man Made'),
+    agreePosition.MuslimsDontNeedCloseTabs$groupedPivotPlot[[9]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Muslims Dont Need Additional Scrutiny'),
+    agreePosition.RacismNotIssue$groupedPivotPlot[[10]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Racism is No Longer an Issue'),
+    agreePosition.UndocumentedImmigrantsPathCitizenship$groupedPivotPlot[[10]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Undocumented Immigrants Should Have Path to Citizenship'),
+    agreePosition.WomenExperienceWorkplaceDiscrimination$groupedPivotPlot[[11]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Women Experience Discrimination in Workplace'),
+    tibble(
+      avgVal=weighted.mean(
+        agreePosition.WeedLawsTooStrict$frequencyPlot$data$outcome,
+        agreePosition.WeedLawsTooStrict$frequencyPlot$data$count),
+      Group='Marijuana Laws are Too Strict'
+    )
+  )
+
+ggplot(agreePositions.Ovr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
+  geom_bar(stat='identity', fill='#6ac6b4') +
+  geom_text(aes(x=Group,y=avgVal,label=round(avgVal,2)),size=3.4,hjust=-.11) +
+  labs(title='Do You Agree With the Following Positions?', #TODO: Check language
+       x='',y='Average Response') +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),limits = c(-2,2.2),
+    labels = c('Strongly Disagree','Disagree','Neutral',
+               'Agree','Strongly Agree')) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 30)) +
+  theme(
+    plot.title=element_text(hjust=.5)#,
+    # axis.text.x = element_text(angle=0,hjust=1)
+  ) + coord_flip()
+
+# Background checks
+
+gunsPolitics <-
+  ggplot(agreePosition.BackgroundChecksForGuns$groupedPivotPlot[[4]]$data,
+       aes(x=political_view, y=avgVal, fill=Group)) +
+  geom_bar(stat='identity', position='dodge',alpha=.8) +
+  geom_smooth(method='lm', aes(group=Group, colour=Group), se=F, linetype='dashed') +
+  labs(title='Background Checks are Needed for All Guns', y='',x='') +
+  scale_color_brewer(palette = 'Set2') +
+  scale_fill_brewer(palette = 'Set2') +
+  theme(plot.title = element_text(hjust=.5)) +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),limits = c(-2,2.2),
+    labels = c('Strongly Disagree','Disagree','Neutral',
+               'Agree','Strongly Agree'))
+
+checkThis <- 'political_view'
+for (j in 1:length(positions)) {
+  for (i in 1:length(get(positions[j])$pivotPlot)) {
+    if (grepl(checkThis,paste(positions[j],i,get(positions[j])$pivotPlot[[i]]$labels$title))) {
+      print(paste(positions[j],i,get(positions[j])$pivotPlot[[i]]$labels$title))
+    }
+  }
+}
+
+agreePosition.Politics <-
+  bind_rows(
+    agreePosition.BackgroundChecksForGuns$groupedPivotPlot[[4]]$data %>% mutate(quest='Background Checks are Needed for All Guns'),
+    agreePosition.BuildTheWall$groupedPivotPlot[[5]]$data %>% mutate(quest='Need Wall on Mexican Border'),
+    agreePosition.ClimateChangeHappening$groupedPivotPlot[[5]]$data %>% mutate(quest='Climate Change is Man Made'),
+    agreePosition.GovernmentProvideHealthcare$groupedPivotPlot[[4]]$data %>% mutate(quest='Government Should Provide All Healthcare'),
+    agreePosition.iTrustPoliceMyCommunity$groupedPivotPlot[[4]]$data %>% mutate(quest='I Trust Police in My Community'),
+    agreePosition.MuslimsDontNeedCloseTabs$groupedPivotPlot[[5]]$data %>% mutate(quest='Muslims Dont Need Additional Scrutiny'),
+    agreePosition.OnlyTwoGenders$groupedPivotPlot[[4]]$data %>% mutate(quest='There are Only Two Genders'),
+    agreePosition.RacismNotIssue$groupedPivotPlot[[5]]$data %>% mutate(quest='Racism is No Longer an Issue'),
+    agreePosition.SexualHarrasmentSignOffSocietalIssue$groupedPivotPlot[[3]]$data %>% mutate(quest='Sexual Harrasment is a Sign of Societal Issues'),
+    agreePosition.UndocumentedImmigrantsPathCitizenship$groupedPivotPlot[[5]]$data %>% mutate(quest='Undocumented Immigrants Should Have Path to Citizenship'),
+    agreePosition.WeedLawsTooStrict$groupedPivotPlot[[4]]$data %>% mutate(quest='Marijuana Laws are Too Strict'),
+    agreePosition.WomenExperienceWorkplaceDiscrimination$groupedPivotPlot[[4]]$data %>% mutate(quest='Women Experience Discrimination in Workplace')
+  ) %>%
+  group_by(quest) %>%
+  mutate(meanVal=mean(avgVal)) %>% ungroup() %>%
+  group_by(Group) %>% mutate(meanBygroup=mean(avgVal))
+
+ggplot(agreePosition.Politics, aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=political_view), size=2) +
+  facet_wrap(~Group) +
+  labs(title='How Much Do You Agree With the Following Positions',
+       x='',y='') +
+  scale_colour_brewer(palette = 'RdYlBu') +
+  scale_x_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels =c('Strongly Disagree','Disagree','Neutral',
+                               'Agree','Strongly Agree')) +
+  scale_y_discrete(labels = function(x) str_wrap(x, width = 30)) +
+  guides(colour=guide_legend(title="Political Views")) +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1))
+
+
+ggplot(agreePosition.SexualHarrasmentSignOffSocietalIssue$groupedPivotPlot[[5]]$data,
+       aes(x=age, y=avgVal, fill=Group)) +
+  geom_bar(stat='identity', position='dodge',alpha=.8) +
+  geom_smooth(method='lm', aes(group=Group, colour=Group), se=F, linetype='dashed') +
+  labs(title='Sexual Harrasment is a Sign of Societal Issues', y='',x='') +
+  scale_color_brewer(palette = 'Set2') +
+  scale_fill_brewer(palette = 'Set2') +
+  theme(plot.title = element_text(hjust=.5)) +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),limits = c(-2,2.2),
+    labels = c('Strongly Disagree','Disagree','Neutral',
+               'Agree','Strongly Agree'))
+
+bind_rows(
+  agreePosition.iTrustPoliceMyCommunity$groupedPivotPlot[[6]]$data,
+  agreePosition.iTrustPoliceMyCommunity$groupedPivotPlot[[7]]$data,
+  agreePosition.iTrustPoliceMyCommunity$groupedPivotPlot[[8]]$data,
+  agreePosition.iTrustPoliceMyCommunity$groupedPivotPlot[[11]]$data
+)
+
+policeEdu <-
+  ggplot(agreePosition.iTrustPoliceMyCommunity$groupedPivotPlot[[6]]$data %>%
+           filter(Group=='Gen Pop'),
+         aes(x=parental_education, y=avgVal, fill='#6ac6b4')) +
+  geom_bar(stat='identity', position='dodge',alpha=.8) +
+  labs(title='Parental Education', y='',x='') +
+  scale_color_brewer(palette = 'Set2') +
+  scale_fill_brewer(palette = 'Set2') +
+  theme(plot.title = element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1),
+        legend.position = 'none') +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),limits = c(-2,2.2),
+    labels = c('Strongly Disagree','Disagree','Neutral',
+               'Agree','Strongly Agree'))
+
+policeRegion <-
+  ggplot(agreePosition.iTrustPoliceMyCommunity$groupedPivotPlot[[7]]$data %>%
+           filter(Group=='Gen Pop'),
+         aes(x=region, y=avgVal, fill='#6ac6b4')) +
+  geom_bar(stat='identity', position='dodge',alpha=.8) +
+  labs(title='Geography', y='',x='') +
+  scale_color_brewer(palette = 'Set2') +
+  scale_fill_brewer(palette = 'Set2') +
+  theme(plot.title = element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1),
+        legend.position = 'none') +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),limits = c(-2,2.2),
+    labels = c('Strongly Disagree','Disagree','Neutral',
+               'Agree','Strongly Agree'))
+
+policeRace <-
+  ggplot(agreePosition.iTrustPoliceMyCommunity$groupedPivotPlot[[8]]$data %>%
+           filter(race %in% c('Asian','Black','Hispanic/Latino','White') &
+                    Group=='Gen Pop'),
+         aes(x=race, y=avgVal, fill='#6ac6b4')) +
+  geom_bar(stat='identity', position='dodge',alpha=.8) +
+  labs(title='Race', y='',x='') +
+  scale_color_brewer(palette = 'Set2') +
+  scale_fill_brewer(palette = 'Set2') +
+  theme(plot.title = element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1),
+        legend.position = 'none') +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),limits = c(-2,2.2),
+    labels = c('Strongly Disagree','Disagree','Neutral',
+               'Agree','Strongly Agree'))
+
+policeGender <-
+  ggplot(agreePosition.iTrustPoliceMyCommunity$groupedPivotPlot[[11]]$data %>%
+           filter(sex %in% c('Male','Female','Non-binary') & Group=='Gen Pop'),
+         aes(x=sex, y=avgVal, fill='#6ac6b4')) +
+  geom_bar(stat='identity', position='dodge',alpha=.8) +
+  labs(title='Gender', y='',x='') +
+  scale_color_brewer(palette = 'Set2') +
+  scale_fill_brewer(palette = 'Set2') +
+  theme(plot.title = element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1),
+        legend.position = 'none') +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),limits = c(-2,2.2),
+    labels = c('Strongly Disagree','Disagree','Neutral',
+               'Agree','Strongly Agree'))
+
+grid.arrange(policeEdu, policeRace,policeRegion, policeGender, ncol=2,
+             top=textGrob("I Trust the Police in My Community",gp=gpar(fontsize=20)))
