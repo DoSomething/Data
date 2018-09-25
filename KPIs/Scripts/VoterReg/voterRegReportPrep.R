@@ -225,6 +225,27 @@ QoQ <-
   melt(id.var=c('dayOfQuarter','quarter')) %>%
   mutate(quarter = as.factor(quarter))
 
+monthlyTotal <-
+  vr %>%
+  filter(created_at >= '2018-01-01') %>%
+  mutate(
+    month = month(as.Date(created_at))
+  ) %>%
+  group_by(month) %>%
+  summarise(
+    Registrations = length(which(grepl('register', ds_vr_status)))
+  )
+
+quarterlyTotal <-
+  vr %>%
+  filter(created_at >= '2018-01-01') %>%
+  mutate(
+    quarter = quarter(as.Date(created_at))
+  ) %>%
+  group_by(quarter) %>%
+  summarise(
+    Registrations = length(which(grepl('register', ds_vr_status)))
+  )
 
 # Excel output
 
@@ -237,6 +258,10 @@ addWorksheet(raw, 'rawData')
 writeData(raw, 'rawData', vr, rowNames = F)
 addWorksheet(wb, 'byWeek')
 writeData(wb, 'byWeek', byWeek, rowNames=F)
+addWorksheet(wb, 'byMonth')
+writeData(wb, 'byMonth', monthlyTotal, rowNames=F)
+addWorksheet(wb, 'byQuarter')
+writeData(wb, 'byQuarter', quarterlyTotal, rowNames=F)
 addWorksheet(wb, 'byWeekSource')
 writeData(wb, 'byWeekSource', byWeekSource, rowNames=F)
 addWorksheet(wb, 'byWeekSourceDetails')
