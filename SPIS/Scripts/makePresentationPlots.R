@@ -1377,3 +1377,200 @@ policeGender <-
 
 grid.arrange(policeEdu, policeRace,policeRegion, policeGender, ncol=2,
              top=textGrob("I Trust the Police in My Community",gp=gpar(fontsize=20)))
+
+
+# Impact attitudes --------------------------------------------------------
+
+attitudes <- apropos('^impAct.')
+for (j in 1:length(positions)) {
+  for (i in 1:length(get(positions[j])$pivotPlot)) {
+    print(paste(positions[j],i,get(positions[j])$pivotPlot[[i]]$labels$title))
+  }
+}
+checkThis <- 'Group'
+for (j in 1:length(attitudes)) {
+  for (i in 1:length(get(attitudes[j])$pivotPlot)) {
+    if (grepl(checkThis,paste(attitudes[j],i,get(attitudes[j])$pivotPlot[[i]]$labels$title))) {
+      print(paste(attitudes[j],i,get(attitudes[j])$pivotPlot[[i]]$labels$title))
+    }
+  }
+}
+whichOnes <- c('political_view','age','attend_religious_services_freq')
+impAct.ovr <-
+  bind_rows(
+    impAct.effortUnderstandPerspectives$groupedPivotPlot[[8]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='I Make an Effort to Understand Other Perspectives'),
+    impAct.iCanCollaborate$groupedPivotPlot[[6]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='I Can Collaborate Well With Others'),
+    impAct.myParticipationMatters$groupedPivotPlot[[8]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='My Participation in Local Issues Matters'),
+    impAct.partOfSocialMovement$groupedPivotPlot[[11]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Im a Part of a Social Movement'),
+    tibble(
+      avgVal=weighted.mean(
+        impAct.comfortAssertingMyself$frequencyPlot$data$outcome,
+        impAct.comfortAssertingMyself$frequencyPlot$data$count),
+      Group='Im Comfortable Asserting Myself to Advocate for an Issue'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        impAct.exposedOtherOpinions$frequencyPlot$data$outcome,
+        impAct.exposedOtherOpinions$frequencyPlot$data$count),
+      Group='Im Often Exposed to Opinions/Worldviews Different From My Own'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        impAct.iCanSolveProblems$frequencyPlot$data$outcome,
+        impAct.iCanSolveProblems$frequencyPlot$data$count),
+      Group='I Can Solve Social Problems'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        impAct.iHaveConfidence$frequencyPlot$data$outcome,
+        impAct.iHaveConfidence$frequencyPlot$data$count),
+      Group='I Have Confidence in Myself'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        impAct.iTakeActionsIssues$frequencyPlot$data$outcome,
+        impAct.iTakeActionsIssues$frequencyPlot$data$count),
+      Group='I Often Take Action on Issues I Learn About'
+    )
+  )
+
+impAct.ovr.p <-
+  ggplot(impAct.ovr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
+  geom_bar(stat='identity', fill='#6ac6b4') +
+  geom_text(aes(x=Group,y=avgVal,label=round(avgVal,2)),size=3.4,hjust=-.11) +
+  labs(title='Do You Agree With the Following Positions?', #TODO: Check language
+       x='',y='Average Response') +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),limits = c(-2,2.2),
+    labels = c('Strongly Disagree','Disagree','Neutral',
+               'Agree','Strongly Agree')) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 30)) +
+  theme(
+    plot.title=element_text(hjust=.5)#,
+    # axis.text.x = element_text(angle=0,hjust=1)
+  ) + coord_flip()
+
+checkThis <- 'political_view'
+for (j in 1:length(attitudes)) {
+  for (i in 1:length(get(attitudes[j])$pivotPlot)) {
+    if (grepl(checkThis,paste(attitudes[j],i,get(attitudes[j])$pivotPlot[[i]]$labels$title))) {
+      print(paste(attitudes[j],i,get(attitudes[j])$pivotPlot[[i]]$labels$title))
+    }
+  }
+}
+
+# politics
+
+impAct.Politics <-
+  bind_rows(
+    impAct.effortUnderstandPerspectives$groupedPivotPlot[[4]]$data %>% mutate(quest='I Make an Effort to Understand Other Perspectives'),
+    impAct.exposedOtherOpinions$groupedPivotPlot[[3]]$data %>% mutate(quest='Im Often Exposed to Opinions/Worldviews Different From My Own'),
+    impAct.iCanSolveProblems$groupedPivotPlot[[3]]$data %>% mutate(quest='I Can Solve Social Problems'),
+    impAct.iHaveConfidence$groupedPivotPlot[[3]]$data %>% mutate(quest='I Have Confidence in Myself'),
+    impAct.iTakeActionsIssues$groupedPivotPlot[[3]]$data %>% mutate(quest='I Often Take Action on Issues I Learn About'),
+    impAct.myParticipationMatters$groupedPivotPlot[[4]]$data %>% mutate(quest='My Participation in Local Issues Matters'),
+    impAct.partOfSocialMovement$groupedPivotPlot[[4]]$data %>% mutate(quest='Im a Part of a Social Movement')
+   ) %>%
+  group_by(quest) %>%
+  mutate(meanVal=mean(avgVal)) %>% ungroup() %>%
+  group_by(Group) %>% mutate(meanBygroup=mean(avgVal))
+
+ggplot(impAct.Politics, aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=political_view), size=2) +
+  facet_wrap(~Group) +
+  labs(title='How Much Do You Agree With the Following Positions',
+       x='',y='') +
+  scale_colour_brewer(palette = 'RdYlBu') +
+  scale_x_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels =c('Strongly Disagree','Disagree','Neutral',
+                               'Agree','Strongly Agree')) +
+  scale_y_discrete(labels = function(x) str_wrap(x, width = 30)) +
+  guides(colour=guide_legend(title="Political Views")) +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1))
+
+# age
+
+checkThis <- 'age'
+for (j in 1:length(attitudes)) {
+  for (i in 1:length(get(attitudes[j])$pivotPlot)) {
+    if (grepl(checkThis,paste(attitudes[j],i,get(attitudes[j])$pivotPlot[[i]]$labels$title))) {
+      print(paste(attitudes[j],i,get(attitudes[j])$pivotPlot[[i]]$labels$title))
+    }
+  }
+}
+impAct.Age <-
+  bind_rows(
+    impAct.comfortAssertingMyself$groupedPivotPlot[[3]]$data %>% mutate(quest='Im Comfortable Asserting Myself to Advocate for an Issue'),
+    impAct.effortUnderstandPerspectives$groupedPivotPlot[[7]]$data %>% mutate(quest='I Make an Effort to Understand Other Perspectives'),
+    impAct.exposedOtherOpinions$groupedPivotPlot[[5]]$data %>% mutate(quest='Im Often Exposed to Opinions/Worldviews Different From My Own'),
+    impAct.iCanCollaborate$groupedPivotPlot[[5]]$data %>% mutate(quest='I Can Collaborate Well With Others'),
+    impAct.iCanSolveProblems$groupedPivotPlot[[6]]$data %>% mutate(quest='I Can Solve Social Problems'),
+    impAct.iHaveConfidence$groupedPivotPlot[[6]]$data %>% mutate(quest='I Have Confidence in Myself'),
+    impAct.iTakeActionsIssues$groupedPivotPlot[[5]]$data %>% mutate(quest='I Often Take Action on Issues I Learn About'),
+    impAct.myParticipationMatters$groupedPivotPlot[[7]]$data %>% mutate(quest='My Participation in Local Issues Matters'),
+    impAct.partOfSocialMovement$groupedPivotPlot[[8]]$data %>% mutate(quest='Im a Part of a Social Movement')
+  ) %>%
+  group_by(quest) %>%
+  mutate(meanVal=mean(avgVal)) %>% ungroup() %>%
+  group_by(Group) %>% mutate(meanBygroup=mean(avgVal))
+
+ggplot(impAct.Age %>% filter(Group=='Gen Pop'), aes(x=age, y=avgVal, colour=quest)) +
+  geom_point() + geom_line(aes(group=quest)) +
+  scale_colour_brewer(name='',palette='Set3',labels=function(x) str_wrap(x, width = 25)) +
+  scale_y_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels =c('Strongly Disagree','Disagree','Neutral',
+                               'Agree','Strongly Agree')) +
+  theme(legend.key = element_rect(size = 5),
+        legend.key.size = unit(1.5, 'lines'),
+        plot.title=element_text(hjust=.5)) +
+  labs(x='Age',y='',title='How Much Do You Agree With the Following Positions')
+
+# attend_religious_services_freq
+checkThis <- 'attend_religious_services_freq'
+for (j in 1:length(attitudes)) {
+  for (i in 1:length(get(attitudes[j])$pivotPlot)) {
+    if (grepl(checkThis,paste(attitudes[j],i,get(attitudes[j])$pivotPlot[[i]]$labels$title))) {
+      print(paste(attitudes[j],i,get(attitudes[j])$pivotPlot[[i]]$labels$title))
+    }
+  }
+}
+
+impAct.Religion <-
+  bind_rows(
+    impAct.exposedOtherOpinions$groupedPivotPlot[[2]]$data %>% mutate(quest='Im Often Exposed to Opinions/Worldviews Different From My Own'),
+    impAct.iCanCollaborate$groupedPivotPlot[[4]]$data %>% mutate(quest='I Can Collaborate Well With Others'),
+    impAct.iCanSolveProblems$groupedPivotPlot[[2]]$data %>% mutate(quest='I Can Solve Social Problems'),
+    impAct.iHaveConfidence$groupedPivotPlot[[2]]$data %>% mutate(quest='I Have Confidence in Myself'),
+    impAct.iTakeActionsIssues$groupedPivotPlot[[2]]$data %>% mutate(quest='I Often Take Action on Issues I Learn About'),
+    impAct.partOfSocialMovement$groupedPivotPlot[[3]]$data %>% mutate(quest='Im a Part of a Social Movement')
+  ) %>%
+  group_by(quest) %>%
+  mutate(meanVal=mean(avgVal)) %>% ungroup() %>%
+  group_by(Group) %>% mutate(meanBygroup=mean(avgVal))
+
+ggplot(impAct.Religion %>% filter(Group=='Gen Pop'),
+       aes(x=attend_religious_services_freq, y=avgVal, colour=quest)) +
+  geom_point() + geom_line(aes(group=quest)) +
+  scale_colour_brewer(name='',palette='Set3',labels=function(x) str_wrap(x, width = 25)) +
+  scale_y_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels =c('Strongly Disagree','Disagree','Neutral',
+                               'Agree','Strongly Agree')) +
+  theme(legend.key = element_rect(size = 5),
+        legend.key.size = unit(1.5, 'lines'),
+        plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30, hjust=1)) +
+  labs(x='Frequency of Religious Service Attendance',y='',
+       title='How Much Do You Agree With the Following Positions')
+
+# DS Impact ---------------------------------------------------------------
+
+

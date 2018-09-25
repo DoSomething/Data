@@ -36,7 +36,7 @@ religiousGroup <-
 mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
 mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
 finCode <- c(-2,-1,0,1,2)
-effortUnderstandPerspectives <-
+impAct.effortUnderstandPerspectives <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_make_an_active_effort_to_understand_others_perspectives,
@@ -46,7 +46,7 @@ effortUnderstandPerspectives <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-partOfSocialMovement <-
+impAct.partOfSocialMovement <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_am_part_of_a_larger_social_movement_to_solve_social_problems,
@@ -56,7 +56,7 @@ partOfSocialMovement <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-iCanSolveProblems <-
+impAct.iCanSolveProblems <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_can_solve_social_problems,
@@ -66,7 +66,7 @@ iCanSolveProblems <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-myParticipationMatters <-
+impAct.myParticipationMatters <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.My_participation_in_local_issues_matters,
@@ -76,7 +76,7 @@ myParticipationMatters <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-comfortAssertingMyself <-
+impAct.comfortAssertingMyself <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_am_comfortable_asserting_myself_e_g__to_advocate_for_an_issue_with_peers_or_within_my_school_community_,
@@ -86,7 +86,7 @@ comfortAssertingMyself <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-iHaveConfidence <-
+impAct.iHaveConfidence <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_have_confidence_in_myself,
@@ -96,7 +96,7 @@ iHaveConfidence <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-iCanCollaborate <-
+impAct.iCanCollaborate <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_can_collaborate_effectively_with_others_e_g__work_with_others_on_a_volunteer_project_,
@@ -106,7 +106,7 @@ iCanCollaborate <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-exposedOtherOpinions <-
+impAct.exposedOtherOpinions <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_am_often_exposed_to_other_opinions_and_world_views_I_don_t_necessarily_agree_with,
@@ -116,7 +116,7 @@ exposedOtherOpinions <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-iTakeActionsIssues <-
+impAct.iTakeActionsIssues <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_often_take_action_on_social_issues_that_I_learn_about,
