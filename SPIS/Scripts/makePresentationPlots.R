@@ -1188,7 +1188,7 @@ agreePositions.Ovr <-
       avgVal=weighted.mean(
         agreePosition.SexualHarrasmentSignOffSocietalIssue$frequencyPlot$data$outcome,
         agreePosition.SexualHarrasmentSignOffSocietalIssue$frequencyPlot$data$count),
-      Group='Sexual Harrasment is a Sign of Societal Issues'
+      Group='Sexual Harassment is a Sign of Societal Issues'
     ),
     agreePosition.BuildTheWall$groupedPivotPlot[[10]]$data %>%
       filter(Group=='Gen Pop') %>%
@@ -1266,7 +1266,7 @@ agreePosition.Politics <-
     agreePosition.MuslimsDontNeedCloseTabs$groupedPivotPlot[[5]]$data %>% mutate(quest='Muslims Dont Need Additional Scrutiny'),
     agreePosition.OnlyTwoGenders$groupedPivotPlot[[4]]$data %>% mutate(quest='There are Only Two Genders'),
     agreePosition.RacismNotIssue$groupedPivotPlot[[5]]$data %>% mutate(quest='Racism is No Longer an Issue'),
-    agreePosition.SexualHarrasmentSignOffSocietalIssue$groupedPivotPlot[[3]]$data %>% mutate(quest='Sexual Harrasment is a Sign of Societal Issues'),
+    agreePosition.SexualHarrasmentSignOffSocietalIssue$groupedPivotPlot[[3]]$data %>% mutate(quest='Sexual Harassment is a Sign of Societal Issues'),
     agreePosition.UndocumentedImmigrantsPathCitizenship$groupedPivotPlot[[5]]$data %>% mutate(quest='Undocumented Immigrants Should Have Path to Citizenship'),
     agreePosition.WeedLawsTooStrict$groupedPivotPlot[[4]]$data %>% mutate(quest='Marijuana Laws are Too Strict'),
     agreePosition.WomenExperienceWorkplaceDiscrimination$groupedPivotPlot[[4]]$data %>% mutate(quest='Women Experience Discrimination in Workplace')
@@ -1294,10 +1294,11 @@ ggplot(agreePosition.SexualHarrasmentSignOffSocietalIssue$groupedPivotPlot[[5]]$
        aes(x=age, y=avgVal, fill=Group)) +
   geom_bar(stat='identity', position='dodge',alpha=.8) +
   geom_smooth(method='lm', aes(group=Group, colour=Group), se=F, linetype='dashed') +
-  labs(title='Sexual Harrasment is a Sign of Societal Issues', y='',x='') +
+  labs(title='Sexual Harassment is a Sign of Societal Issues', y='',x='') +
   scale_color_brewer(palette = 'Set2') +
   scale_fill_brewer(palette = 'Set2') +
   theme(plot.title = element_text(hjust=.5)) +
+  scale_x_continuous(breaks=seq(13,25,1)) +
   scale_y_continuous(
     breaks=seq(-2,2,1),limits = c(-2,2.2),
     labels = c('Strongly Disagree','Disagree','Neutral',
