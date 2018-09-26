@@ -353,8 +353,102 @@ npsBreakdown +
   geom_text(data=tibble(x=7.5,y=145),aes(x=x,y=y, label=percent((132+124)/nrow(npsBreakdown$data))))
 
 # Willingness to take action  ----------------------------------------------
+whichWhen <- apropos('^whichActWhen.')
+for (j in 1:length(whichWhen)) {
+  for (i in 1:length(get(whichWhen[j])$pivotPlot)) {
+    print(paste(whichWhen[j],i,get(whichWhen[j])$pivotPlot[[i]]$labels$title))
+  }
+}
+checkThis <- 'Group'
+for (j in 1:length(whichWhen)) {
+  for (i in 1:length(get(whichWhen[j])$pivotPlot)) {
+    if (grepl(checkThis,paste(whichWhen[j],i,get(whichWhen[j])$pivotPlot[[i]]$labels$title))) {
+      print(paste(whichWhen[j],i,get(whichWhen[j])$pivotPlot[[i]]$labels$title))
+    }
+  }
+}
 
+whenAct.ovr <-
+  bind_rows(
+    whichActWhen.beenPartOfCampaign$groupedPivotPlot[[9]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Took Part in a Campaign'),
+    whichActWhen.boycottedBrandForIssue$groupedPivotPlot[[11]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Boycotted a Brand'),
+    whichActWhen.collectItemsForHomeless$groupedPivotPlot[[8]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Collected Items for Homeless'),
+    whichActWhen.contactedPolitician$groupedPivotPlot[[11]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Contacted Politician'),
+    whichActWhen.donateTimeMoneyToCause$groupedPivotPlot[[11]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Donated Time/Money to Cause'),
+    whichActWhen.leaderInClub$groupedPivotPlot[[9]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Held Leadership Role in Club'),
+    whichActWhen.participateVolunteerOrg$groupedPivotPlot[[11]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Participated in Volunteer Org'),
+    whichActWhen.plannedSocialImpactActivity$groupedPivotPlot[[10]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Planned an Activity for Social Impact'),
+    whichActWhen.politicalEventsProtests$groupedPivotPlot[[7]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Attended Protest'),
+    whichActWhen.purchasedBrandToSupportIssue$groupedPivotPlot[[10]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Purchased Brand to Support Cause'),
+    whichActWhen.researchSocialIssueOutsideSchool$groupedPivotPlot[[7]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Researched Social Issue Outside School'),
+    whichActWhen.signedOnlinePetition$groupedPivotPlot[[9]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Signed a Petition Online'),
+    whichActWhen.startedDiscussionPolitics$groupedPivotPlot[[8]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Started Classroom Political Discussion'),
+    whichActWhen.stoodUpToBullyForSomeone$groupedPivotPlot[[6]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Stood Up to a Bully'),
+    whichActWhen.takenActionEncouragedOnline$groupedPivotPlot[[9]]$data %>%
+      filter(Group=='Gen Pop') %>%
+      mutate(Group='Encouraged Others to Take Action Online'),
+    tibble(
+      avgVal=weighted.mean(
+        whichActWhen.createdPetition$frequencyPlot$data$outcome,
+        whichActWhen.createdPetition$frequencyPlot$data$count),
+      Group='Created a Petition'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        whichActWhen.engagedCompanyToAdvocate$frequencyPlot$data$outcome,
+        whichActWhen.engagedCompanyToAdvocate$frequencyPlot$data$count),
+      Group='Engaged Company to Advocate for Cause'
+    ),
+    tibble(
+      avgVal=weighted.mean(
+        whichActWhen.startedCampaignToSolveProblem$frequencyPlot$data$outcome,
+        whichActWhen.startedCampaignToSolveProblem$frequencyPlot$data$count),
+      Group='Started a Campaign'
+    )
+  )
 
+ggplot(whenAct.ovr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
+  geom_bar(stat='identity', fill='#6ac6b4') +
+  labs(title='Which of the Following Actions Have You Taken & When?',
+       x='',y='Average Response') +
+  scale_y_continuous(
+    labels=c('-1'='Unlikely To do','0'='Might Do','1'='Did In Past','2'='Done Past Year'),
+    breaks=c(-1,0,1,2), limits=c(-1,2)
+  ) +
+  theme(
+    plot.title=element_text(hjust=.5),
+    axis.text.x = element_text(angle=30, hjust=1)
+  )
+
+# politics
 whenActionsPolitics <-
   bind_rows(
     politicalEventsProtests$groupedPivotPlot[[3]]$data %>% mutate(quest='Attended Protest'),
@@ -378,7 +472,6 @@ whenActionsPolitics <-
   ) %>%
   group_by(quest) %>%
   mutate(meanVal = mean(avgVal))
-
 
 ggplot(whenActionsPolitics, aes(x=avgVal, y=reorder(quest, -meanVal), color=political_view)) +
   geom_point() +
@@ -530,35 +623,65 @@ grid.arrange(
   bottom="Values range from -2 to 2 with -2 representing 'Would Never Do' and 2 representing 'Done Recently'"
   )
 
-ggplot(issuesTakenAction$overall$data, aes(x=reorder(variable,-value),y=value)) +
-  geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
-  geom_text(aes(label=percent(value)),vjust=-.5,size=2.8) +
-  labs(
-    title='Which Have You Taken Action on in the Past 12 months?',
-    x=paste0('Average # Ticked = ',round(sum(issuesTakenAction$overall$data$value),2)),
-    y='Percent Ticked'
+grid.arrange(
+  ggplot(issuesTakenAction.genpop$overall$data, aes(x=reorder(variable,-value),y=value)) +
+    geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
+    geom_text(aes(label=percent(value)),vjust=-.5,size=2.5) +
+    labs(
+      title='Gen Pop',
+      x=paste0('Average # Ticked = ',round(sum(issuesTakenAction.genpop$overall$data$value),2)),
+      y='Percent Ticked'
     ) +
-  theme(axis.text.x = element_text(angle = 30, hjust = 1),
-        plot.title = element_text(hjust = .5)) +
-  scale_y_continuous(breaks=pretty_breaks(10))
+    theme(axis.text.x = element_text(angle = 30, hjust = 1),
+          plot.title = element_text(hjust = .5)) +
+    scale_y_continuous(breaks=pretty_breaks(10),limits=c(0,.4)),
+  ggplot(issuesTakenAction.members$overall$data, aes(x=reorder(variable,-value),y=value)) +
+    geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
+    geom_text(aes(label=percent(value)),vjust=-.5,size=2.8) +
+    labs(
+      title='Members',
+      x=paste0('Average # Ticked = ',round(sum(issuesTakenAction.members$overall$data$value),2)),
+      y='Percent Ticked'
+    ) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1),
+          plot.title = element_text(hjust = .5)) +
+    scale_y_continuous(breaks=pretty_breaks(10),limits=c(0,.4)),
+  ncol=2, top='Which Have You Taken Action on in the Past 12 months?'
+)
 
 levs <-
-  c('Very conservative: Avg # Ticked = 2.51', 'Conservative: Avg # Ticked = 2.7',
-    'Moderate: Avg # Ticked = 3.3','Liberal: Avg # Ticked = 4.61',
-    'Very Liberal: Avg # Ticked = 5.63')
-ggplot(issuesTakenAction$pivotPlots$political_view$data, aes(x=reorder(variable, -value), y=value)) +
+  c('Very conservative: Avg # Ticked = 2.7', 'Conservative: Avg # Ticked = 2.79',
+    'Moderate: Avg # Ticked = 3.02','Liberal: Avg # Ticked = 4.6',
+    'Very Liberal: Avg # Ticked = 4.99')
+ggplot(issuesTakenAction.genpop$pivotPlots$political_view$data, aes(x=reorder(variable, -value), y=value)) +
   geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
   geom_text(aes(label=percent(value)),hjust=-.1,size=2) +
   facet_wrap(~factor(fac_labs,levels = levs), labeller = label_value, ncol=3) +
   labs(
     x='',
-    title='',y='Percentage Ticked'
+    title='Gen Pop',y='Percentage Ticked'
   ) +
   theme(plot.title = element_text(hjust = .5)) +
-  scale_y_continuous(breaks=pretty_breaks(6),limits = c(0,.62)) +
+  scale_y_continuous(breaks=pretty_breaks(6),limits=c(0,.58)) +
   coord_flip()
 
-ggplot(issuesTakenAction$pivotPlots$sex$data %>%
+levs <-
+  c('Very conservative: Avg # Ticked = 1.93', 'Conservative: Avg # Ticked = 2.61',
+    'Moderate: Avg # Ticked = 3.54','Liberal: Avg # Ticked = 4.62',
+    'Very Liberal: Avg # Ticked = 5.96')
+ggplot(issuesTakenAction.members$pivotPlots$political_view$data, aes(x=reorder(variable, -value), y=value)) +
+  geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
+  geom_text(aes(label=percent(value)),hjust=-.1,size=2) +
+  facet_wrap(~factor(fac_labs,levels = levs), labeller = label_value, ncol=3) +
+  labs(
+    x='',
+    title='Members',y='Percentage Ticked'
+  ) +
+  theme(plot.title = element_text(hjust = .5)) +
+  scale_y_continuous(breaks=pretty_breaks(6),limits=c(0,.62)) +
+  coord_flip()
+
+ggplot(issuesTakenAction.genpop$pivotPlots$sex$data %>%
          filter(sex %in% c('Male','Female','Non-binary')),
        aes(x=reorder(variable, -value), y=value)) +
   geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
@@ -566,7 +689,21 @@ ggplot(issuesTakenAction$pivotPlots$sex$data %>%
   facet_wrap(~fac_labs, labeller = label_value, ncol=3) +
   labs(
     x='',
-    title='',y='Percentage Ticked'
+    title='Gen Pop',y='Percentage Ticked'
+  ) +
+  theme(plot.title = element_text(hjust = .5)) +
+  scale_y_continuous(breaks=pretty_breaks(6),limits = c(0,.92)) +
+  coord_flip()
+
+ggplot(issuesTakenAction.members$pivotPlots$sex$data %>%
+         filter(sex %in% c('Male','Female','Non-binary')),
+       aes(x=reorder(variable, -value), y=value)) +
+  geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
+  geom_text(aes(label=percent(value)),hjust=-.1,size=2.6) +
+  facet_wrap(~fac_labs, labeller = label_value, ncol=3) +
+  labs(
+    x='',
+    title='Members',y='Percentage Ticked'
   ) +
   theme(plot.title = element_text(hjust = .5)) +
   scale_y_continuous(breaks=pretty_breaks(6),limits = c(0,.92)) +
@@ -580,20 +717,22 @@ ggplot(issuesTakenAction$pivotPlots$race$data %>%
   facet_wrap(~fac_labs, labeller = label_value, ncol=3) +
   labs(
     x='',
-    title='',y='Percentage Ticked'
+    title='Gen Pop',y='Percentage Ticked'
   ) +
   theme(plot.title = element_text(hjust = .5)) +
   scale_y_continuous(breaks=pretty_breaks(6),limits = c(0,.5)) +
   coord_flip()
 
-ggplot(issuesTakenAction$pivotPlots$attend_religious_services_freq$data %>%
+
+
+ggplot(issuesTakenAction.members$pivotPlots$attend_religious_services_freq$data %>%
          filter(attend_religious_services_freq %in% c('Multiple times a week','Never, agnostic or atheist')),
        aes(x=reorder(variable, -value), y=value)) +
   geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
   geom_text(aes(label=percent(value)),hjust=-.1,size=2.3) +
   facet_wrap(~fac_labs, labeller = label_value, ncol=2) +
   labs(
-    x='Which Issues Have You Taken Action On?',
+    x='',
     title='How Often do You Attend Religious Services ',y='Percentage Ticked'
   ) +
   theme(plot.title = element_text(hjust = .5)) +
@@ -1641,16 +1780,16 @@ ggplot(impAct.Religion,
 
 sinceDS <- apropos('^sinceDS.')
 
-sinceDS.actions <-
+since.ds.actions <-
   c('sinceDS.startedSocialJusticeOrg','sinceDS.persistThroughChallenges',
     'sinceDS.PickSchoolCourses','sinceDS.continuedActivityAfterCampaign',
     'sinceDS.learnedOrganizeOthers','sinceDS.learnedAnalyzeSolveProblems')
 
-sinceDS.actions.dat <-
+since.ds.actions.dat <-
   bind_rows(
     sinceDS.startedSocialJusticeOrg$frequencyPlot$data %>%
       filter(outcome==1) %>%
-      mutate(quest='Started My Own Social Justtice Org/Club'),
+      mutate(quest='Started My Own Social Justice Org/Club'),
     sinceDS.persistThroughChallenges$frequencyPlot$data %>%
       filter(outcome==1) %>%
       mutate(quest='Learned How to Persist Through Challenges'),
@@ -1665,14 +1804,95 @@ sinceDS.actions.dat <-
       mutate(quest='Learned How to Organize People to Work on a Cause'),
     sinceDS.learnedAnalyzeSolveProblems$frequencyPlot$data %>%
       filter(outcome==1) %>%
-      mutate(quest='Learned How to Analyze Problems and Implement Creative Solutions')
+      mutate(quest='Learned How to Analyze Problems and Implement Creative Solutions'),
+    sinceDS.NoneOfThese$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='None of These')
   ) %>%
   mutate(pct = count/sum(sinceDS.amPartOfSocialMovement$frequencyPlot$data$count))
 
-ggplot(sinceDS.actions.dat, aes(x=reorder(quest, pct), y=pct)) +
+ggplot(since.ds.actions.dat, aes(x=reorder(quest, pct), y=pct)) +
   geom_bar(stat='identity', fill='#6ac6b4') +
-  geom_text(aes(label=percent(pct)), angle=-90, nudge_y = .0075) +
+  geom_text(aes(label=percent(pct)), angle=-90, nudge_y = .0075, size=3.5) +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 25)) +
-  theme() +
+  scale_y_continuous(breaks=seq(0,.4,.05), labels = percent(seq(0,.4,.05))) +
+  theme(plot.title=element_text(hjust=.5)) +
+  labs(title='Since Engaging with DoSomething I...', y='Percent Yes', x='') +
   coord_flip()
 
+plannedSocialImpactActivity$pivotPlot[[2]] +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),
+    labels=c(    'Would Never Do',
+                 'Not Done, Dont Know if Ever',
+                 'Not Done But Might',
+                 'Done in Past',
+                 'Done Past Year'),
+    limits=c(-2,2)
+  ) +
+  labs(title='Planned a Social Impact Activity') +
+  theme(plot.title=element_text(hjust=.5))
+
+# attitudes
+
+since.ds.attitudes <-
+  sinceDS[which(!sinceDS %in% since.ds.actions)]
+
+since.ds.attitudes.dat <-
+  bind_rows(
+    sinceDS.amPartOfSocialMovement$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='I Feel I am a Part of a Social Movement'),
+    sinceDS.considerEffectActionsOnOthers$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='I Consider the Effect of My Actions on Others'),
+    sinceDS.easyToImpactSociety$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='Believe it is Easy to Positively Impact Society'),
+    sinceDS.effortUnderstandPerspectives$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='I Make an Effort to Understand Others Perspectives'),
+    sinceDS.haveToolsToTakeAction$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='I Have the Tools I Need to Take Action on Social Issues'),
+    sinceDS.iCanAccomplishGoals$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='I Can Accomplish My Goals'),
+    sinceDS.iCanSolveProblems$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='I Can Solve Social Problems'),
+    sinceDS.iHaveConfidence$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='I Have More Confidence in Myself'),
+    sinceDS.learnedCollaborateOthers$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='I Learned How to Collaborate Effectively With Others'),
+    sinceDS.passionateNewCause$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='I Discovered a Social Cause Im Passionate About'),
+    sinceDS.thinkLocalIssuesMatter$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='I Feel My Participation in Local Issues Matters'),
+    sinceDS.NoneOfThese$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='None of These')
+  ) %>%
+  mutate(pct = count/sum(sinceDS.amPartOfSocialMovement$frequencyPlot$data$count))
+
+ggplot(since.ds.attitudes.dat, aes(x=reorder(quest, pct), y=pct)) +
+  geom_bar(stat='identity', fill='#6ac6b4') +
+  geom_text(aes(label=percent(pct)), angle=-90, nudge_y = .0075, size=2.5) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 25)) +
+  scale_y_continuous(breaks=seq(0,.7,.05), labels = percent(seq(0,.7,.05))) +
+  theme(plot.title=element_text(hjust=.5)) +
+  labs(title='Since Engaging with DoSomething I...', y='Percent Yes', x='') +
+  coord_flip()
+
+impAct.partOfSocialMovement$pivotPlot[[1]] +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),
+    labels=c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree'),
+    limits=c(-2,2)
+  ) +
+  labs(title='I Am a Part of a Social Movement') +
+  theme(plot.title=element_text(hjust=.5))
