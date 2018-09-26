@@ -236,23 +236,63 @@ npAware.p <-
   ggplot(npAware, aes(x=reorder(Feature, -Value), y=Value)) +
   geom_bar(stat='identity', fill='#6ac6b4') +
   labs(x='Organization', y='How Aware',
-       title='How Familiar Are You With These Organizations',
-       caption=
-         "Awareness is the average value where -2 is 'Not at all Familiar', 0 is 'Neutral', and 2 is 'Very Familiar'") +
-  theme(plot.title = element_text(hjust=.5))
+       title='How Familiar Are You With These Organizations') +
+  theme(plot.title = element_text(hjust=.5)) +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),
+    labels=c('Not Familiar','A little','Neutral','Somewhat','Very Familiar'),
+    limits = c(-2,2)
+    )
 
 nonprofitAwareness.DoSomething$frequencyPlot +
   labs(title='How Familiar Are You With DoSomething.org', y='Count',x='') +
   theme(plot.title = element_text(hjust = .5))
 
 grid.arrange(
-  nonprofitAwareness.DoSomething$pivotPlot[[3]] + ggtitle('DoSomething') + ylim(c(-1.75,.1)) + theme(plot.title = element_text(hjust=.5)),
-  nonprofitAwareness.4H$pivotPlot[[7]] + ggtitle('4H') + ylim(c(-1.75,.1)) + theme(plot.title = element_text(hjust=.5)),
-  nonprofitAwareness.DonorsChoose$pivotPlot[[4]] + ggtitle('Donors Choose') + ylim(c(-1.75,.1)) + theme(plot.title = element_text(hjust=.5)),
-  nonprofitAwareness.ChangeDotOrg$pivotPlot[[6]] + ggtitle('Change.Org') + ylim(c(-1.75,.1)) + theme(plot.title = element_text(hjust=.5)),
-  nonprofitAwareness.KeyClub$pivotPlot[[4]] + ggtitle('Key Club') + ylim(c(-1.75,.1)) + theme(plot.title = element_text(hjust=.5)),
-  nonprofitAwareness.WeDotOrg$pivotPlot[[5]] + ggtitle('We.Org') + ylim(c(-1.75,.1)) + theme(plot.title = element_text(hjust=.5)),
-  ncol=3, top='How Familiar Are You with These Organizations', bottom='X-Axis is Age, Y-Axis is Familiarity'
+  nonprofitAwareness.DoSomething$pivotPlot[[3]] + ggtitle('DoSomething') + ylim(c(-1.75,.1)) +
+    theme(plot.title = element_text(hjust=.5), axis.text.x = element_text(angle=0))+
+    scale_y_continuous(
+      breaks=seq(-2,2,1),
+      labels=c('Not Familiar','A little','Neutral','Somewhat','Very Familiar'),
+      limits = c(-2,2)
+    ),
+  nonprofitAwareness.4H$pivotPlot[[7]] + ggtitle('4H') + ylim(c(-1.75,.1)) +
+    theme(plot.title = element_text(hjust=.5), axis.text.x = element_text(angle=0))+
+    scale_y_continuous(
+      breaks=seq(-2,2,1),
+      labels=c('Not Familiar','A little','Neutral','Somewhat','Very Familiar'),
+      limits = c(-2,2)
+    ),
+  nonprofitAwareness.DonorsChoose$pivotPlot[[4]] + ggtitle('Donors Choose') + ylim(c(-1.75,.1)) +
+    theme(plot.title = element_text(hjust=.5), axis.text.x = element_text(angle=0))+
+    scale_y_continuous(
+      breaks=seq(-2,2,1),
+      labels=c('Not Familiar','A little','Neutral','Somewhat','Very Familiar'),
+      limits = c(-2,2)
+    ),
+  nonprofitAwareness.ChangeDotOrg$pivotPlot[[6]] + ggtitle('Change.Org') + ylim(c(-1.75,.1)) +
+    theme(plot.title = element_text(hjust=.5), axis.text.x = element_text(angle=0))+
+    scale_y_continuous(
+      breaks=seq(-2,2,1),
+      labels=c('Not Familiar','A little','Neutral','Somewhat','Very Familiar'),
+      limits = c(-2,2)
+    ),
+  nonprofitAwareness.KeyClub$pivotPlot[[4]] + ggtitle('Key Club') + ylim(c(-1.75,.1)) +
+    theme(plot.title = element_text(hjust=.5), axis.text.x = element_text(angle=0))+
+    scale_y_continuous(
+      breaks=seq(-2,2,1),
+      labels=c('Not Familiar','A little','Neutral','Somewhat','Very Familiar'),
+      limits = c(-2,2)
+    ),
+  nonprofitAwareness.WeDotOrg$pivotPlot[[5]] + ggtitle('We.Org') + ylim(c(-1.75,.1)) +
+    theme(plot.title = element_text(hjust=.5), axis.text.x = element_text(angle=0))+
+    scale_y_continuous(
+      breaks=seq(-2,2,1),
+      labels=c('Not Familiar','A little','Neutral','Somewhat','Very Familiar'),
+      limits = c(-2,2)
+    ),
+  ncol=3, top=textGrob("How Familiar Are You with These Organizations",gp=gpar(fontsize=20)),
+  bottom='X-Axis is Age, Y-Axis is Familiarity'
   )
 
 raceSum <-
@@ -273,9 +313,14 @@ raceSum <-
 
 ggplot(raceSum, aes(x=race, y=avgValue)) +
   geom_bar(stat='identity', fill='#6ac6b4') +
-  scale_y_continuous(breaks=pretty_breaks(7)) +
   labs(x='Race',y='Famliarity',title='Familiarity by Race') +
-  theme(plot.title = element_text(hjust=.5))
+  theme(plot.title = element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1)) +
+  scale_y_continuous(
+    breaks=seq(-2,2,1),
+    labels=c('Not Familiar','A little','Neutral','Somewhat','Very Familiar'),
+    limits = c(-2,2)
+  )
 
 ggplot(whereSeeDoSomething$overall$data, aes(y=value, x=reorder(variable, -value))) +
   geom_bar(stat='identity', alpha=.5, fill='#6ac6b4') +
@@ -1592,4 +1637,42 @@ ggplot(impAct.Religion,
 
 # DS Impact ---------------------------------------------------------------
 
+# actions
+
+sinceDS <- apropos('^sinceDS.')
+
+sinceDS.actions <-
+  c('sinceDS.startedSocialJusticeOrg','sinceDS.persistThroughChallenges',
+    'sinceDS.PickSchoolCourses','sinceDS.continuedActivityAfterCampaign',
+    'sinceDS.learnedOrganizeOthers','sinceDS.learnedAnalyzeSolveProblems')
+
+sinceDS.actions.dat <-
+  bind_rows(
+    sinceDS.startedSocialJusticeOrg$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='Started My Own Social Justtice Org/Club'),
+    sinceDS.persistThroughChallenges$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='Learned How to Persist Through Challenges'),
+    sinceDS.PickSchoolCourses$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='Picked Different School Courses'),
+    sinceDS.continuedActivityAfterCampaign$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='Continued Activites After Campaign Ended'),
+    sinceDS.learnedOrganizeOthers$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='Learned How to Organize People to Work on a Cause'),
+    sinceDS.learnedAnalyzeSolveProblems$frequencyPlot$data %>%
+      filter(outcome==1) %>%
+      mutate(quest='Learned How to Analyze Problems and Implement Creative Solutions')
+  ) %>%
+  mutate(pct = count/sum(sinceDS.amPartOfSocialMovement$frequencyPlot$data$count))
+
+ggplot(sinceDS.actions.dat, aes(x=reorder(quest, pct), y=pct)) +
+  geom_bar(stat='identity', fill='#6ac6b4') +
+  geom_text(aes(label=percent(pct)), angle=-90, nudge_y = .0075) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 25)) +
+  theme() +
+  coord_flip()
 
