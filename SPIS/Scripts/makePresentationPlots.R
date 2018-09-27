@@ -375,7 +375,7 @@ npsFamiliarGroupScores <-
   group_by(group) %>%
   summarise(pcts=sum(p))
 npsBreakdown.Familiar +
-  labs(title='NPS Breakdown - Very Familiar w/ Something; Score = 20',x='NPS') +
+  labs(title='NPS Breakdown - Very Familiar w/ DoSomething; Score = 20',x='NPS') +
   geom_text(stat='count',aes(label=..count..), vjust=-.7, size=3) +
   geom_text(data=tibble(x=9.5,y=145),aes(x=x,y=y, label=percent(npsFamiliarGroupScores$pcts[3]))) +
   geom_text(data=tibble(x=3,y=145),aes(x=x,y=y, label=percent(npsFamiliarGroupScores$pcts[2]))) +
