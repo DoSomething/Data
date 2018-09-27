@@ -127,31 +127,43 @@ grid.arrange(
 purchaseDecision.p <-
   ggplot(purchaseDecision, aes(x=reorder(Feature, -Value), y=Value)) +
   geom_bar(stat='identity', fill='#6ac6b4') +
+  scale_y_continuous(
+    breaks=seq(-2,2,1), limits=c(-2,2),
+    labels=c('Not Influential','A Little','Neutral','Influential','Very Influential')
+    ) +
   labs(x='Influencer', y='How Influential',
-       title='How Influential is Each of These Items When Purchasing a Product',
-       caption=
-         "Influence is the average value where -2 is 'Not at all Influential', 0 is 'Neutral', and 2 is 'Very Influential'") +
-  theme(plot.title = element_text(hjust=.5))
+       title='How Influential is Each of These Items When Purchasing a Product') +
+  theme(plot.title = element_text(hjust=.5),
+        axis.text.x = element_text(angle=30, hjust=1))
 ggsave(plot=purchaseDecision.p, 'Visuals/purchaseDecision.png', width = 10, height = 6)
 
 purchaseDecision.politics <-
   purchaseInfluence.CompanyReputationValues$pivotPlot[[1]] +
   labs(title = 'Pivoted by Political Views', y = 'How Influential') +
-  theme(plot.title=element_text(hjust=.5, size = 10))
+  theme(plot.title=element_text(hjust=.5, size = 10)) +
+  scale_y_continuous(
+    breaks=seq(-2,2,1), limits=c(-2,2),
+    labels=c('Not Influential','A Little','Neutral','Influential','Very Influential')
+  )
 
 purchaseDecision.Gender <-
   purchaseInfluence.CompanyReputationValues$pivotPlot[[4]] +
   labs(title='Pivoted by Gender') +
-  theme(plot.title=element_text(hjust=.5, size = 10))
+  theme(plot.title=element_text(hjust=.5, size = 10)) +
+  scale_y_continuous(
+    breaks=seq(-2,2,1), limits=c(-2,2),
+    labels=c('Not Influential','A Little','Neutral','Influential','Very Influential')
+  )
 
 grid.arrange(purchaseDecision.politics, purchaseDecision.Gender,
              top='Influence of Brand Values on Purchasing Decisions', ncol=2)
 
 willingPayMoreBrandValues$frequencyPlot +
   labs(title='How Much More Are You Willing to Pay For a Brand Whose Values Align With Your Own?',
-       x='Amount',y='Count') + theme(plot.title=element_text(hjust=.5))
+       x='Amount',y='Count') +
+  theme(plot.title=element_text(hjust=.5))
 myPurchaseSupportCauseMakesImpact$frequencyPlot +
-  labs(title='I Feel My Purchases are Making an Impact When the Branch Supports a Cause I Believe In',
+  labs(title='I Feel My Purchases are Making an Impact When the Brand Supports a Cause I Believe In',
        y='Count') + theme(plot.title=element_text(hjust=.5))
 
 productsUsed$overall +
@@ -347,10 +359,27 @@ ggplot(howEngageDoSomething$overall$data %>%
   coord_flip()
 
 npsBreakdown +
+  labs(title='NPS Breakdown; Score = -20',x='NPS') +
   geom_text(stat='count',aes(label=..count..), vjust=-.7, size=3) +
   geom_text(data=tibble(x=9.5,y=145),aes(x=x,y=y, label=percent((69+112)/nrow(npsBreakdown$data)))) +
   geom_text(data=tibble(x=3,y=145),aes(x=x,y=y, label=percent((14+9+16+26+50+111+106)/nrow(npsBreakdown$data)))) +
   geom_text(data=tibble(x=7.5,y=145),aes(x=x,y=y, label=percent((132+124)/nrow(npsBreakdown$data))))
+
+npsFamiliarGroupScores <-
+  set %>%
+  filter(non_profit_awareness.DoSomething_org=='Very familiar' & !is.na(nps)) %>%
+  count(nps) %>%
+  mutate(
+    p=n/sum(n),
+    group=ifelse(nps>=9,'promoter',ifelse(nps<7,'detract','neither'))) %>%
+  group_by(group) %>%
+  summarise(pcts=sum(p))
+npsBreakdown.Familiar +
+  labs(title='NPS Breakdown - Very Familiar w/ Something; Score = 20',x='NPS') +
+  geom_text(stat='count',aes(label=..count..), vjust=-.7, size=3) +
+  geom_text(data=tibble(x=9.5,y=145),aes(x=x,y=y, label=percent(npsFamiliarGroupScores$pcts[3]))) +
+  geom_text(data=tibble(x=3,y=145),aes(x=x,y=y, label=percent(npsFamiliarGroupScores$pcts[2]))) +
+  geom_text(data=tibble(x=7.5,y=145),aes(x=x,y=y, label=percent(npsFamiliarGroupScores$pcts[1])))
 
 # Willingness to take action  ----------------------------------------------
 whichWhen <- apropos('^whichActWhen.')
@@ -870,7 +899,7 @@ ggplot(willOccur.Politics, aes(x=avgVal, y=reorder(quest,-meanVal))) +
   geom_point(aes(colour=political_view), size=2) +
   facet_wrap(~Group) +
   labs(title='Which of the Following Will Occur?',x='Percent Yes',y='') +
-  scale_colour_brewer(palette = 'Set2') +
+  scale_colour_brewer(palette = 'RdYlBu') +
   scale_x_continuous(breaks=pretty_breaks(10)) +
   guides(colour=guide_legend(title="Political Views")) +
   theme(plot.title=element_text(hjust=.5))

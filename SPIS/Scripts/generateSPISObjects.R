@@ -1491,3 +1491,11 @@ howEngageDoSomething <-
 # NPS ---------------------------------------------------------------------
 
 npsBreakdown <- getNPSBreakdown(set %>% filter(!is.na(nps)), 'nps')
+
+npsBreakdown.Familiar <-
+  getNPSBreakdown(
+    set %>%
+      filter(non_profit_awareness.DoSomething_org=='Very familiar' &
+            !is.na(nps)),
+    'nps'
+    )
