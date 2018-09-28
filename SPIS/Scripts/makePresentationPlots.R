@@ -776,17 +776,30 @@ ggplot(volunteerReason$overall$data, aes(x=reorder(variable, -value), y=value)) 
   scale_y_continuous(breaks=pretty_breaks(6),limits = c(0,.75)) +
   coord_flip()
 
-planVoteIfEligible$groupedPivotPlot[[9]] +
-  geom_text(aes(x=Group,y=avgVal,label=percent(avgVal)),vjust=-.1,size=2.8) +
-  scale_y_continuous(breaks=pretty_breaks(10))
+planVote <-
+  set %>%
+  filter(plan_to_vote_if_eligible%in%c('Yes','No','Undecided')) %>%
+  group_by(Group,plan_to_vote_if_eligible) %>%
+  summarise(count=sum(weight))
 
-ggplot(voteWhenEligible$frequencyPlot$data,aes(x=outcome,y=count)) +
+ggplot(planVote, aes(x=plan_to_vote_if_eligible,y=count)) +
   geom_bar(stat='identity',fill='#6ac6b4',width = .8) +
-  geom_text(aes(x=outcome,y=count,label=round(count)),vjust=-.1,size=3.4) +
-  labs(title='Do You Plan to Vote When You Are Eligible', x='',y='') +
-  scale_x_continuous(breaks=c(-1,0,1),labels = c('No','Undecided','Yes')) +
+  geom_text(aes(x=plan_to_vote_if_eligible,y=count,label=round(count)),vjust=-.1,size=3.4) +
+  facet_wrap(~Group) +
+  labs(title='Do You Plan to Vote', x='',y='') +
   theme(plot.title=element_text(hjust=.5))
 
+planvoteElig <-
+  set %>%
+  filter(!is.na(vote_when_eligible)) %>%
+  group_by(Group,vote_when_eligible) %>%
+  summarise(count=sum(weight))
+ggplot(planvoteElig, aes(x=vote_when_eligible,y=count)) +
+  geom_bar(stat='identity',fill='#6ac6b4',width = .8) +
+  geom_text(aes(x=vote_when_eligible,y=count,label=round(count)),vjust=-.1,size=3.4) +
+  facet_wrap(~Group) +
+  labs(title='Do You Plan to Vote When You Are Eligible', x='',y='') +
+  theme(plot.title=element_text(hjust=.5))
 
 # The Future --------------------------------------------------------------
 
