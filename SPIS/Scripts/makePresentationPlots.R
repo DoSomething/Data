@@ -66,11 +66,16 @@ politicsAge <-
 ggsave(plot=politicsAge, 'Visuals/politicsAge.png', width = 8, height = 6)
 
 genderRaceGroup <-
-  stylePickOneList(set, sex, race, Group)$Facetted +
+  stylePickOneList(set %>% filter(sex %in% c('Male','Female','Non-binary')), sex, race, Group)$Facetted +
   labs(title='Gender & Race Comparison') +
   guides(fill=guide_legend(title="Race"))
 ggsave(plot=genderRaceGroup, 'Visuals/genderRaceGroup.png', width = 10, height = 6)
+stylePickOneList(set %>% filter(Group=='Gen Pop' & sex %in% c('Male','Female','Non-binary')),
+                 sex, race, Group)$Facetted +
+  labs(title='Gender & Race Comparison') +
+  guides(fill=guide_legend(title="Race"))
 
+stylePickOneList(set %>% filter(sex %in% c('Male','Female','Non-binary')), Group, sex) +
 
 # Brand -------------------------------------------------------------------
 
@@ -110,7 +115,7 @@ purchaseDecision <-
       Feature='Friend/Family Recommended',
       Value=weighted.mean(purchaseInfluence.RecommendedByKnownPerson$frequencyPlot$data$outcome,
                           purchaseInfluence.RecommendedByKnownPerson$frequencyPlot$data$count)
-    )
+    )I''
   )
 
 grid.arrange(
@@ -1816,6 +1821,19 @@ ggplot(impAct.Religion,
   labs(x='Frequency of Religious Service Attendance',y='',
        title='How Much Do You Agree With the Following Positions')
 
+ggplot(impAct.Religion %>% filter(Group=='Gen Pop'),
+       aes(x=attend_religious_services_freq, y=avgVal, colour=quest)) +
+  geom_point() + geom_line(aes(group=quest)) +
+  scale_colour_brewer(name='',palette='Set3',labels=function(x) str_wrap(x, width = 25)) +
+  scale_y_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels =c('Strongly Disagree','Disagree','Neutral',
+                               'Agree','Strongly Agree')) +
+  theme(legend.key = element_rect(size = 5),
+        legend.key.size = unit(1.5, 'lines'),
+        plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30, hjust=1)) +
+  labs(x='Frequency of Religious Service Attendance',y='',
+       title='How Much Do You Agree With the Following Positions')
 # DS Impact ---------------------------------------------------------------
 
 # actions
