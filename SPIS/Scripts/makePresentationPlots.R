@@ -520,6 +520,19 @@ ggplot(whenActionsPolitics, aes(x=avgVal, y=reorder(quest, -meanVal), color=poli
   theme(plot.title=element_text(hjust=.5),
         axis.text.x = element_text(angle=30,hjust=1))
 
+ggplot(whenActionsPolitics %>% filter(Group=='Gen Pop'),
+       aes(x=avgVal, y=reorder(quest, -meanVal), color=political_view)) +
+  geom_point() +
+  scale_x_continuous(
+    labels=c('-1'='Unlikely To do','0'='Might Do','1'='Did Long Ago','2'='Done Past Year'),
+    breaks=c(-1,0,1,2), limits=c(-1,2)
+  ) +
+  scale_y_discrete(labels = function(x) str_wrap(x, width = 25)) +
+  labs(y='',x='',title='Which of the Following Actions Have You Taken & When?') +
+  scale_colour_brewer(palette = 'RdYlBu',name='Political Views') +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1))
+
 
 whenActionsGender <-
   bind_rows(
@@ -545,6 +558,19 @@ whenActionsGender <-
 ggplot(whenActionsGender, aes(x=avgVal, y=reorder(quest, -meanVal), color=sex)) +
   geom_point() +
   facet_wrap(~Group) +
+  scale_x_continuous(
+    labels=c('-1'='Unlikely To do','0'='Might Do','1'='Did Long Ago','2'='Done Past Year'),
+    breaks=c(-1,0,1,2), limits=c(-1,2)
+  ) +
+  scale_y_discrete(labels = function(x) str_wrap(x, width = 25)) +
+  labs(y='',x='',title='') +
+  scale_colour_brewer(palette = 'Set2',name='Gender') +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1))
+
+ggplot(whenActionsGender %>% filter(Group=='Gen Pop'),
+       aes(x=avgVal, y=reorder(quest, -meanVal), color=sex)) +
+  geom_point() +
   scale_x_continuous(
     labels=c('-1'='Unlikely To do','0'='Might Do','1'='Did Long Ago','2'='Done Past Year'),
     breaks=c(-1,0,1,2), limits=c(-1,2)
@@ -687,7 +713,8 @@ levs <-
   c('Very conservative: Avg # Ticked = 2.7', 'Conservative: Avg # Ticked = 2.79',
     'Moderate: Avg # Ticked = 3.02','Liberal: Avg # Ticked = 4.6',
     'Very Liberal: Avg # Ticked = 4.99')
-ggplot(issuesTakenAction.genpop$pivotPlots$political_view$data, aes(x=reorder(variable, -value), y=value)) +
+ggplot(issuesTakenAction.genpop$pivotPlots$political_view$data),
+       aes(x=reorder(variable, -value), y=value)) +
   geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
   geom_text(aes(label=percent(value)),hjust=-.1,size=2) +
   facet_wrap(~factor(fac_labs,levels = levs), labeller = label_value, ncol=3) +
@@ -695,6 +722,19 @@ ggplot(issuesTakenAction.genpop$pivotPlots$political_view$data, aes(x=reorder(va
     x='',
     title='Gen Pop',y='Percentage Ticked'
   ) +
+  theme(plot.title = element_text(hjust = .5)) +
+  scale_y_continuous(breaks=pretty_breaks(6),limits=c(0,.58)) +
+  coord_flip()
+
+ggplot(issuesTakenAction.genpop$pivotPlots$political_view$data %>%
+         filter(grepl('Very',political_view)),
+       aes(x=reorder(variable, -value), y=value, fill=political_view)) +
+  geom_bar(aes(width=.75),stat='identity', alpha=.8, position='dodge') +
+  labs(
+    x='',
+    title='Gen Pop',y='Percentage Ticked'
+  ) +
+  scale_fill_manual(name = 'Political View', values=c('red1','royalblue4')) +
   theme(plot.title = element_text(hjust = .5)) +
   scale_y_continuous(breaks=pretty_breaks(6),limits=c(0,.58)) +
   coord_flip()
@@ -1120,6 +1160,17 @@ ggplot(topIssues.Politics, aes(x=avgVal, y=reorder(quest,-meanVal))) +
   guides(colour=guide_legend(title="Political Views")) +
   theme(plot.title=element_text(hjust=.5))
 
+ggplot(topIssues.Politics %>% filter(Group=='Gen Pop'),
+       aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=political_view), size=2) +
+  facet_wrap(~Group) +
+  labs(title='Which of these Issues are Most Important, in Order?',
+       x='Average Rank - Smaller Number Means Greater Importance',y='') +
+  scale_colour_brewer(palette = 'RdYlBu') +
+  scale_x_continuous(breaks=pretty_breaks(8)) +
+  guides(colour=guide_legend(title="Political Views")) +
+  theme(plot.title=element_text(hjust=.5))
+
 # gender
 
 topIssues.Gender <-
@@ -1137,6 +1188,16 @@ topIssues.Gender <-
   filter(sex %in% c('Male','Female','Non-binary'))
 
 ggplot(topIssues.Gender, aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=sex), size=2) +
+  facet_wrap(~Group) +
+  labs(title='Which of these Issues are Most Important, in Order?',
+       x='Average Rank - Smaller Number Means Greater Importance',y='') +
+  scale_colour_brewer(palette = 'Set2') +
+  scale_x_continuous(breaks=pretty_breaks(8)) +
+  guides(colour=guide_legend(title="Gender")) +
+  theme(plot.title=element_text(hjust=.5))
+
+ggplot(topIssues.Gender %>% filter(Group=='Gen Pop'), aes(x=avgVal, y=reorder(quest,-meanVal))) +
   geom_point(aes(colour=sex), size=2) +
   facet_wrap(~Group) +
   labs(title='Which of these Issues are Most Important, in Order?',
@@ -1299,6 +1360,32 @@ ggplot(causeImport.Politics, aes(x=avgVal, y=reorder(quest,-meanVal))) +
   theme(plot.title=element_text(hjust=.5),
         axis.text.x = element_text(angle=30,hjust=1))
 
+ggplot(causeImport.Politics, aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=political_view), size=2) +
+  facet_wrap(~Group) +
+  labs(title='How Important are Each of These Causes?',
+       x='Level of Importance',y='') +
+  scale_colour_brewer(palette = 'RdYlBu') +
+  scale_x_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels = c('Not at all important','Not Important','Neutral',
+                                'Somewhat Important','Very Important')) +
+  guides(colour=guide_legend(title="Political Views")) +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1))
+
+ggplot(causeImport.Politics %>% filter(Group=='Gen Pop'), aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=political_view), size=2) +
+  facet_wrap(~Group) +
+  labs(title='How Important are Each of These Causes?',
+       x='Level of Importance',y='') +
+  scale_colour_brewer(palette = 'RdYlBu') +
+  scale_x_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels = c('Not at all important','Not Important','Neutral',
+                                'Somewhat Important','Very Important')) +
+  guides(colour=guide_legend(title="Political Views")) +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1))
+
 # gender
 checkThis <- 'sex'
 for (j in 1:length(causes)) {
@@ -1329,6 +1416,20 @@ causeImport.Gender <-
   filter(sex %in% c('Male','Female','Non-binary'))
 
 ggplot(causeImport.Gender, aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=sex), size=2) +
+  facet_wrap(~Group) +
+  labs(title='How Important are Each of These Causes?',
+       x='Level of Importance',y='') +
+  scale_colour_brewer(palette = 'Set2') +
+  scale_x_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels = c('Not at all important','Not Important','Neutral',
+                                'Somewhat Important','Very Important')) +
+  guides(colour=guide_legend(title="Political Views")) +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1))
+
+ggplot(causeImport.Gender %>% filter(Group=='Gen Pop'),
+       aes(x=avgVal, y=reorder(quest,-meanVal))) +
   geom_point(aes(colour=sex), size=2) +
   facet_wrap(~Group) +
   labs(title='How Important are Each of These Causes?',
@@ -1535,6 +1636,21 @@ ggplot(agreePosition.Politics, aes(x=avgVal, y=reorder(quest,-meanVal))) +
   theme(plot.title=element_text(hjust=.5),
         axis.text.x = element_text(angle=30,hjust=1))
 
+ggplot(agreePosition.Politics %>% filter(Group=='Gen Pop'),
+       aes(x=avgVal, y=reorder(quest,-meanVal))) +
+  geom_point(aes(colour=political_view), size=2) +
+  facet_wrap(~Group) +
+  labs(title='How Much Do You Agree With the Following Positions',
+       x='',y='') +
+  scale_colour_brewer(palette = 'RdYlBu') +
+  scale_x_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels =c('Strongly Disagree','Disagree','Neutral',
+                               'Agree','Strongly Agree')) +
+  scale_y_discrete(labels = function(x) str_wrap(x, width = 30)) +
+  guides(colour=guide_legend(title="Political Views")) +
+  theme(plot.title=element_text(hjust=.5),
+        axis.text.x = element_text(angle=30,hjust=1))
+
 
 ggplot(agreePosition.SexualHarrasmentSignOffSocietalIssue$groupedPivotPlot[[5]]$data,
        aes(x=age, y=avgVal, fill=Group)) +
@@ -1687,11 +1803,29 @@ impAct.ovr <-
         impAct.iTakeActionsIssues$frequencyPlot$data$count),
       Group='I Often Take Action on Issues I Learn About'
     )
+  ) %>%
+  mutate(
+    Level =
+      case_when(
+        Group %in% c('I Have Confidence in Myself',
+                     'Im Comfortable Asserting Myself to Advocate for an Issue',
+                     'I Often Take Action on Issues I Learn About'
+                     ) ~ 'Personal',
+        Group %in% c('I Make an Effort to Understand Other Perspectives',
+                     'I Can Collaborate Well With Others',
+                     'Im Often Exposed to Opinions/Worldviews Different From My Own'
+                     ) ~ 'Social Circle',
+        Group %in% c('My Participation in Local Issues Matters',
+                     'Im a Part of a Social Movement',
+                     'I Can Solve Social Problems'
+                     ) ~ 'Societal',
+        TRUE ~ ''
+      )
   )
 
 impAct.ovr.p <-
-  ggplot(impAct.ovr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
-  geom_bar(stat='identity', fill='#6ac6b4') +
+  ggplot(impAct.ovr, aes(x=reorder(Group,-avgVal), y=avgVal, fill=Level)) +
+  geom_bar(stat='identity') +
   geom_text(aes(x=Group,y=avgVal,label=round(avgVal,2)),size=3.4,hjust=-.11) +
   labs(title='Do You Agree With the Following Positions?', #TODO: Check language
        x='',y='Average Response') +
@@ -1700,10 +1834,8 @@ impAct.ovr.p <-
     labels = c('Strongly Disagree','Disagree','Neutral',
                'Agree','Strongly Agree')) +
   scale_x_discrete(labels = function(x) str_wrap(x, width = 30)) +
-  theme(
-    plot.title=element_text(hjust=.5)#,
-    # axis.text.x = element_text(angle=0,hjust=1)
-  ) + coord_flip()
+  scale_fill_brewer(palette = 'Set2') +
+  theme(plot.title=element_text(hjust=.5)) + coord_flip()
 
 checkThis <- 'political_view'
 for (j in 1:length(attitudes)) {
@@ -1804,7 +1936,25 @@ impAct.Religion <-
   ) %>%
   group_by(quest) %>%
   mutate(meanVal=mean(avgVal)) %>% ungroup() %>%
-  group_by(Group) %>% mutate(meanBygroup=mean(avgVal))
+  group_by(Group) %>% mutate(meanBygroup=mean(avgVal)) %>%
+  mutate(
+    Level =
+      case_when(
+        quest %in% c('I Have Confidence in Myself',
+                     'Im Comfortable Asserting Myself to Advocate for an Issue',
+                     'I Often Take Action on Issues I Learn About'
+        ) ~ 'Personal',
+        quest %in% c('I Make an Effort to Understand Other Perspectives',
+                     'I Can Collaborate Well With Others',
+                     'Im Often Exposed to Opinions/Worldviews Different From My Own'
+        ) ~ 'Social Circle',
+        quest %in% c('My Participation in Local Issues Matters',
+                     'Im a Part of a Social Movement',
+                     'I Can Solve Social Problems'
+        ) ~ 'Societal',
+        TRUE ~ ''
+      )
+  )
 
 ggplot(impAct.Religion,
        aes(x=attend_religious_services_freq, y=avgVal, colour=quest)) +
@@ -1821,19 +1971,19 @@ ggplot(impAct.Religion,
   labs(x='Frequency of Religious Service Attendance',y='',
        title='How Much Do You Agree With the Following Positions')
 
-ggplot(impAct.Religion %>% filter(Group=='Gen Pop'),
+ggplot(impAct.Religion %>% filter(Group=='Gen Pop' & !grepl('Often',quest)),
        aes(x=attend_religious_services_freq, y=avgVal, colour=quest)) +
-  geom_point() + geom_line(aes(group=quest)) +
-  scale_colour_brewer(name='',palette='Set3',labels=function(x) str_wrap(x, width = 25)) +
-  scale_y_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
-                     labels =c('Strongly Disagree','Disagree','Neutral',
+  geom_point(aes(shape=Level), size=3) + #geom_line(aes(group=quest)) +
+  geom_smooth(aes(group=quest), se=F) +
+  scale_colour_brewer(name='',palette='Set2',labels=function(x) str_wrap(x, width = 25)) +
+  scale_y_continuous(breaks=seq(-1,2,1), limits = c(-1,2),
+                     labels =c('Disagree','Neutral',
                                'Agree','Strongly Agree')) +
   theme(legend.key = element_rect(size = 5),
         legend.key.size = unit(1.5, 'lines'),
         plot.title=element_text(hjust=.5),
         axis.text.x = element_text(angle=30, hjust=1)) +
-  labs(x='Frequency of Religious Service Attendance',y='',
-       title='How Much Do You Agree With the Following Positions')
+  labs(x='Frequency of Religious Service Attendance',y='',title='')
 # DS Impact ---------------------------------------------------------------
 
 # actions
