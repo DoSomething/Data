@@ -43,7 +43,7 @@ for (i in 1:nrow(qres)) {
           row$campaign_run_id %in% c('8103','8171') ~ 'school_the_vote',
           row$campaign_run_id %in% c('8130','8151') ~ 'red_white_booth',
           row$campaign_run_id=='8120' ~ 'community_partner',
-          row$campaign_run_id=='8103' ~ 'voting_captain',
+          row$campaign_run_id=='8203' ~ 'voting_captain',
           row$campaign_run_id=='8209' ~ 'dosomething_otg',
           TRUE ~ ''
         ),
@@ -51,10 +51,10 @@ for (i in 1:nrow(qres)) {
       ),
       details = rep(
         case_when(
-          row$campaign_run_id=='8103' ~ 'school_the_vote',
+          row$campaign_run_id %in% c('8103','8171') ~ 'school_the_vote',
           row$campaign_run_id %in% c('8130','8151') ~ 'red_white_booth',
           row$campaign_run_id=='8120' ~ 'community_partner',
-          row$campaign_run_id=='8103' ~ 'voting_captain',
+          row$campaign_run_id=='8203' ~ 'voting_captain',
           row$campaign_run_id=='8209' ~ 'dosomething_otg',
           TRUE ~ ''
         ),
@@ -76,7 +76,10 @@ for (i in 1:nrow(qres)) {
       campaign_id = case_when(
         campaign_run_id == '8120' ~ '8119',
         campaign_run_id == '8130' ~ '8129',
-        campaign_run_id == '8103' ~ '822',
+        campaign_run_id %in% c('8103','8171') ~ '822',
+        campaign_run_id == '8203' ~ '8202',
+        campaign_run_id == '8209' ~ '8208',
+        campaign_run_id == '8151' ~ '8129',
         TRUE ~ ''
         ),
       reportback = T
