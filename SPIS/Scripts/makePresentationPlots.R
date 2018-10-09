@@ -471,7 +471,7 @@ whenAct.ovr <-
 
 ggplot(whenAct.ovr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
   geom_bar(stat='identity', fill='#6ac6b4') +
-  labs(title='Which of the Following Actions Have You Taken & When?',
+  labs(title='Which of the Following Actions Have You Taken & When? (Gen Pop)',
        x='',y='Average Response') +
   scale_y_continuous(
     labels=c('-1'='Unlikely To do','0'='Might Do','1'='Did In Past','2'='Done Past Year'),
@@ -713,7 +713,7 @@ levs <-
   c('Very conservative: Avg # Ticked = 2.7', 'Conservative: Avg # Ticked = 2.79',
     'Moderate: Avg # Ticked = 3.02','Liberal: Avg # Ticked = 4.6',
     'Very Liberal: Avg # Ticked = 4.99')
-ggplot(issuesTakenAction.genpop$pivotPlots$political_view$data),
+ggplot(issuesTakenAction.genpop$pivotPlots$political_view$data,
        aes(x=reorder(variable, -value), y=value)) +
   geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
   geom_text(aes(label=percent(value)),hjust=-.1,size=2) +
@@ -898,8 +898,9 @@ whichWillOccur <-
 ggplot(whichWillOccur, aes(x=reorder(quest,-avgVal), y=avgVal)) +
   geom_bar(stat='identity', fill='#6ac6b4') +
   geom_text(aes(x=quest,y=avgVal,label=percent(avgVal)),hjust=-.11,size=3.4) +
-  labs(title='Prospects for the Future', x='',y='Percent Yes') +
+  labs(title='Prospects for the Future (Gen Pop)', x='',y='Percent Yes') +
   scale_y_continuous(breaks=pretty_breaks(10),limits = c(0,.55)) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 30)) +
   theme(
     plot.title=element_text(hjust=.5)
     ) +
@@ -1827,7 +1828,7 @@ impAct.ovr.p <-
   ggplot(impAct.ovr, aes(x=reorder(Group,-avgVal), y=avgVal, fill=Level)) +
   geom_bar(stat='identity') +
   geom_text(aes(x=Group,y=avgVal,label=round(avgVal,2)),size=3.4,hjust=-.11) +
-  labs(title='Do You Agree With the Following Positions?', #TODO: Check language
+  labs(title='Do You Agree With the Following Positions? (Gen Pop)', #TODO: Check language
        x='',y='Average Response') +
   scale_y_continuous(
     breaks=seq(-2,2,1),limits = c(-2,2.2),
@@ -1983,7 +1984,7 @@ ggplot(impAct.Religion %>% filter(Group=='Gen Pop' & !grepl('Often',quest)),
         legend.key.size = unit(1.5, 'lines'),
         plot.title=element_text(hjust=.5),
         axis.text.x = element_text(angle=30, hjust=1)) +
-  labs(x='Frequency of Religious Service Attendance',y='',title='')
+  labs(x='Frequency of Religious Service Attendance',y='',title='Gen Pop')
 # DS Impact ---------------------------------------------------------------
 
 # actions
@@ -2106,3 +2107,10 @@ impAct.partOfSocialMovement$pivotPlot[[1]] +
   ) +
   labs(title='I Am a Part of a Social Movement') +
   theme(plot.title=element_text(hjust=.5))
+
+
+
+ggplot(issuesTakenAction.genpop$pivotPlots$political_view$data,
+       aes(x=reorder(variable, -value), y=value)) +
+  geom_point(aes(color=political_view)) +
+  coord_flip()
