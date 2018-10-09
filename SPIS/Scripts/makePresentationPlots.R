@@ -115,7 +115,7 @@ purchaseDecision <-
       Feature='Friend/Family Recommended',
       Value=weighted.mean(purchaseInfluence.RecommendedByKnownPerson$frequencyPlot$data$outcome,
                           purchaseInfluence.RecommendedByKnownPerson$frequencyPlot$data$count)
-    )I''
+    )
   )
 
 grid.arrange(
@@ -659,22 +659,28 @@ p1 <-
     aes(x=age, y=avgVal),
     method='lm', se=F, color='#9e1f63', linetype='dashed', size=.75
   ) +
-  theme(plot.title = element_text(hjust=.5)) +
+  scale_y_continuous(breaks=c(-1,0,1,2), limits=c(-1,2)) +
+  theme(plot.title = element_text(hjust=.5),
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(angle=0, hjust=.5)) +
   labs(
-    x='Age',y='Average Value',
+    x='Age',y='',
     title='Signing an Online Petition')
 
 p2 <-
-  participateVolunteerOrg$pivotPlot[[10]] +
+  whichActWhen.plannedSocialImpactActivity$pivotPlot[[8]] +
   geom_bar(aes(x=age,y=avgVal,fill='#6ac6b4'),stat='identity',alpha=.8) +
   geom_smooth(
     aes(x=age, y=avgVal),
     method='lm', se=F, color='#9e1f63', linetype='dashed', size=.75
   ) +
-  theme(plot.title = element_text(hjust=.5)) +
+  scale_y_continuous(breaks=c(-1,0,1,2), limits=c(-1,2)) +
+  theme(plot.title = element_text(hjust=.5),
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(angle=0, hjust=.5)) +
   labs(
     x='Age',
-    title='Participated in a Volunteer Organization'
+    title='Planned Social impact Activity'
     )
 
 grid.arrange(
@@ -1084,7 +1090,7 @@ for (i in 1:length(topIssues.DrugOverdoses$pivotPlot)) {
 ggplot(issuesOvr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
   geom_bar(stat='identity', fill='#6ac6b4') +
   geom_text(aes(x=Group,y=avgVal,label=round(avgVal,2)),hjust=-.11,size=3.4) +
-  labs(title='Which of these Issues are Most Important, in Order?',
+  labs(title='Which of these Issues are Most Important, in Order? (Gen Pop)',
        x='',y='Average Importance Rank') +
   scale_y_continuous(breaks=seq(0,6,1),limits = c(0,6),labels = c('','1st','2nd','3rd','4th','5th','Not Top 5')) +
   theme(
@@ -1300,7 +1306,7 @@ causeImportance.Ovr <-
 ggplot(causeImportance.Ovr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
   geom_bar(stat='identity', fill='#6ac6b4') +
   geom_text(aes(x=Group,y=avgVal,label=round(avgVal,2)),hjust=-.11,size=3.4) +
-  labs(title='How Important are Each of These Causes To You?', #TODO: Check language
+  labs(title='How Important are Each of These Causes To You? (Gen Pop)', #TODO: Check language
        x='',y='Average Response') +
   scale_y_continuous(
     breaks=seq(-2,2,1),limits = c(-2,2.2),
@@ -1567,7 +1573,7 @@ agreePositions.Ovr <-
 ggplot(agreePositions.Ovr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
   geom_bar(stat='identity', fill='#6ac6b4') +
   geom_text(aes(x=Group,y=avgVal,label=round(avgVal,2)),size=3.4,hjust=-.11) +
-  labs(title='Do You Agree With the Following Positions?', #TODO: Check language
+  labs(title='Do You Agree With the Following Positions? (Gen Pop)', #TODO: Check language
        x='',y='Average Response') +
   scale_y_continuous(
     breaks=seq(-2,2,1),limits = c(-2,2.2),
