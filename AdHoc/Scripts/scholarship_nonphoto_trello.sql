@@ -74,19 +74,12 @@ FROM -- creating a winners dataset
         u.first_name,
         u.email,
         u.mobile,
-        sum(ca.reportback_volume + COALESCE(shares.reportback_volume, 0)) AS total_shares
+        sum(ca.reportback_volume) AS reportbacks
     FROM campaign_activity ca
     LEFT JOIN users u -- left joining users 
         on u.northstar_id = ca.northstar_id
-    LEFT JOIN  -- left joining shares data 
-        (SELECT  
-            DISTINCT e.northstar_id,
-            1 AS reportback_volume
-        FROM phoenix_events e
-        WHERE e.event_name = 'share action completed'
-            AND e.campaign_name = '****') shares ON shares.northstar_id = ca.northstar_id -- use campaign_name in place of '****'  
     WHERE ca.campaign_run_id = **** -- use campaign_run_id in place of **** 
-        AND u.first_name IS NOT NULL
+    	AND u.first_name IS NOT NULL
         AND u.email IS NOT NULL
         AND ca.post_id IS NOT NULL 
         AND ca.post_status = 'accepted'
@@ -96,7 +89,7 @@ FROM -- creating a winners dataset
             u.first_name,
             u.email,
             u.mobile
-    HAVING sum(ca.reportback_volume + COALESCE(shares.reportback_volume, 0)) > 0) AS winners 
+    HAVING sum(ca.reportback_volume) > 0) AS winners 
 ORDER BY -log(random())
 LIMIT 30;
 
@@ -115,17 +108,10 @@ FROM -- creating a winners dataset
         u.first_name,
         u.email,
         u.mobile,
-        sum(ca.reportback_volume + COALESCE(shares.reportback_volume, 0)) AS total_shares
+        sum(ca.reportback_volume) AS reportbacks
     FROM campaign_activity ca
     LEFT JOIN users u -- left joining users 
         on u.northstar_id = ca.northstar_id
-    LEFT JOIN  -- left joining shares data 
-        (SELECT  
-            DISTINCT e.northstar_id,
-            1 AS reportback_volume
-        FROM phoenix_events e
-        WHERE e.event_name = 'share action completed'
-            AND e.campaign_name = '****') shares ON shares.northstar_id = ca.northstar_id -- use campaign_name in place of '****'  
     WHERE ca.campaign_run_id = **** -- use campaign_run_id in place of **** 
         AND u.first_name IS NOT NULL
         AND u.email IS NOT NULL
