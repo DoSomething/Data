@@ -289,12 +289,11 @@ sinceDS.startedSocialJusticeOrg$frequencyPlot
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
 sinceDS.learnedOrganizeOthers$frequencyPlot
-grid.arrange(sinceDS.learnedOrganizeOthers$pivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=4.5, fig.width=9}
 sinceDS.PickSchoolCourses$frequencyPlot
-grid.arrange(sinceDS.PickSchoolCourses$pivotPlot)
+
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}
@@ -777,14 +776,14 @@ whichAppKeepGroup
 ### Which Will Occur
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=8.5, fig.width=9}
 willOccur.iRunForPublicOffice$frequencyPlot
-grid.arrange(willOccur.iRunForPublicOffice$pivotPlot)
+grid.arrange(willOccur.iRunForPublicOffice$pivotPlot, ncol=3)
 grid.arrange(willOccur.iRunForPublicOffice$groupedPivotPlot)
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=8.5, fig.width=9}
 willOccur.iWillLiveLong$frequencyPlot
-grid.arrange(willOccur.iWillLiveLong$pivotPlot)
-grid.arrange(willOccur.iWillLiveLong$groupedPivotPlot)
+willOccur.iWillLiveLong$pivotPlot
+willOccur.iWillLiveLong$groupedPivotPlot
 ```
 
 ```{r echo=FALSE, results='hide', fig.keep='all', warning=FALSE, message=FALSE, fig.height=6.5, fig.width=9}

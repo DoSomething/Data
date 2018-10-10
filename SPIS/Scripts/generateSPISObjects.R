@@ -36,7 +36,7 @@ religiousGroup <-
 mapFrom <- c('Strongly Disagree','2','3','4','Strongly Agree')
 mapTo <- c('Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree')
 finCode <- c(-2,-1,0,1,2)
-effortUnderstandPerspectives <-
+impAct.effortUnderstandPerspectives <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_make_an_active_effort_to_understand_others_perspectives,
@@ -46,7 +46,7 @@ effortUnderstandPerspectives <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-partOfSocialMovement <-
+impAct.partOfSocialMovement <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_am_part_of_a_larger_social_movement_to_solve_social_problems,
@@ -56,7 +56,7 @@ partOfSocialMovement <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-iCanSolveProblems <-
+impAct.iCanSolveProblems <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_can_solve_social_problems,
@@ -66,7 +66,7 @@ iCanSolveProblems <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-myParticipationMatters <-
+impAct.myParticipationMatters <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.My_participation_in_local_issues_matters,
@@ -76,7 +76,7 @@ myParticipationMatters <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-comfortAssertingMyself <-
+impAct.comfortAssertingMyself <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_am_comfortable_asserting_myself_e_g__to_advocate_for_an_issue_with_peers_or_within_my_school_community_,
@@ -86,7 +86,7 @@ comfortAssertingMyself <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-iHaveConfidence <-
+impAct.iHaveConfidence <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_have_confidence_in_myself,
@@ -96,7 +96,7 @@ iHaveConfidence <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-iCanCollaborate <-
+impAct.iCanCollaborate <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_can_collaborate_effectively_with_others_e_g__work_with_others_on_a_volunteer_project_,
@@ -106,7 +106,7 @@ iCanCollaborate <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-exposedOtherOpinions <-
+impAct.exposedOtherOpinions <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_am_often_exposed_to_other_opinions_and_world_views_I_don_t_necessarily_agree_with,
@@ -116,7 +116,7 @@ exposedOtherOpinions <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-iTakeActionsIssues <-
+impAct.iTakeActionsIssues <-
   stylePickOneOrdinal(
     set,
     impact_attitudes.I_often_take_action_on_social_issues_that_I_learn_about,
@@ -146,7 +146,7 @@ mapTo <-
     )
 finCode <- c(-2,-1,0,1,2)
 
-politicalEventsProtests <-
+whichActWhen.politicalEventsProtests <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Attended_a_political_event_or_participated_in_a_protest_of_any_kind_e_g_campaign_event_town_hall_organized_protest_,
@@ -156,7 +156,7 @@ politicalEventsProtests <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-takenActionEncouragedOnline <-
+whichActWhen.takenActionEncouragedOnline <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Encouraged_other_people_to_take_action_on_a_political_or_social_issue_that_is_important_to_you_ONLINE,
@@ -166,7 +166,7 @@ takenActionEncouragedOnline <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-contactedPolitician <-
+whichActWhen.contactedPolitician <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Contacted_an_elected_official_about_an_issue_or_concern,
@@ -176,7 +176,7 @@ contactedPolitician <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-signedOnlinePetition <-
+whichActWhen.signedOnlinePetition <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Signed_a_petition_about_a_political_or_social_issue_ONLINE,
@@ -186,7 +186,7 @@ signedOnlinePetition <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-participateVolunteerOrg <-
+whichActWhen.participateVolunteerOrg <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Participated_in_a_political_charitable_or_religious_based_volunteer_organization,
@@ -196,7 +196,7 @@ participateVolunteerOrg <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-startedDiscussionPolitics <-
+whichActWhen.startedDiscussionPolitics <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Started_a_discussion_conversation_in_class_on_a_social_or_political_issue,
@@ -206,7 +206,7 @@ startedDiscussionPolitics <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-purchasedBrandToSupportIssue <-
+whichActWhen.purchasedBrandToSupportIssue <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Purchased_a_brand_product_because_you_wanted_to_show_support_for_the_issues_they_stood_up_for_represented_,
@@ -216,7 +216,7 @@ purchasedBrandToSupportIssue <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-boycottedBrandForIssue <-
+whichActWhen.boycottedBrandForIssue <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Stopped_purchasing_boycotted_a_brand_or_company_because_they_stood_for_something_or_behaved_in_a_way_that_didn_t_align_with_your_values_,
@@ -226,7 +226,7 @@ boycottedBrandForIssue <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-stoodUpToBullyForSomeone <-
+whichActWhen.stoodUpToBullyForSomeone <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Helped_a_stranger_or_peer_in_real_life_who_needed_help_e_g__stood_up_for_a_peer_against_a_bully_,
@@ -236,7 +236,7 @@ stoodUpToBullyForSomeone <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-leaderInClub <-
+whichActWhen.leaderInClub <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Held_a_leadership_role_e_g_of_a_school_club_,
@@ -246,7 +246,7 @@ leaderInClub <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-collectItemsForHomeless <-
+whichActWhen.collectItemsForHomeless <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Collected_items_for_a_social_purpose_e_g__collected_clothes_for_youth_young_people_experiencing_homelessness_,
@@ -256,7 +256,7 @@ collectItemsForHomeless <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-researchSocialIssueOutsideSchool <-
+whichActWhen.researchSocialIssueOutsideSchool <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Researched_current_or_controversial_issues_outside_of_class_time_or_requirements,
@@ -266,7 +266,7 @@ researchSocialIssueOutsideSchool <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-engagedCompanyToAdvocate <-
+whichActWhen.engagedCompanyToAdvocate <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Engaged_with_a_company_to_advocate_for_a_social_cause_e_g__tweeted_at_a_makeup_company_urging_them_to_have_cruelty_free_products_,
@@ -276,7 +276,7 @@ engagedCompanyToAdvocate <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-plannedSocialImpactActivity <-
+whichActWhen.plannedSocialImpactActivity <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Planned_social_impact_related_activities_or_events_for_a_group_team_or_club_e_g__planned_a_fundraiser_for_my_your_school_club_,
@@ -286,7 +286,7 @@ plannedSocialImpactActivity <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-donateTimeMoneyToCause <-
+whichActWhen.donateTimeMoneyToCause <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Given_time_money_or_other_donations_to_help_a_social_cause_e_g__donated_food_to_a_local_food_bank_,
@@ -296,7 +296,7 @@ donateTimeMoneyToCause <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-createdPetition <-
+whichActWhen.createdPetition <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Created_a_petition_around_a_social_issue_you_identified_e_g__created_a_petition_to_support_recycling_after_finding_out_your_school_doesn_t_recycle_,
@@ -306,7 +306,7 @@ createdPetition <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-startedCampaignToSolveProblem <-
+whichActWhen.startedCampaignToSolveProblem <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Started_a_campaign_to_solve_a_social_problem_e_g__started_a_campaign_for_safe_spaces_at_school_,
@@ -316,7 +316,7 @@ startedCampaignToSolveProblem <-
     mapFrom = mapFrom, mapTo = mapTo, finCode=finCode
   )
 
-beenPartOfCampaign <-
+whichActWhen.beenPartOfCampaign <-
   stylePickOneOrdinal(
     set,
     which_actions_taken_and_when.Been_part_of_a_collective_social_change_campaign,
@@ -517,6 +517,24 @@ sinceDS.NoneOfThese <-
 issuesTakenAction <-
   styleSelectMultiple(
     set,
+    'which_issues_taken_action_12mo.',
+    pivots=c(Group, sex, fam_finances, age, race, region, parental_education,
+             political_party, political_view, attend_religious_services_freq,
+             grade_level, signups, reportbacks)
+  )
+
+issuesTakenAction.members <-
+  styleSelectMultiple(
+    set %>% filter(Group=='Members'),
+    'which_issues_taken_action_12mo.',
+    pivots=c(Group, sex, fam_finances, age, race, region, parental_education,
+             political_party, political_view, attend_religious_services_freq,
+             grade_level, signups, reportbacks)
+  )
+
+issuesTakenAction.genpop <-
+  styleSelectMultiple(
+    set %>% filter(Group=='Gen Pop'),
     'which_issues_taken_action_12mo.',
     pivots=c(Group, sex, fam_finances, age, race, region, parental_education,
              political_party, political_view, attend_religious_services_freq,
@@ -1473,3 +1491,11 @@ howEngageDoSomething <-
 # NPS ---------------------------------------------------------------------
 
 npsBreakdown <- getNPSBreakdown(set %>% filter(!is.na(nps)), 'nps')
+
+npsBreakdown.Familiar <-
+  getNPSBreakdown(
+    set %>%
+      filter(non_profit_awareness.DoSomething_org=='Very familiar' &
+            !is.na(nps)),
+    'nps'
+    )
