@@ -1317,6 +1317,96 @@ ggplot(causeImportance.Ovr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
   ) +
   coord_flip()
 
+causeImportance.Group <-
+  set %>%
+  select(Group, starts_with('causes_importance'), weight) %>%
+  mutate_at(
+    .vars = vars(starts_with('causes_importance')),
+    .funs = funs(
+      case_when(
+        . == 'Not at all important' ~ -2,
+        . == '2' ~ -1,
+        . == '3' ~ 0,
+        . == '4' ~ 1,
+        . == 'Very Important' ~ 2
+      )
+    )
+  ) %>%
+  group_by(Group) %>%
+  summarise_at(
+    .vars = vars(starts_with('causes_importance')),
+    .funs = funs(weighted.mean(.,weight))
+  ) %>%
+  melt() %>%
+  mutate(
+    variable = gsub('_',' ',gsub('causes_importance.','',variable))
+  ) %>%
+  group_by(variable) %>%
+  mutate(
+    orderVal = mean(value)
+  )
+
+ggplot(causeImportance.Group, aes(x=reorder(variable, -orderVal), y=value, fill=Group)) +
+  geom_bar(stat='identity', position='dodge') +
+  geom_text(aes(label=round(value,2)),hjust=-.11,size=3, position=position_dodge(width=1)) +
+  coord_flip() +
+  scale_fill_brewer(palette='Set2') +
+  labs(title='How Important are Each of These Causes To You?',
+       x='',y='Average Response') +
+  scale_y_continuous(
+    breaks=seq(-2,2,1), limits = c(-2,2.2),
+    labels = c('Not at all important','Not Important','Neutral',
+               'Somewhat Important','Very Important')) +
+  theme(
+    plot.title=element_text(hjust=.5)
+  )
+
+causeImport.table <-
+  set %>%
+  select(Response_ID,Group, starts_with('causes_importance')) %>%
+  mutate_at(
+    .vars = vars(starts_with('causes_importance')),
+    .funs = funs(
+      case_when(
+        . == 'Not at all important' ~ 'Not at all important',
+        . == '2' ~ 'Not Important',
+        . == '3' ~ 'Neutral',
+        . == '4' ~ 'Somewhat Important',
+        . == 'Very Important' ~ 'Very Important'
+      )
+    )
+  ) %>%
+  melt(id.var=c('Response_ID','Group')) %>%
+  group_by(Group, variable, value) %>%
+  summarise(
+    count = n()
+  ) %>%
+  mutate(
+    pct=count/sum(count)
+  ) %>%
+  select(-count) %>%
+  ungroup() %>%
+  mutate(
+    variable = gsub('_',' ',gsub('causes_importance.','',variable)),
+    value = factor(value, levels=c('Not at all important','Not Important',
+                                   'Neutral','Somewhat Important','Very Important'))
+    )
+
+ggplot(causeImport.table, aes(x=Group, y=pct, fill=value)) +
+  geom_bar(stat='identity', position='stack') +
+  geom_text(aes(label=percent(pct)),size=2, position=position_stack(vjust=.5)) +
+  facet_wrap(~variable) +
+  scale_fill_brewer(palette='Set2')
+
+causeImport.table %<>%
+  spread(value, pct) %>%
+  arrange(variable, Group) %>%
+  select(Cause=variable,Group,
+         `Not at all important`,`Not Important`,Neutral,
+         `Somewhat Important`, `Very Important`)
+
+saveCSV(causeImport.table)
+
 for (j in 1:length(causes)) {
   for (i in 1:length(get(causes[j])$pivotPlot)) {
     print(paste(causes[j],i,get(causes[j])$pivotPlot[[i]]$labels$title))
