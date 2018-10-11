@@ -261,8 +261,17 @@ npAware.p <-
     limits = c(-2,2)
     )
 
-nonprofitAwareness.DoSomething$frequencyPlot +
-  labs(title='How Familiar Are You With DoSomething.org', y='Count',x='') +
+dsAware <-
+  nonprofitAwareness.DoSomething$frequencyPlot$data %>%
+  mutate(pct = count/sum(count))
+ggplot(dsAware, aes(x=outcome, y=pct)) +
+  geom_bar(stat='identity',fill='#6ac6b4') +
+  geom_label(aes(label=percent(pct)), vjust=-.1) +
+  scale_x_continuous(
+    breaks=seq(-2,2,1),
+    labels=c('Not Familiar','A little','Neutral','Somewhat','Very Familiar')
+    ) +
+  labs(x='',y='Percent',title='How Familiar Are You With DoSomething.org') +
   theme(plot.title = element_text(hjust = .5))
 
 grid.arrange(
@@ -805,7 +814,7 @@ ggplot(issuesTakenAction$pivotPlots$race$data %>%
 
 
 
-ggplot(issuesTakenAction.members$pivotPlots$attend_religious_services_freq$data %>%
+ggplot(issuesTakenAction.genpop$pivotPlots$attend_religious_services_freq$data %>%
          filter(attend_religious_services_freq %in% c('Multiple times a week','Never, agnostic or atheist')),
        aes(x=reorder(variable, -value), y=value)) +
   geom_bar(stat='identity', alpha=.8, fill='#6ac6b4') +
@@ -1097,6 +1106,70 @@ ggplot(issuesOvr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
     plot.title=element_text(hjust=.5)
   ) +
   coord_flip()
+
+# pct top issue
+
+patterns <-
+  exprs(
+    grepl('terrorist', .data$variable) ~ 'Terrorism',
+    grepl('educational',.data$variable) ~ 'Education',
+    grepl('racial',.data$variable) ~ 'Racial Justice',
+    grepl('immigration',.data$variable) ~ 'Immigration',
+    grepl('climate_change',.data$variable) ~ 'Climate Change',
+    grepl('gender_equality',.data$variable) ~ 'Gender Equality',
+    grepl('crime',.data$variable) ~ 'Crime',
+    grepl('poor_and_needy',.data$variable) ~ 'Poverty',
+    grepl('income_inequality',.data$variable) ~ 'Income Inequality',
+    grepl('job_situation',.data$variable) ~ 'Jobs',
+    grepl('military',.data$variable) ~ 'Military',
+    grepl('debt',.data$variable) ~ 'Federal Debt',
+    grepl('mental_health_care',.data$variable) ~ 'Access to Healthcare',
+    grepl('health_care_costs',.data$variable) ~ 'Costs of Healthcare',
+    grepl('economy',.data$variable) ~ 'Economy',
+    grepl('college_education',.data$variable) ~ 'College Affordability',
+    grepl('tax_system',.data$variable) ~ 'Tax Policy',
+    grepl('criminal_justice',.data$variable) ~ 'Criminal Justice Reform',
+    grepl('gun_policy',.data$variable) ~ 'Gun Policy',
+    grepl('environment',.data$variable) ~ 'The Environment',
+    grepl('religious_intolerance',.data$variable) ~ 'Religious Intolerance',
+    grepl('drug_overdose',.data$variable) ~ 'Drug Overdose',
+    TRUE ~ as.character(.data$variable)
+  )
+
+issueNum1 <-
+  set %>%
+  select(Response_ID, Group, starts_with('top_issues_prompted')) %>%
+  mutate_at(
+    .vars = vars(starts_with('top_issues_prompted')),
+    .funs = funs(case_when(. == '1' ~ 1, TRUE ~ 0))
+  ) %>%
+  group_by(Group) %>%
+  summarise_at(
+    .vars = vars(starts_with('top_issues_prompted')),
+    .funs = funs(sum(.))
+  ) %>%
+  melt() %>%
+  group_by(Group) %>%
+  mutate(
+    pct=value/sum(value),
+    variable = case_when(!!!patterns)
+    ) %>%
+  group_by(variable) %>%
+  mutate(
+    orderVal = mean(value)
+  )
+
+ggplot(issueNum1, aes(x=reorder(variable, orderVal), y=pct, fill=Group)) +
+  geom_bar(stat='identity', position='dodge') +
+  geom_text(aes(label=percent(pct)),hjust=-.11,size=3, position=position_dodge(width=1)) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 30)) +
+  ylim(c(0,.3)) +
+  scale_fill_brewer(palette='Set2') +
+  coord_flip() +
+  labs(title='Which of These Causes is Most Important To You?',
+       x='',y='Percent Most Important') +
+  theme(plot.title=element_text(hjust=.5))
+
 
 issues <- apropos('^topIssues')
 for (j in 1:length(issues)) {
@@ -1674,6 +1747,40 @@ ggplot(agreePositions.Ovr, aes(x=reorder(Group,-avgVal), y=avgVal)) +
     plot.title=element_text(hjust=.5)#,
     # axis.text.x = element_text(angle=0,hjust=1)
   ) + coord_flip()
+
+agreePositions.table <-
+  set %>%
+  select(Response_ID,Group, starts_with('agree_positions.')) %>%
+  mutate_at(
+    .vars = vars(starts_with('agree_positions.')),
+    .funs = funs(
+      case_when(
+        . %in% c('Uncertain','Unfamiliar with this topic') ~ 'Neutral',
+        TRUE ~ .
+      )
+    )
+  ) %>%
+  melt(id.var=c('Response_ID','Group')) %>%
+  group_by(Group, variable, value) %>%
+  summarise(
+    count = n()
+  ) %>%
+  mutate(
+    pct=count/sum(count)
+  ) %>%
+  select(-count) %>%
+  ungroup() %>%
+  mutate(
+    variable = gsub('_',' ',gsub('agree_positions.','',variable)),
+    value = factor(value, levels=c('Strongly Disagree','Disagree',
+                                   'Neutral','Agree','Strongly Agree'))
+  ) %>%
+  spread(value, pct) %>%
+  arrange(variable, Group) %>%
+  select(Cause=variable, Group,`Strongly Disagree`, `Disagree`,
+         Neutral,`Agree`, `Strongly Agree`)
+
+saveCSV(agreePositions.table)
 
 # Background checks
 
