@@ -136,6 +136,7 @@ getFrequencyPlot <- function(dat, toPlot, levels, title) {
   p <-
     ggplot(plotDat, aes(x=outcome, y=count)) +
     geom_bar(stat='identity', width = .65, fill='skyblue2') +
+    geom_text(aes(label=round(count)), vjust=-.5) +
     geom_vline(xintercept = labx) +
     labs(title = paste(title[2])) +
     scale_x_continuous(labels=levels, breaks=sort(unique(dat$outcome))) +

@@ -15,7 +15,7 @@ library(lubridate)
 pg <- pgConnect()
 
 #Import latest Question Pro data pulled on August 3rd (N=3583)
-#member_survey_2018 <- read.xlsx('~/Documents/Member Surveys/Member Survey 2018 /2018 Member Survey DSS Aug 3.xlsx')
+#member_survey_2018 <- read.csv('~/Documents/Member Surveys/Member Survey 2018 /2018 Member Survey final Aug 3.csv')
 
 #Import member survey data from PostGres (N should equal 3538)
 mem_survey <- "select *
@@ -100,7 +100,7 @@ CrossTable(merged_member_survey$questionpro_customvar1,merged_member_survey$sour
  #Look at NPS scores for only respondents with sign ups in last year and no missing NPS scores (leave in respondents who might not have completed the entire survey)
  nps<-nps%>%
    filter(last_signup_date>'2017-06-13' & nps_cat!=is.na(nps_cat))%>%
-   select(northstar_id, source, source_niche, nps, nps_cat, last_signup_date, source_sms,birthdate, source_segment)
+   select(northstar_id, source, source_niche, nps, nps_cat, last_signup_date, source_sms,birthdate, source_segment, time_submitted, ds_satisfaction_causes:ds_satisfaction_campaigns, ds_value)
 
  #NPS breakdown by channel
  CrossTable(nps$source_segment, nps$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
@@ -182,6 +182,10 @@ nps <- nps%>%
  #weighted NPS
  prop.table(svytable(~nps_cat, design=nps.w))
 
+ #Unweighted Mean score
+ mean(nps$nps)
+#weighted Mean score
+ svymean(~nps,design=nps.w)
 
  ##############################################################
  ############### WEIGHTING TO SAMPLING ########################
@@ -286,7 +290,7 @@ weighted_members_nps <- dat%>%
   mutate(weight_sampling = prob*weight)
 
 niche_weighted <-weighted_members_nps %>%
-  select(northstar_id, source_segment, weight_sampling, nps, first_signup_date,last_signup_date.x,avg_signup_date, prob)%>%
+  select(northstar_id, source_segment, weight_sampling, nps, first_signup_date,last_signup_date.x,avg_signup_date, prob, nps_cat)%>%
   filter(source_segment=='Niche')
 
 scores <- numeric()
@@ -301,7 +305,7 @@ mean(score)
 
 sms_weighted <-weighted_members_nps%>%
   filter(source_segment=='SMS only')%>%
-  select(northstar_id, source_segment, weight_sampling, nps, first_signup_date,last_signup_date.x,avg_signup_date, prob)
+  select(northstar_id, source_segment, weight_sampling, nps, first_signup_date,last_signup_date.x,avg_signup_date, prob, nps_cat)
 
 scores <- numeric()
 for (i in 1:1000) {
@@ -315,7 +319,7 @@ mean(score)
 
 typical_weighted <-weighted_members_nps %>%
   filter(source_segment=='Typical')%>%
-  select(northstar_id, source_segment, weight_sampling, nps, first_signup_date,last_signup_date.x,avg_signup_date, prob)
+  select(northstar_id, source_segment, weight_sampling, nps, first_signup_date,last_signup_date.x,avg_signup_date, prob, nps_cat)
 
 scores <- numeric()
 for (i in 1:1000) {
@@ -342,32 +346,114 @@ sampleNiche <-
   niche_weighted %>%
   sample_n(nrow(.), replace = F, weight = prob)
 
-ggplot(sampleNiche, aes(x=last_signup_date.x, y=nps)) +
-  geom_point() + geom_smooth() + ggtitle('Niche') +
-  scale_x_date(breaks=pretty_breaks(5))
+ggplot(sampleNiche, aes(x=last_signup_date.x, y=nps)) + ggtitle("Use theme(plot.title = element_text(hjust = 0.5)) to center") +
+  theme(plot.title = element_text(hjust = 0.5)) + geom_point() + geom_smooth() + ggtitle('Niche Members') +
+  scale_x_date(breaks = date_breaks("2 months"), labels = date_format("%b-%y")) + labs(x='Last Campaign Signup Date', y= 'Mean NPS Rating (out of 10)')
 
 sampleSMS <-
   sms_weighted %>%
   sample_n(nrow(.), replace = F, weight = prob)
 
-ggplot(sampleSMS, aes(x=last_signup_date.x, y=nps)) +
-  geom_point() + geom_smooth() + ggtitle('SMS Only') +
-  scale_x_date(breaks=pretty_breaks(5))
+ggplot(sampleSMS, aes(x=last_signup_date.x, y=nps)) + ggtitle("Use theme(plot.title = element_text(hjust = 0.5)) to center") +
+  theme(plot.title = element_text(hjust = 0.5)) + geom_point() + geom_smooth() + ggtitle('SMS-Only Members') +
+  scale_x_date(breaks = date_breaks("2 months"), labels = date_format("%b-%y")) + labs(x='Last Campaign Signup Date', y= 'Mean NPS Rating (out of 10)')
 
 sampleRegular <-
   typical_weighted %>%
   sample_n(nrow(.), replace = F, weight = prob)
 
-ggplot(sampleRegular, aes(x=last_signup_date.x, y=nps)) +
-  geom_point() + geom_smooth() + ggtitle('Typical') +
-  scale_x_date(breaks=pretty_breaks(5))
+ggplot(sampleRegular, aes(x=last_signup_date.x, y=nps)) + ggtitle("Use theme(plot.title = element_text(hjust = 0.5)) to center") +
+  theme(plot.title = element_text(hjust = 0.5)) + geom_point() + geom_smooth() + ggtitle('All Other Members') +
+  scale_x_date(breaks = date_breaks("2 months"), labels = date_format("%b-%y")) + labs(x='Last Campaign Signup Date', y= 'Mean NPS Rating (out of 10)')
 
 
 sampleAll <-
   weighted_members_nps %>%
   sample_n(nrow(.), replace = F, weight = weight_sampling)
 
-ggplot(sampleAll, aes(x=last_signup_date.x, y=nps)) +
-  geom_point() + geom_smooth() + ggtitle('All members') +
-  scale_x_date(breaks=pretty_breaks(5))
+ggplot(sampleAll, aes(x=last_signup_date.x, y=nps)) + ggtitle("Use theme(plot.title = element_text(hjust = 0.5)) to center") +
+  theme(plot.title = element_text(hjust = 0.5)) + geom_point() + geom_smooth() + ggtitle('All members') +
+  scale_x_date(breaks = date_breaks("2 months"), labels = date_format("%b-%y")) + labs(x='Last Campaign Signup Date', y= 'Mean NPS Rating (out of 10)')
 
+
+######################################################
+###################Satisfaction ######################
+######################################################
+#Satisfaction - Causes
+#Weighted vs. unweighted percentages
+mean(nps$ds_satisfaction_causes, na.rm=TRUE)
+#Weighted vs. unweighted average score
+svymean(~ds_satisfaction_causes,design=nps.w, na.rm=TRUE)
+
+#Satisfaction - Communication
+#Weighted vs. unweighted percentages
+mean(nps$ds_satisfaction_communication, na.rm=TRUE)
+#Weighted vs. unweighted average score
+svymean(~ds_satisfaction_communication,design=nps.w, na.rm=TRUE)
+
+#Satisfaction - Website
+#Weighted vs. unweighted percentages
+mean(nps$ds_satisfaction_website, na.rm=TRUE)
+#Weighted vs. unweighted average score
+svymean(~ds_satisfaction_website,design=nps.w, na.rm=TRUE)
+
+#Satisfaction - Impact
+#Weighted vs. unweighted percentages
+mean(nps$ds_satisfaction_campaigns, na.rm=TRUE)
+#Weighted vs. unweighted average score
+svymean(~ds_satisfaction_campaigns,design=nps.w, na.rm=TRUE)
+
+#Satisfaction - Community
+#Weighted vs. unweighted percentages
+mean(nps$ds_satisfaction_community, na.rm=TRUE)
+#Weighted vs. unweighted average score
+svymean(~ds_satisfaction_community,design=nps.w, na.rm=TRUE)
+
+#Satisfaction - Scholarships
+#Weighted vs. unweighted percentages
+mean(nps$ds_satisfaction_scholarships, na.rm=TRUE)
+#Weighted vs. unweighted average score
+svymean(~ds_satisfaction_scholarships,design=nps.w, na.rm=TRUE)
+
+# Percentage 5 stars for each area
+count(nps, ds_satisfaction_causes, sort = TRUE)%>% filter(ds_satisfaction_causes!=is.na(ds_satisfaction_causes))%>%mutate(p=n/sum(n))
+count(nps, ds_satisfaction_communication, sort = TRUE)%>% filter(ds_satisfaction_communication!=is.na(ds_satisfaction_communication))%>%mutate(p=n/sum(n))
+count(nps, ds_satisfaction_website, sort = TRUE)%>% filter(ds_satisfaction_website!=is.na(ds_satisfaction_website))%>%mutate(p=n/sum(n))
+count(nps, ds_satisfaction_scholarships, sort = TRUE)%>% filter(ds_satisfaction_scholarships!=is.na(ds_satisfaction_scholarships))%>%mutate(p=n/sum(n))
+count(nps, ds_satisfaction_community, sort = TRUE)%>% filter(ds_satisfaction_community!=is.na(ds_satisfaction_community))%>%mutate(p=n/sum(n))
+count(nps, ds_satisfaction_campaigns, sort = TRUE)%>% filter(ds_satisfaction_campaigns!=is.na(ds_satisfaction_campaigns))%>%mutate(p=n/sum(n))
+
+#NPS for each area x Satisfaction star rating
+#CrossTable(nps$ds_satisfaction_causes, nps$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+#CrossTable(nps$ds_satisfaction_communication, nps$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+#CrossTable(nps$ds_satisfaction_website, nps$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+#CrossTable(nps$ds_satisfaction_scholarships, nps$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+#CrossTable(nps$ds_satisfaction_community, nps$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+#CrossTable(nps$ds_satisfaction_campaigns, nps$nps_cat, prop.c=FALSE, prop.r=TRUE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, format= c("SPSS"))
+
+############################################
+####### LOGISTIC REGRESSION MODEL #########
+############################################
+
+#create binary variables
+logisitic<-nps%>%
+  mutate(
+    community_rec=(ifelse(ds_satisfaction_community==5,1,0)),
+    causes_rec=(ifelse(ds_satisfaction_causes==5,1,0)),
+    website_rec=(ifelse(ds_satisfaction_website==5,1,0)),
+    communication_rec=(ifelse(ds_satisfaction_communication==5,1,0)),
+    scholarships_rec=(ifelse(ds_satisfaction_scholarships==5,1,0)),
+    impact_rec=ifelse(ds_satisfaction_campaigns==5,1,0),
+    promoter=ifelse(nps_cat=='Promoter',1,0)
+  )
+
+#Logistic regression model - Outcome = being a promoter, predictors are satisfaction on touchpoints
+logreg_promoter <-glm(promoter~communication_rec + causes_rec + website_rec + scholarships_rec + community_rec +impact_rec,
+                      data=logisitic, family=binomial(link="logit"))
+
+summary(logreg_promoter)
+exp(coef(logreg_promoter))
+
+logreg_promoter <-glm(promoter~impact_rec,data=logisitic, family=binomial(link="logit"))
+summary(logreg_promoter)
+exp(coef(logreg_promoter))
