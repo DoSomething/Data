@@ -1170,6 +1170,40 @@ ggplot(issueNum1, aes(x=reorder(variable, orderVal), y=pct, fill=Group)) +
        x='',y='Percent Most Important') +
   theme(plot.title=element_text(hjust=.5))
 
+issueNotTop5 <-
+  set %>%
+  select(Response_ID, Group, starts_with('top_issues_prompted')) %>%
+  mutate_at(
+    .vars = vars(starts_with('top_issues_prompted')),
+    .funs = funs(case_when(is.na(.) ~ 1, TRUE ~ 0))
+  ) %>%
+  group_by(Group) %>%
+  summarise_at(
+    .vars = vars(starts_with('top_issues_prompted')),
+    .funs = funs(sum(.))
+  ) %>%
+  melt() %>%
+  group_by(Group) %>%
+  mutate(
+    pct=value/sum(value),
+    variable = case_when(!!!patterns)
+  ) %>%
+  group_by(variable) %>%
+  mutate(
+    orderVal = mean(value)
+  )
+
+ggplot(issueNotTop5, aes(x=reorder(variable, orderVal), y=pct, fill=Group)) +
+  geom_bar(stat='identity', position='dodge') +
+  geom_text(aes(label=percent(pct)),hjust=-.11,size=3, position=position_dodge(width=1)) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 30)) +
+  ylim(c(0,.1)) +
+  scale_fill_brewer(palette='Set2') +
+  coord_flip() +
+  labs(title='Which of These Causes is Not Among Your 5 Top Issues?',
+       x='',y='Percent Not Top 5') +
+  theme(plot.title=element_text(hjust=.5))
+
 
 issues <- apropos('^topIssues')
 for (j in 1:length(issues)) {
