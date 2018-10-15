@@ -31,6 +31,7 @@ ggplot(MoM, aes(x=dayOfMonth, value)) +
   geom_line(aes(color=Month)) + 
   labs(title='Voters Registered Month over Month', x='Day of Month', y='Voters Registered') +
   theme(plot.title = element_text(hjust=.5)) + 
+  scale_y_continuous(breaks=pretty_breaks(10)) +
   scale_colour_brewer(palette = 'Greens') 
 ```
 
@@ -47,7 +48,7 @@ ggplot(QoQ, aes(x=dayOfQuarter, value)) +
 ```
 
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=12, fig.height=9}
-ggplot(QoQ.Source, aes(x=dayOfQuarter, value)) +
+ggplot(QoQ.Source %>% filter(source != 'ema0il'), aes(x=dayOfQuarter, value)) +
   geom_line(aes(color=quarter)) + 
   facet_wrap(~source) +
   labs(title='Voters Registered Quarter over Quarter by Source', x='Day of Quarter', y='Voters Registered') +
@@ -99,16 +100,16 @@ p1 <- ggplot(ss$email, aes(x=status, y=value, fill=reorder(details, value))) +
   labs(x='',y='') +
   theme(plot.title = element_text(hjust=.5)) + 
   guides(fill=guide_legend(title='Source Details'))
-p2 <- p1 %+% ss$sms %+% ggtitle('SMS')
+
 p3 <- p1 %+% ss$social %+% ggtitle('Social')
 p4 <- p1 %+% ss$web %+% ggtitle('Web')
 p1 <- p1 %+% ss$email %+% ggtitle('Email')
 p5 <- p1 %+% ss$partner %+% ggtitle('Partner')
-p6 <- p1 %+% ss$ads %+% ggtitle('Ads')
+p6 <- p1 %+% ss$ads %+% ggtitle('Ads - Blank Details Are Majority Google Ads')
 p7 <- p1 %+% ss$influencer %+% ggtitle('Influencer')
 
 grid.arrange(
-  p1,p2,p3,p4,p5,p6,p7,ncol=1,
+  p1,p3,p4,p5,p6,p7,ncol=1,
   top='Counts and Proportions of Form Status split by Source and Details',
   bottom=leg
   )
