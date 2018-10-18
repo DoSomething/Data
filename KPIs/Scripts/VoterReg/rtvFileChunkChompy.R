@@ -14,7 +14,7 @@ badEmails <-
   )
 
 rawRTV <-
-  read_csv('Data/RockTheVote/rock_the_vote_2018-09-04.csv') %>%
+  read_csv('Data/RockTheVote/rock_the_vote_2018-10-17.csv') %>%
   filter(
     `Email address` != badEmails
   ) %>%
@@ -23,7 +23,7 @@ rawRTV <-
   )
 
 
-allSets <- split(rawRTV, as.numeric(rownames(rawRTV)) %/% 1200)
+allSets <- split(rawRTV, as.numeric(rownames(rawRTV)) %/% 45000)
 
 for (i in 1:length(allSets)) {
 
