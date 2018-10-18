@@ -29,6 +29,7 @@ for (i in 1:length(allSets)) {
 
   write_csv(
     allSets[[i]],
+    na = '',
     path =
       paste0(
         'Data/RTVChompy/rtv_',
@@ -38,3 +39,10 @@ for (i in 1:length(allSets)) {
   )
 
 }
+
+prodTest <- sample_n(allSets[[2]],100)
+write_csv(prodTest, na = '',
+         path =
+           paste0(
+             'Data/RTVChompy/rtv_prodTest.csv'
+           ))
