@@ -59,7 +59,7 @@ getData <- function() {
 
   q <-
     glue_sql(
-      "SELECT
+      "SELECT DISTINCT
         c.northstar_id as nsid,
         c.campaign_id::varchar,
         c.campaign_run_id::varchar,

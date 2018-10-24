@@ -72,7 +72,7 @@ getData <- function() {
              WHEN u.source = 'sms' THEN 'sms'
              ELSE 'web' END AS user_source
         FROM public.campaign_activity c
-        LEFT JOIN rogue.turbovote t ON c.post_id::bigint = t.post_id::bigint
+        INNER JOIN rogue.turbovote t ON c.post_id::bigint = t.post_id::bigint
         LEFT JOIN public.users u ON c.northstar_id = u.northstar_id
         WHERE c.post_id IS NOT NULL
         AND c.post_type = 'voter-reg'",
