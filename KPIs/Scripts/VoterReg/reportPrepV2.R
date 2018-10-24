@@ -1,25 +1,12 @@
 library(stringr)
-source('Scripts/VoterReg/turbovoteFile.R')
-source('Scripts/VoterReg/rockTheVoteFile.R')
+library(openxlsx)
+source('Scripts/VoterReg/rogueTVRTV.R')
 source('Scripts/VoterReg/schoolTheVote.R')
 
 library(reshape2)
 
 vr <-
-  rtv %>%
-  bind_rows(tv)
-
-if(dbExistsTable(pg,c("public", "turbovote_file"))) {
-
-  q <- "truncate public.turbovote_file"
-  runQuery(q)
-
-}
-dbWriteTable(pg,c("public", "turbovote_file"), vr, append = TRUE, row.names=F)
-
-vr <-
-  rtv %>%
-  bind_rows(tv) %>%
+  tvrtv %>%
   bind_rows(stv)
 
 npPivot <- function(pivot) {
@@ -64,8 +51,7 @@ sourceTime <-
 fileSource <-
   vr %>%
   filter(grepl('register', ds_vr_status)) %>%
-  group_by(file) %>%
-  count() %>%
+  count(file) %>%
   ungroup() %>%
   arrange(n) %>%
   mutate(
@@ -173,7 +159,7 @@ QoQ.Source <-
   filter(created_at >= '2018-01-01') %>%
   mutate(
     date = as.Date(created_at)
-    ) %>%
+  ) %>%
   group_by(date, source) %>%
   summarise(
     Registrations = length(which(grepl('register', ds_vr_status)))
@@ -247,15 +233,7 @@ quarterlyTotal <-
     Registrations = length(which(grepl('register', ds_vr_status)))
   )
 
-# Excel output
-
-library(openxlsx)
-
-raw <- createWorkbook()
 wb <- createWorkbook()
-
-addWorksheet(raw, 'rawData')
-writeData(raw, 'rawData', vr, rowNames = F)
 addWorksheet(wb, 'byWeek')
 writeData(wb, 'byWeek', byWeek, rowNames=F)
 addWorksheet(wb, 'byMonth')
@@ -266,14 +244,6 @@ addWorksheet(wb, 'byWeekSource')
 writeData(wb, 'byWeekSource', byWeekSource, rowNames=F)
 addWorksheet(wb, 'byWeekSourceDetails')
 writeData(wb, 'byWeekSourceDetails', byWeekSourceDetails, rowNames=F)
-addWorksheet(wb, 'RBAsterisk')
-writeData(wb, 'RBAsterisk', aster, rowNames=F)
-
-saveWorkbook(
-  raw,
-  paste0('Data/raw_output_',Sys.Date(),'.xlsx'),
-  overwrite = TRUE
-)
 
 saveWorkbook(
   wb,

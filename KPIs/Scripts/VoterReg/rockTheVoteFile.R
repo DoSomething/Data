@@ -171,7 +171,7 @@ processTrackingSource <- function(dat) {
         TRUE ~ ''
       )
     ) %>%
-    select(-A,-B,-C,-D,-E)
+    select(-A,-B,-C,-D,-E,-`F`)
 
   return(parsedSep)
 
