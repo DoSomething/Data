@@ -50,8 +50,7 @@ sourceTime <-
 fileSource <-
   vr %>%
   filter(grepl('register', ds_vr_status)) %>%
-  group_by(file) %>%
-  count() %>%
+  count(file) %>%
   ungroup() %>%
   arrange(n) %>%
   mutate(
