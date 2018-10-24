@@ -247,23 +247,6 @@ prepData <- function(..., testing=F) {
 
   vr <- addFields(vr)
 
-  cioConv <-
-    getSheet('Voter Registration Source Details Buckets', 'Conversions') %>%
-    select(source_details, type, category) %>%
-    rename(newsletter = source_details) %>%
-    filter(type=='email')
-
-  vr %<>%
-    left_join(cioConv) %>%
-    mutate(
-      details = case_when(
-        !is.na(category) ~ category,
-        grepl('referral=true', referral_code) ~ 'referral',
-        TRUE ~ details
-      )
-    ) %>%
-    select(-type, -category)
-
   return(vr)
 
 }
