@@ -3,8 +3,33 @@ pg <- pgConnect(QA=T)
 
 getRTVData <- function() {
 
-  q <- "SELECT * FROM rogue.rock_the_vote"
-  qres <- runQuery(q, QA=T)
+  q <-
+    glue_sql(
+      "SELECT
+        c.northstar_id as nsid,
+        c.campaign_id::varchar,
+        c.campaign_run_id::varchar,
+        CASE WHEN c.post_status IN ('rejected','pending')
+          THEN 'uncertain'
+          ELSE c.post_status END AS ds_vr_status,
+        c.post_attribution_date AS created_at,
+        r.tracking_source as referral_code,
+        u.created_at AS ds_registration_date,
+        CASE WHEN u.source = 'niche' THEN 'niche'
+          WHEN u.source = 'sms' THEN 'sms'
+          ELSE 'web' END AS user_source
+      FROM public.campaign_activity c
+      INNER JOIN
+        (
+        SELECT DISTINCT *
+    	  FROM rogue.rock_the_vote
+        ) r ON c.post_id::bigint = r.post_id::bigint
+      LEFT JOIN public.users u ON c.northstar_id = u.northstar_id
+      WHERE c.post_id IS NOT NULL
+      AND c.post_type = 'voter-reg'",
+      .con='pg'
+    )
+  qres <- runQuery(q)
 
   qres %<>%
     mutate(
