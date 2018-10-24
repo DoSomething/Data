@@ -1,4 +1,5 @@
 library(stringr)
+library(openxlsx)
 source('Scripts/VoterReg/rogueTVRTV.R')
 source('Scripts/VoterReg/schoolTheVote.R')
 
@@ -243,8 +244,6 @@ addWorksheet(wb, 'byWeekSource')
 writeData(wb, 'byWeekSource', byWeekSource, rowNames=F)
 addWorksheet(wb, 'byWeekSourceDetails')
 writeData(wb, 'byWeekSourceDetails', byWeekSourceDetails, rowNames=F)
-addWorksheet(wb, 'RBAsterisk')
-writeData(wb, 'RBAsterisk', aster, rowNames=F)
 
 saveWorkbook(
   wb,
