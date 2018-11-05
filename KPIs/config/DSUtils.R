@@ -60,7 +60,7 @@ getQuery <- function(path, wd = T) {
   }
 }
 
-runQuery <- function(query) {
+runQuery <- function(query, ...) {
   require(RPostgreSQL)
   source('config/pgConnect.R')
 
@@ -74,7 +74,7 @@ runQuery <- function(query) {
 
   }
 
-  connection <- pgConnect()
+  connection <- pgConnect(...)
   out <- tbl_df(dbGetQuery(connection, q))
   dbDisconnect(connection)
 

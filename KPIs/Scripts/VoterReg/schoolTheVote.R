@@ -14,11 +14,11 @@ q <-
       c.quantity
     FROM campaign_activity c
     LEFT JOIN public.users u ON c.northstar_id = u.northstar_id
-    WHERE c.campaign_id IN ('822','8129','8119')
+    WHERE c.campaign_id IN ('822','8129','8119','8195','8202','8180','8208')
     AND c.signup_created_at>='2018-05-01'
     AND c.post_id IS NOT NULL
     AND (
-      (c.campaign_id IN ('822','8129') AND c.post_status='accepted')
+      (c.campaign_id IN ('822','8129','8195','8202','8180','8208') AND c.post_status='accepted')
       OR (c.campaign_id IN ('8119') AND c.post_status <> 'rejected')
     )
     ;",
@@ -40,18 +40,22 @@ for (i in 1:nrow(qres)) {
       source = rep('on_the_ground',row$quantity),
       source_details = rep(
         case_when(
-          row$campaign_run_id=='8103' ~ 'school_the_vote',
+          row$campaign_run_id %in% c('8103','8171') ~ 'school_the_vote',
           row$campaign_run_id %in% c('8130','8151') ~ 'red_white_booth',
           row$campaign_run_id=='8120' ~ 'community_partner',
+          row$campaign_run_id=='8203' ~ 'voting_captain',
+          row$campaign_run_id=='8209' ~ 'dosomething_otg',
           TRUE ~ ''
         ),
         row$quantity
       ),
       details = rep(
         case_when(
-          row$campaign_run_id=='8103' ~ 'school_the_vote',
+          row$campaign_run_id %in% c('8103','8171') ~ 'school_the_vote',
           row$campaign_run_id %in% c('8130','8151') ~ 'red_white_booth',
           row$campaign_run_id=='8120' ~ 'community_partner',
+          row$campaign_run_id=='8203' ~ 'voting_captain',
+          row$campaign_run_id=='8209' ~ 'dosomething_otg',
           TRUE ~ ''
         ),
         row$quantity
@@ -72,7 +76,10 @@ for (i in 1:nrow(qres)) {
       campaign_id = case_when(
         campaign_run_id == '8120' ~ '8119',
         campaign_run_id == '8130' ~ '8129',
-        campaign_run_id == '8103' ~ '822',
+        campaign_run_id %in% c('8103','8171') ~ '822',
+        campaign_run_id == '8203' ~ '8202',
+        campaign_run_id == '8209' ~ '8208',
+        campaign_run_id == '8151' ~ '8129',
         TRUE ~ ''
         ),
       reportback = T

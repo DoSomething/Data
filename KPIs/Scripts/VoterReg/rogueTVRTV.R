@@ -59,82 +59,91 @@ getData <- function() {
 
   q <-
     glue_sql(
-      "SELECT
+      "SELECT DISTINCT
         c.northstar_id as nsid,
         c.campaign_id::varchar,
         c.campaign_run_id::varchar,
         CASE WHEN c.post_status IN ('rejected','pending') THEN 'uncertain'
-             ELSE c.post_status END AS ds_vr_status,
-        c.post_attribution_date AS created_at,
-        t.referral_code,
+          ELSE c.post_status END AS ds_vr_status,
+        CASE WHEN c.post_attribution_date < '2017-01-01'
+             THEN c.post_attribution_date + interval '4 year'
+             ELSE c.post_attribution_date END AS created_at,
+        CASE WHEN c.post_source='rock-the-vote' THEN 'RockTheVote'
+          ELSE 'TurboVote' END AS file,
+        ref.referral_code,
         u.created_at AS ds_registration_date,
         CASE WHEN u.source = 'niche' THEN 'niche'
-             WHEN u.source = 'sms' THEN 'sms'
-             ELSE 'web' END AS user_source
-        FROM public.campaign_activity c
-        INNER JOIN rogue.turbovote t ON c.post_id::bigint = t.post_id::bigint
-        LEFT JOIN public.users u ON c.northstar_id = u.northstar_id
-        WHERE c.post_id IS NOT NULL
-        AND c.post_type = 'voter-reg'",
+          WHEN u.source = 'sms' THEN 'sms'
+        ELSE 'web' END AS user_source
+      FROM public.campaign_activity c
+      INNER JOIN
+        (
+        SELECT DISTINCT
+          *
+        FROM
+          (SELECT DISTINCT
+            tv.post_id,
+            tv.referral_code
+          FROM rogue.turbovote tv
+          UNION
+          SELECT DISTINCT
+            rtv.post_id,
+            rtv.tracking_source AS referral_code
+          FROM rogue.rock_the_vote rtv) det
+        ) ref
+      ON c.post_id::bigint = ref.post_id::bigint
+      LEFT JOIN public.users u ON c.northstar_id = u.northstar_id
+      WHERE c.post_id IS NOT NULL
+      AND c.post_type = 'voter-reg'",
       .con='pg'
     )
 
   qres <-
-    runQuery(q) %>%
-    filter(!duplicated(paste0(nsid,campaign_run_id)))
+    runQuery(q)
+
 }
 
 processReferralColumn <- function(dat) {
 
   maxSep <- max(as.numeric(names(table(str_count(dat$referral_code, ',')))))+1
+
   parsedSep <-
     dat %>%
     select(nsid, campaign_run_id, referral_code) %>%
     mutate(
-      referral_code = gsub('sourcedetails','source_details',referral_code)
-      ) %>%
+      referral_code = gsub('sourcedetails','source_details',referral_code),
+      referral_code = gsub('iframe\\?r=','',referral_code),
+      referral_code = gsub('iframe','',referral_code)
+    ) %>%
     separate(referral_code, LETTERS[1:maxSep], ',',remove = F) %>%
     mutate(
-      source_details =
-        case_when(
-          grepl('11_facts',A) ~ '11_facts',
-          grepl('face',A) ~ 'facebook',
-          grepl('sms',A) ~ 'sms',
-          grepl('twitter',A) ~ 'twitter',
-          !substr(A, 1, 4) %in% c('user','camp') ~ A,
-          grepl('source_details:', D) ~ D,
-          grepl('source_details:', E) ~ E,
-          TRUE ~ ''
-        ),
-      source_details = gsub('source_details:', '', source_details),
       source =
         case_when(
-          grepl('source:', B) ~ B,
-          grepl('source:', C) ~ C,
-          grepl('source:', D) ~ D,
-          TRUE ~ ''
+          grepl('ads',tolower(A)) ~ 'ads',
+          grepl('email',tolower(A)) ~ 'email',
+          grepl('source:',tolower(C)) ~ gsub(".*:",'',C),
+          grepl('source=',tolower(C)) ~ gsub(".*=",'',C),
+          grepl('source:',tolower(D)) ~ gsub(".*:",'',D),
+          grepl('source=',tolower(D)) ~ gsub(".*=",'',D),
+          TRUE ~ 'no_attribution'
         ),
-      source = sapply(strsplit(source, '\\:'), "[", 2),
-      content =
+      source_details =
         case_when(
-          grepl('content', E) ~ gsub('utm_content:','',E),
+          grepl('_details:',tolower(D)) ~ gsub(".*:",'',D),
+          grepl('_details=',tolower(D)) ~ gsub(".*=",'',D),
+          grepl('_details:',tolower(E)) ~ gsub(".*:",'',E),
+          grepl('_details=',tolower(E)) ~ gsub(".*=",'',E),
           TRUE ~ ''
         ),
       source = case_when(
         source == 'sms_share' ~ 'sms',
+        grepl('referral=true', referral_code) ~ 'web',
         grepl('niche', source_details) ~ 'partner',
-        source_details %in% c('twitter','facebook') ~ 'social',
-        source_details == '11_facts' |
-          source == 'dosomething'  |
-          grepl('referral=true', referral_code) ~ 'web',
-        is.na(source) |
-          source=='{source}' |
-          source=='{source' ~ 'no_attribution',
+        grepl('source',source) ~ 'no_attribution',
+        source=='ema0il' ~ 'email',
         TRUE ~ source
       ),
       source_details = case_when(
-        is.na(source_details) ~ '',
-        source == 'web' & source_details == '' ~ paste0('campaign_',campaign_run_id),
         grepl('referral=true', source_details) ~ 'referral',
         TRUE ~ source_details
       ),
@@ -144,7 +153,9 @@ processReferralColumn <- function(dat) {
       )
     ) %>%
     select(-A,-B,-C,-D,-E,-`F`)
+
   return(parsedSep)
+
 }
 
 addDetails <- function(dat) {
@@ -152,7 +163,6 @@ addDetails <- function(dat) {
   dat %<>%
     mutate(
       details = case_when(
-        newsletter != '' & !is.na(newsletter) ~ newsletter,
         source == 'social' &
           grepl('twitter', source_details) ~ 'twitter',
         source == 'social' &
@@ -188,7 +198,8 @@ addDetails <- function(dat) {
         source == 'web' &
           grepl('typeform', source_details) ~ 'survey',
         source == 'sms' & grepl('2018', source_details) ~ 'sms_tests',
-        is.na(source_details) | source_details == '' ~ 'blank',
+        newsletter != '' ~ newsletter,
+        source_details == '' ~ 'blank',
         TRUE ~ source_details
       )
     )
@@ -218,7 +229,7 @@ addFields <- function(dat) {
     )
 }
 
-prepTVData <- function(...) {
+prepData <- function(..., testing=F) {
 
   d <- getData(...)
   refParsed <- processReferralColumn(d)
@@ -228,30 +239,16 @@ prepTVData <- function(...) {
     select(-referral_code) %>%
     left_join(refParsed)
 
+  if (testing==T) {
+    browser()
+  }
+
   vr <- addDetails(vr)
 
   vr <- addFields(vr)
-
-  cioConv <-
-    getSheet('Voter Registration Source Details Buckets', 'Conversions') %>%
-    select(source_details, type, category) %>%
-    rename(newsletter = source_details) %>%
-    filter(type=='email')
-
-  vr %<>%
-    left_join(cioConv) %>%
-    mutate(
-      details = case_when(
-        newsletter != '' & !is.na(newsletter) ~ category,
-        grepl('referral=true', referral_code) ~ 'referral',
-        TRUE ~ details
-      ),
-      file = 'TurboVote'
-    ) %>%
-    select(-type, -category)
 
   return(vr)
 
 }
 
-tv <- prepTVData()
+tvrtv <- prepData()
