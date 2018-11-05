@@ -1,3 +1,5 @@
+source('config/init.R')
+library(rlang)
 library(glue)
 
 nsids <- set %>% filter(!is.na(External_Reference)) %>% select(External_Reference)
@@ -73,7 +75,7 @@ getPivotBreakdown <- function(dat,pivot) {
 
 }
 
-getPivotBreakdown(qres,region)
+region <- getPivotBreakdown(qres,region)
 
 getPivotBreakdown(qres, political_view)
 
@@ -98,3 +100,46 @@ gradeDat <-
   )
 getPivotBreakdown(gradeDat, grade_level)
 
+
+poliAlign <-
+  agreePosition.Politics %>%
+  filter(
+      Group=='Gen Pop' &
+      political_view %in% c('Moderate','Liberal','Conservative')
+    )
+
+
+ggplot(filter(poliAlign,grepl('Climate',quest)), aes(x=political_view,y=avgVal)) +
+  geom_bar(stat='identity') +
+  labs(x='',y='',
+    title='Climate Change is Happening and is Caused by Human Activity') +
+  scale_y_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels =c('Strongly Disagree','Disagree','Neutral',
+                               'Agree','Strongly Agree'))
+
+ggplot(filter(poliAlign,grepl('Guns',quest)), aes(x=political_view,y=avgVal)) +
+  geom_bar(stat='identity') +
+  labs(x='',y='',
+       title='Background Checks Should be Required for all Gun Purchases') +
+  scale_y_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels =c('Strongly Disagree','Disagree','Neutral',
+                               'Agree','Strongly Agree'))
+
+ggplot(filter(poliAlign,grepl('Health',quest)), aes(x=political_view,y=avgVal)) +
+  geom_bar(stat='identity') +
+  labs(x='',y='',
+       title='The Government has the Responsibility to Ensure Health Coverage for All') +
+  scale_y_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels =c('Strongly Disagree','Disagree','Neutral',
+                               'Agree','Strongly Agree'))
+
+ggplot(
+  filter(poliAlign,grepl('Muslims',quest) | grepl('Immigrants',quest)),
+  aes(x=political_view,y=avgVal)
+  ) +
+  geom_bar(stat='identity', position='dodge') +
+  labs(x='',y='') +
+  scale_y_continuous(breaks=seq(-2,2,1), limits = c(-2,2),
+                     labels =c('Strongly Disagree','Disagree','Neutral',
+                               'Agree','Strongly Agree')) +
+  facet_wrap(~quest)
