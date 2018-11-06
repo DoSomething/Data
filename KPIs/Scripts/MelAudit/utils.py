@@ -27,11 +27,11 @@ def print_null_vals(df):
     return df_nulls
 
 
-def load_connection():
-    user = os.environ.get('DB_USER')
-    pwd = os.environ.get('DB_PW')
-    db = os.environ.get('DB_NAME')
-    host = os.environ.get('DB_HOST')
+def load_connection(db_user_env, db_pw_env, db_name_env, db_host_env):
+    user = os.environ.get(db_user_env)
+    pwd = os.environ.get(db_pw_env)
+    db = os.environ.get(db_name_env)
+    host = os.environ.get(db_host_env)
     return psycopg2.connect(database=db, user=user, password=pwd, host=host)
 
 
