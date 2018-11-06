@@ -52,37 +52,59 @@ getPivotBreakdown <- function(dat,pivot) {
       temp %>% filter(!is.na(D) & D!='') %>% select(A=D, !!pivot)
     ) %>%
     mutate(A=gsub(' ','',A)) %>%
+    mutate(
+      A =
+        case_when(
+          A %in% c('MentalHealth','Bullying') ~ 'Mental Health / Bullying',
+          A %in% c('Homelessness','Poverty') ~ 'Poverty/Homelessness',
+          TRUE ~ A
+        )
+    ) %>%
+    filter(!A %in% c('Animals','Disasters','PhysicalHealth','Relationships','Sex')) %>%
     count(A, !!pivot) %>%
     group_by(!!pivot) %>%
     mutate(pct=n/sum(n)) %>%
     arrange(-n)
 
-  p1 <-
-    ggplot(causeTypes, aes(x=A, y=n, fill=!!pivot)) +
-    geom_bar(stat='identity', position='dodge', width = .75) +
-    scale_fill_brewer(palette='Set2') +
-    labs(x='') +
-    theme(axis.text.x = element_text(angle=30, hjust=1))
+  # p1 <-
+  #   ggplot(causeTypes, aes(x=A, y=n, fill=!!pivot)) +
+  #   geom_bar(stat='identity', position='dodge', width = .75) +
+  #   scale_fill_brewer(palette='Set2') +
+  #   labs(x='') +
+  #   facet_wrap(~A) +
+  #   theme(axis.text.x = element_text(angle=30, hjust=1))
 
   p2 <-
     ggplot(causeTypes, aes(x=A, y=pct, fill=!!pivot)) +
     geom_bar(stat='identity', position='dodge', width = .75) +
     scale_fill_brewer(palette='Set2') +
-    labs(x='') +
-    theme(axis.text.x = element_text(angle=30, hjust=1))
+    labs(x='', y='') +
+    facet_wrap(~A, scales='free')
 
-  return(list(p1,p2))
+  return(p2)
 
 }
 
-region <- getPivotBreakdown(qres,region)
+region <-
+  getPivotBreakdown(qres,region) +
+  theme(
+    axis.text.x=element_blank(),
+    axis.text.y=element_text(size=12),
+    strip.text.x=element_text(size=12)) +
+  guides(fill=guide_legend(title="Region"))
 
 getPivotBreakdown(qres, political_view)
 
 sexDat <-
   qres %>%
   filter(sex %in% c('Male','Female'))
-getPivotBreakdown(sexDat, sex)
+sexPlot <-
+  getPivotBreakdown(sexDat, sex) +
+  theme(
+    axis.text.x=element_blank(),
+    axis.text.y=element_text(size=12),
+    strip.text.x=element_text(size=12)) +
+  guides(fill=guide_legend(title="Gender"))
 
 gradeDat <-
   qres %>%
@@ -107,6 +129,22 @@ poliAlign <-
       Group=='Gen Pop' &
       political_view %in% c('Moderate','Liberal','Conservative')
     )
+
+racePlot <-
+  getPivotBreakdown(qres %>% filter(race %in% c('Black','White','Hispanic/Latino')), race) +
+  theme(
+    axis.text.x=element_blank(),
+    axis.text.y=element_text(size=12),
+    strip.text.x=element_text(size=12)) +
+  guides(fill=guide_legend(title="Race"))
+
+financePlot <-
+  getPivotBreakdown(qres %>% filter(fam_finances != "Don't Know"), fam_finances) +
+  theme(
+    axis.text.x=element_blank(),
+    axis.text.y=element_text(size=12),
+    strip.text.x=element_text(size=12)) +
+  guides(fill=guide_legend(title="Finances"))
 
 
 ggplot(filter(poliAlign,grepl('Climate',quest)), aes(x=political_view,y=avgVal)) +
@@ -143,3 +181,6 @@ ggplot(
                      labels =c('Strongly Disagree','Disagree','Neutral',
                                'Agree','Strongly Agree')) +
   facet_wrap(~quest)
+
+volunFrame <-
+  tibble(formal=c(22.5), informal=)
