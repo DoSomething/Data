@@ -1,9 +1,7 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
 import psycopg2
-import seaborn as sns
 from collections import OrderedDict
 
 
@@ -35,13 +33,8 @@ def load_connection(db_user_env, db_pw_env, db_name_env, db_host_env):
     return psycopg2.connect(database=db, user=user, password=pwd, host=host)
 
 
-def analyze_df_group(df):
-    df = df.sort_values(['identifier', 'click_time'])
-    df_first = df[~(
-        df.duplicated(['northstar_id', 'broadcast_id'], keep='first'))]
-    df_first['time_to_click'] = df_first['click_time'] - df_first['created_at']
-    df_first['time_to_click'] = df_first['time_to_click'].apply(
-        lambda x:  x.total_seconds())
-    df_first = df_first[~(df_first['time_to_click'] < 0)]
-
-    return df_first
+def print_monthly_mamcount(df):
+    monthly_counts = df.set_index('timestamp').groupby(
+        pd.Grouper(freq='M')).agg(
+            {'northstar_id': lambda x: len(x.unique())})
+    return monthly_counts
