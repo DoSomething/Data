@@ -182,5 +182,111 @@ ggplot(
                                'Agree','Strongly Agree')) +
   facet_wrap(~quest)
 
-volunFrame <-
-  tibble(formal=c(22.5), informal=)
+ggplot(volunteerReason$overall$data %>%
+         filter(!variable %in% c('Because_my_family_does_it','Because_I_want_to_feel_connected_to_my_community')) %>%
+         mutate(variable = gsub('_',' ',variable),
+                variable = gsub('Because ','',variable),
+                variable = gsub('it','It',variable),
+                variable = gsub('my','My',variable)),
+       aes(x=reorder(variable, -value), y=value)) +
+  geom_bar(stat='identity', fill='#2fe4daff') +
+  geom_label(aes(label=percent(value)),vjust=-.1,size=6) +
+  labs(x='',title='',y='') +
+  scale_y_continuous(minor_breaks = seq(0,.8,.1),breaks=seq(0,.8,.1), limits = c(0,.8)) +
+  theme(plot.title = element_text(hjust = .5),
+        axis.text.x = element_text(size=14, color='white'),
+        axis.text.y = element_text(color='white'),
+        axis.ticks = element_blank(),
+        panel.background = element_rect(fill = "#332baaff", colour = "#332baaff"),
+        panel.grid.major.y = element_line(color='white'),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.background = element_rect(fill = "#332baaff"))
+
+
+testTheme <-
+  ggplot(volunteerReason$overall$data %>%
+         filter(!variable %in% c('Because_my_family_does_it','Because_I_want_to_feel_connected_to_my_community')) %>%
+         mutate(variable = gsub('_',' ',variable),
+                variable = gsub('Because ','',variable),
+                variable = gsub('it','It',variable),
+                variable = gsub('my','My',variable)),
+       aes(x=reorder(variable, -value), y=value)) +
+  geom_bar(stat='identity', fill='#2fe4daff') +
+  geom_label(aes(label=percent(value)),vjust=-.1,size=6) +
+  labs(x='',title='',y='') +
+  scale_y_continuous(minor_breaks = seq(0,.8,.1),breaks=seq(0,.8,.1), limits = c(0,.8))
+
+dsTheme(testTheme)
+
+set %>%
+  filter(Group=='Gen Pop' &
+           agree_positions.Climate_change_is_happening_and_is_caused_by_human_activity_ != 'Unfamiliar with this topic') %>%
+  mutate(
+    cchange=
+      ifelse(agree_positions.Climate_change_is_happening_and_is_caused_by_human_activity_ %in%
+               c('Agree','Strongly Agree'),1,0)) %>%
+  group_by(political_view) %>%
+  summarise(mean(cchange))
+climateChange.d <-
+  tibble(
+    People = c('Old People','Old People','Young People','Young People'),
+    Partisanship = c('Conservative','Democrat','Conservative','Democrat'),
+    `% Agree` = c(.15,.79,.62,.88)
+    )
+dsTheme(
+  ggplot(climateChange.d,aes(x=People, y=`% Agree`,fill=Partisanship)) +
+  geom_bar(stat='identity', position='dodge') +
+  geom_label(aes(label=percent(`% Agree`)),vjust=-.1,size=6,position=position_dodge(width = .9)) +
+  labs(x='',title='',y='') +
+  scale_y_continuous(minor_breaks = seq(0,.9,.1),breaks=seq(0,.9,.1), limits = c(0,.9)) +
+  guides(fill=FALSE)
+)
+
+set %>%
+  filter(Group=='Gen Pop' &
+           agree_positions.Racism_is_no_longer_an_issue_in_America_ != 'Unfamiliar with this topic') %>%
+  mutate(
+    cchange=
+      ifelse(agree_positions.Racism_is_no_longer_an_issue_in_America_ %in%
+               c('Agree','Strongly Agree'),1,0)) %>%
+  group_by(political_view) %>%
+  summarise(mean(cchange))
+race.d <-
+  tibble(
+    People = c('Old People','Old People','Young People','Young People'),
+    Partisanship = c('Conservative','Democrat','Conservative','Democrat'),
+    `% Agree` = c(.36,.81,.75,.89)
+  )
+dsTheme(
+  ggplot(race.d,aes(x=People, y=`% Agree`,fill=Partisanship)) +
+    geom_bar(stat='identity', position='dodge') +
+    geom_label(aes(label=percent(`% Agree`)),vjust=-.1,size=6,position=position_dodge(width = .9)) +
+    labs(x='',title='',y='') +
+    scale_y_continuous(minor_breaks = seq(0,.9,.1),breaks=seq(0,.9,.1), limits = c(0,.92)) +
+    guides(fill=FALSE)
+)
+
+set %>%
+  filter(Group=='Gen Pop' &What
+           agree_positions.The_government_has_the_responsibility_to_ensure_health_coverage_for_all != 'Unfamiliar with this topic') %>%
+  mutate(
+    cchange=
+      ifelse(agree_positions.The_government_has_the_responsibility_to_ensure_health_coverage_for_all %in%
+               c('Agree','Strongly Agree'),1,0)) %>%
+  group_by(political_view) %>%
+  summarise(mean(cchange))
+healthcare.d <-
+  tibble(
+    People = c('Old People','Old People','Young People','Young People'),
+    Partisanship = c('Conservative','Democrat','Conservative','Democrat'),
+    `% Agree` = c(.24,.77,.58,.84)
+  )
+dsTheme(
+  ggplot(healthcare.d,aes(x=People, y=`% Agree`,fill=Partisanship)) +
+    geom_bar(stat='identity', position='dodge') +
+    geom_label(aes(label=percent(`% Agree`)),vjust=-.1,size=6,position=position_dodge(width = .9)) +
+    labs(x='',title='',y='') +
+    scale_y_continuous(minor_breaks = seq(0,.9,.1),breaks=seq(0,.9,.1), limits = c(0,.9)) +
+    guides(fill=FALSE)
+)
