@@ -398,3 +398,19 @@ cleanPhone <- function(Phone) {
   Phone = ifelse(nchar(Phone) > 10, substr(Phone, nchar(Phone) - 9 , nchar(Phone)), Phone)
   return(as.character(Phone))
 }
+
+dsTheme <- function(plot) {
+  out <-
+    plot +
+    theme(plot.title = element_text(hjust = .5),
+          axis.text.x = element_text(size=14, color='white'),
+          axis.text.y = element_text(color='white'),
+          axis.ticks = element_blank(),
+          panel.background = element_rect(fill = "#332baaff", colour = "#332baaff"),
+          panel.grid.major.y = element_line(color='white'),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor = element_blank(),
+          plot.background = element_rect(fill = "#332baaff"))
+
+  return(out)
+}
