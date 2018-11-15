@@ -6,7 +6,7 @@ TNT <- ("SELECT
         gambit.user_id  AS northstar_id,
         gambit.text  AS email
         FROM public.gambit_messages_inbound AS gambit
-        WHERE gambit.topic  IN ('tmi_level1') 
+        WHERE gambit.topic  IN ('tmi_level1','dss_ask_email') 
         AND gambit.created_at >= now() - interval '90 DAYS'
         GROUP BY 1,2,3
         ORDER BY 2 DESC")
@@ -19,7 +19,7 @@ TNT_co <- ("SELECT
         gambit.user_id  AS northstar_id,
         gambit.text  AS company
         FROM public.gambit_messages_inbound AS gambit
-        WHERE gambit.topic  IN ('tmi_completed') 
+        WHERE gambit.topic  IN ('tmi_completed','dss_ask_company') 
         AND gambit.created_at >= now() - interval '90 DAYS'
         GROUP BY 1,2,3
         ORDER BY 2 DESC")
