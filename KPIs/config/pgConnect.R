@@ -11,8 +11,8 @@ pgConnect <- function(QA=F) {
     db="deh9oi912c63mc"
   } else {
     pw=Sys.getenv('QUASAR_PG_PW')
-    host="ec2-52-201-106-141.compute-1.amazonaws.com"
-    db="d4e7vm204dkmar"
+    host="quasar-prod.c9ajz690mens.us-east-1.rds.amazonaws.com"
+    db="quasar_prod_warehouse"
   }
 
   channel <-
@@ -29,4 +29,3 @@ pgConnect <- function(QA=F) {
   return(channel)
 
 }
-
