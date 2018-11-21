@@ -1,7 +1,7 @@
 source('config/init.R')
 library(glue)
 library(scales)
-first=T
+first=F
 
 q <-
   "SELECT
@@ -22,7 +22,16 @@ mam <-
   ) %>%
   filter(monthSeq > 3)
 
-mamMod <- lm(mams ~ monthSeq, mam)
+if (first==T) {
+
+  mamMod <- lm(mams ~ monthSeq, mam)
+  save(mamMod, file='Data/reportbackForecast2019Model.RData')
+
+} else {
+
+  load('Data/reportbackForecast2019Model.RData')
+
+}
 
 datePads <-
   paste0(
