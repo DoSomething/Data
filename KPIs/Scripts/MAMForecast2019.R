@@ -63,7 +63,11 @@ ggplot(mam, aes(x=monthSeq, y=expectMAM)) +
     linetype='dotted',size=.25,x=-15,xend=max(mam$monthSeq)+1,
     y=max(mam$expectMAM), yend=max(mam$expectMAM)
   ) +
-  labs(x='',y='MAMs') +
+  labs(x='', y='MAMs', title='MAMs Over Time') +
   scale_x_continuous(breaks = mam$monthSeq, labels = mam$month_year) +
   scale_y_continuous(breaks = ticks, limits = c(50000,250000)) +
-  theme(axis.text.x = element_text(angle=90,hjust=1))
+  theme(
+    plot.title=element_text(hjust=0.5),
+    axis.text.x = element_text(angle=90,hjust=1),
+    axis.text.y = element_text(face="bold", size=13)
+    )
