@@ -42,7 +42,7 @@ qres <-
 
 addRows <-
   tibble(
-    date = seq.Date(max(qres$date)+1, as.Date('2020-01-01'), 1)
+    date = seq.Date(max(qres$date)+1, as.Date('2019-12-31'), 1)
   )
 
 rbs <-
@@ -61,41 +61,20 @@ if (first==T) {
     reportbacks ~ year + dayOfYear + year*dayOfYear,
     data=filter(rbs, !is.na(reportbacks))
   )
-  rbModMon <- lm(
-    reportbacks ~ year + dayOfYear + year*dayOfYear + as.factor(month),
-    data=filter(rbs, !is.na(reportbacks))
-  )
 
-  save(rbMod, rbModMon, file='Data/reportbackForecast2019Model.RData')
+  save(rbMod, file='Data/reportbackForecast2019Model.RData')
 
 } else {
   load('Data/reportbackForecast2018Model.RData')
 }
 
-
 rbs$expectRBs <- round(predict(rbMod, rbs, type='response'))
-rbs$expectRBs.Mon <- round(predict(rbModMon, rbs, type='response'))
 
 rbs %<>%
   mutate(
-    expectRBs = ifelse( (date >= '2018-01-01' & date < '2018-11-07') |
-                          (date >= '2020-01-01' & date < '2020-11-07'),
-                        round(expectRBs), expectRBs),
-    expectRBs.Mon = ifelse( (date >= '2018-01-01' & date < '2018-11-07') |
-                              (date >= '2020-01-01' & date < '2020-11-07'),
-                            round(expectRBs.Mon), expectRBs.Mon),
     runningTotal = ifelse(!is.na(reportbacks), cumsum(reportbacks), NA),
-    expectRunTotal = cumsum(expectRBs),
-    expectRunTotal.Mon = cumsum(expectRBs.Mon)
+    expectRunTotal = cumsum(expectRBs)
   )
-
-q1s <- as.Date(c('2019-03-31','2020-03-31','2021-03-31'))
-q2018 <- as.Date(c('2019-03-31','2019-06-30','2019-09-31','2019-12-31'))
-eoys <- as.Date(c('2019-01-01','2020-01-01','2021-01-01','2022-12-31'))
-
-datesOfInterest <-
-  rbs %>%
-  filter(date %in% c(q2018))
 
 # Year over Year ----------------------------------------------------------
 
@@ -105,19 +84,12 @@ yoy <-
   filter(year >= 2015) %>%
   mutate(
     yearRunningTotal = cumsum(reportbacks),
-    expectedYearRunningTotal = cumsum(expectRBs),
-    expectedYearRunningTotal.Mon = cumsum(expectRBs.Mon)
+    expectedYearRunningTotal = cumsum(expectRBs)
   ) %>%
   filter(year(date)!=2020)
 
-DOYs <- c(yday(as.Date('2019-12-31')))
-
-qVals <-
-  yoy %>%
-  filter(dayOfYear %in% DOYs & year > 2018)
-
-ticks <- c(qVals$expectedYearRunningTotal,
-           seq(0,275000,25000))
+endVal <- max(yoy$expectedYearRunningTotal)
+ticks <- c(endVal,seq(0,275000,25000))
 
 p <-
   ggplot(yoy, aes(x=dayOfYear, y=yearRunningTotal, group=year)) +
@@ -129,9 +101,6 @@ p <-
   theme(plot.title=element_text(hjust=0.5),
         axis.text.x = element_text(face="bold", size=13),
         axis.text.y = element_text(face="bold", size=13)) +
-  geom_segment(
-    linetype='dotted',size=.25,x=-15,xend=365,
-    y=qVals$expectedYearRunningTotal, yend=qVals$expectedYearRunningTotal
-    ) +
+  geom_segment(linetype='dotted',size=.25,x=-15,xend=365,y=endVal, yend=endVal) +
   scale_x_continuous(breaks=pretty_breaks(20),limits=c(0,365)) +
   scale_y_continuous(breaks=ticks)
