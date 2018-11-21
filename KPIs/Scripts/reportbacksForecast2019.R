@@ -1,7 +1,7 @@
 source('config/init.R')
 library(glue)
 library(scales)
-first=T
+first=F
 
 q <-
   "SELECT
