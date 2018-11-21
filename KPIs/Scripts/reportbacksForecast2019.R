@@ -65,7 +65,9 @@ if (first==T) {
   save(rbMod, file='Data/reportbackForecast2019Model.RData')
 
 } else {
+
   load('Data/reportbackForecast2018Model.RData')
+
 }
 
 rbs$expectRBs <- round(predict(rbMod, rbs, type='response'))
