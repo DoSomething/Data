@@ -1,15 +1,20 @@
 source('config/init.R')
 library(glue)
 library(scales)
+library(gridExtra)
 first=F
 
 q <-
   "SELECT
     SUBSTRING(m.timestamp::VARCHAR, 1, 7) as month_year,
-    COUNT(DISTINCT m.northstar_id) as mams
+    COUNT(
+      DISTINCT
+        CASE WHEN m.action_type <> 'bertly_link_preview' THEN m.northstar_id
+        ELSE NULL END
+    ) as mams,
+    COUNT(DISTINCT m.northstar_id) as mams_old
   FROM member_event_log m
   WHERE m.timestamp >= '2015-01-01'
-  AND m.action_type <> 'bertly_link_preview'
   AND m.source <> 'niche'
   GROUP BY SUBSTRING(m.timestamp::VARCHAR, 1, 7)"
 
@@ -25,7 +30,8 @@ mam <-
 if (first==T) {
 
   mamMod <- lm(mams ~ monthSeq, mam)
-  save(mamMod, file='Data/reportbackForecast2019Model.RData')
+  mamMod.old <- lm(mams_old ~ monthSeq, mam)
+  save(mamMod, mamMod.old, file='Data/reportbackForecast2019Model.RData')
 
 } else {
 
@@ -52,22 +58,81 @@ addRows <-
 mam %<>%
   bind_rows(addRows)
 
-mam$expectMAM <- predict(mamMod, mam, type='response')
+mam$expectMAM = predict(mamMod, mam, type='response')
+mam$expectMAM.old = predict(mamMod.old, mam, type='response')
 
-ticks <- c(seq(50000,300000,25000),max(mam$expectMAM))
+for (i in 1:nrow(mam)) {
 
-ggplot(mam, aes(x=monthSeq, y=expectMAM)) +
-  geom_line(linetype='dotdash') +
-  geom_line(aes(y=mams)) +
+  mam[i,'expactMAM.alt'] <-
+    ifelse(
+      !is.na(mam[i,'mams']),
+      mam[i,'mams'],
+      mam[i-1,'expactMAM.alt']+mam[i-1,'expactMAM.alt']*.02
+    )
+
+  mam[i,'expectMAM.altOLD'] <-
+    ifelse(
+      !is.na(mam[i,'mams_old']),
+      mam[i,'mams_old'],
+      mam[i-1,'expectMAM.altOLD']+mam[i-1,'expectMAM.altOLD']*.02
+    )
+
+}
+
+ticksNew <-
+  round(c(
+    seq(50000,225000,25000), seq(275000,300000,25000),
+    max(mam$expectMAM),max(mam$expactMAM.alt)
+  ))
+
+pnew <-
+  ggplot(mam, aes(x=monthSeq, y=mams)) +
+  geom_line(aes(y=expactMAM.alt), linetype='dotdash', color='blue') +
+  geom_line(aes(y=expectMAM), linetype='dotdash') +
+  geom_line() +
   geom_segment(
-    linetype='dotted',size=.25,x=-15,xend=max(mam$monthSeq)+1,
+    linetype='dotted',size=.25,x=-15,xend=max(mam$monthSeq),
     y=max(mam$expectMAM), yend=max(mam$expectMAM)
   ) +
-  labs(x='', y='MAMs', title='MAMs Over Time') +
+  geom_segment(
+    linetype='dotted',size=.25,x=-15,xend=max(mam$monthSeq),
+    y=max(mam$expactMAM.alt), yend=max(mam$expactMAM.alt)
+  ) +
+  labs(x='', y='', title='No Previews') +
   scale_x_continuous(breaks = mam$monthSeq, labels = mam$month_year) +
-  scale_y_continuous(breaks = ticks, limits = c(50000,250000)) +
+  scale_y_continuous(breaks = ticksNew, limits = c(50000,300000)) +
   theme(
     plot.title=element_text(hjust=0.5),
-    axis.text.x = element_text(angle=90,hjust=1),
+    axis.text.x = element_text(angle=90),
     axis.text.y = element_text(face="bold", size=13)
     )
+
+ticksOld <-
+  round(c(
+    seq(50000,275000,25000),
+    max(mam$expectMAM.altOLD),max(mam$expectMAM.old)
+  ))
+
+pold <-
+  ggplot(mam, aes(x=monthSeq, y=expectMAM.old)) +
+  geom_line(aes(y=expectMAM.altOLD), linetype='dotdash', color='blue') +
+  geom_line(aes(y=mams_old)) +
+  geom_line(linetype='dotdash') +
+  geom_segment(
+    linetype='dotted',size=.25,x=-15,xend=max(mam$monthSeq),
+    y=max(mam$expectMAM.old), yend=max(mam$expectMAM.old)
+  ) +
+  geom_segment(
+    linetype='dotted',size=.25,x=-15,xend=max(mam$monthSeq),
+    y=max(mam$expectMAM.altOLD), yend=max(mam$expectMAM.altOLD)
+  ) +
+  labs(x='', y='', title='With Previews') +
+  scale_x_continuous(breaks = mam$monthSeq, labels = mam$month_year) +
+  scale_y_continuous(breaks = ticksOld, limits = c(50000,300000)) +
+  theme(
+    plot.title=element_text(hjust=0.5),
+    axis.text.x = element_text(angle=90),
+    axis.text.y = element_text(face="bold", size=13)
+  )
+
+grid.arrange(pnew, pold, ncol=2, top='MAMs Over Time')
