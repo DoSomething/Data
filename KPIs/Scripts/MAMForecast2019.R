@@ -1,6 +1,7 @@
 source('config/init.R')
 library(glue)
 library(scales)
+library(grid)
 library(gridExtra)
 first=F
 
@@ -135,4 +136,4 @@ pold <-
     axis.text.y = element_text(face="bold", size=13)
   )
 
-grid.arrange(pnew, pold, ncol=2, top='MAMs Over Time')
+grid.arrange(pnew, pold, ncol=2, top=textGrob('MAMs Over Time',gp=gpar(fontsize=15)))
