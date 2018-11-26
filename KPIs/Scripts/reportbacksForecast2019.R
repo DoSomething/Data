@@ -104,5 +104,5 @@ p <-
         axis.text.x = element_text(face="bold", size=13),
         axis.text.y = element_text(face="bold", size=13)) +
   geom_segment(linetype='dotted',size=.25,x=-15,xend=365,y=endVal, yend=endVal) +
-  scale_x_continuous(breaks=pretty_breaks(20),limits=c(0,365)) +
+  scale_x_continuous(breaks=c(seq(0,340,20),365),limits=c(0,365)) +
   scale_y_continuous(breaks=ticks)
