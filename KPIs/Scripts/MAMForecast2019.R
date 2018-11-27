@@ -32,11 +32,11 @@ if (first==T) {
 
   mamMod <- lm(mams ~ monthSeq, mam)
   mamMod.old <- lm(mams_old ~ monthSeq, mam)
-  save(mamMod, mamMod.old, file='Data/reportbackForecast2019Model.RData')
+  save(mamMod, mamMod.old, file='Data/MAMForecast2019Model.RData')
 
 } else {
 
-  load('Data/reportbackForecast2019Model.RData')
+  load('Data/MAMForecast2019Model.RData')
 
 }
 
