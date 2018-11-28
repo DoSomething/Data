@@ -2,7 +2,7 @@
 sms_nps_oct <- read.csv('~/Documents/NPS/SMS/SMS Q4 NPS/October 2018/SMS Q4 October pulled Nov 16.csv')%>%
   mutate(user_id=as.character(user_id))
 #remove dups
-sms_nps_aug_20<-sms_nps_aug_20%>%
+sms_nps_oct<-sms_nps_oct%>%
   filter(!duplicated(id))
 
 #Select SMS members who have messaged Gambit or clicked on broadcast in last 2 weeks and remove any who responded last month*/
