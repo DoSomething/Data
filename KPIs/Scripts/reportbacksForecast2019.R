@@ -106,3 +106,12 @@ p <-
   geom_segment(linetype='dotted',size=.25,x=-15,xend=365,y=endVal, yend=endVal) +
   scale_x_continuous(breaks=c(seq(0,340,20),365),limits=c(0,365)) +
   scale_y_continuous(breaks=ticks)
+
+forecastRB <-
+  yoy %>%
+  filter(grepl('-12-31',date)) %>%
+  ungroup() %>%
+  select(date, yearRunningTotal, forecast = expectedYearRunningTotal) %>%
+  mutate(
+    growthRate = pctChange(lag(forecast),forecast)
+  )
