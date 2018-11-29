@@ -57,18 +57,19 @@ addRows <-
   )
 
 mam %<>%
-  bind_rows(addRows)
+  bind_rows(addRows) %>%
+  mutate(year=as.numeric(substr(month_year,1,4)))
 
 mam$expectMAM = predict(mamMod, mam, type='response')
 mam$expectMAM.old = predict(mamMod.old, mam, type='response')
 
 for (i in 1:nrow(mam)) {
 
-  mam[i,'expactMAM.alt'] <-
+  mam[i,'expectMAM.alt'] <-
     ifelse(
       !is.na(mam[i,'mams']),
       mam[i,'mams'],
-      mam[i-1,'expactMAM.alt']+mam[i-1,'expactMAM.alt']*.02
+      mam[i-1,'expectMAM.alt']+mam[i-1,'expectMAM.alt']*.02
     )
 
   mam[i,'expectMAM.altOLD'] <-
@@ -83,12 +84,12 @@ for (i in 1:nrow(mam)) {
 ticksNew <-
   round(c(
     seq(50000,225000,25000), seq(275000,300000,25000),
-    max(mam$expectMAM),max(mam$expactMAM.alt)
+    max(mam$expectMAM),max(mam$expectMAM.alt)
   ))
 
 pnew <-
   ggplot(mam, aes(x=monthSeq, y=mams)) +
-  geom_line(aes(y=expactMAM.alt), linetype='dotdash', color='blue') +
+  geom_line(aes(y=expectMAM.alt), linetype='dotdash', color='blue') +
   geom_line(aes(y=expectMAM), linetype='dotdash') +
   geom_line() +
   geom_segment(
@@ -97,7 +98,7 @@ pnew <-
   ) +
   geom_segment(
     linetype='dotted',size=.25,x=-15,xend=max(mam$monthSeq),
-    y=max(mam$expactMAM.alt), yend=max(mam$expactMAM.alt)
+    y=max(mam$expectMAM.alt), yend=max(mam$expectMAM.alt)
   ) +
   labs(x='', y='', title='No Previews') +
   scale_x_continuous(breaks = mam$monthSeq, labels = mam$month_year) +
@@ -137,3 +138,25 @@ pold <-
   )
 
 grid.arrange(pnew, pold, ncol=2, top=textGrob('MAMs Over Time',gp=gpar(fontsize=15)))
+
+actualNoPreview <-
+  mam %>% filter(year==2018) %$% mams %>% mean(.,na.rm=T)
+actualWithPreview <-
+  mam %>% filter(year==2018) %$% mams_old %>% mean(., na.rm=T)
+
+forecastsMAM <-
+  mam %>%
+  filter(year>2018) %>%
+  summarise(
+    Line.WithPreview = mean(expectMAM.old),
+    Line.NoPreview = mean(expectMAM),
+    twoPct.WithPreview = mean(expectMAM.altOLD),
+    twoPct.NoPreview = mean(expectMAM.alt)
+  ) %>%
+  gather(type, forecast) %>%
+  mutate(
+    actual.2018 = ifelse(grepl('NoPrev', type), actualNoPreview, actualWithPreview),
+    pctChange = pctChange(actual.2018, forecast)
+  ) %>%
+  select(type, actual.2018, forecast, pctChange)
+
