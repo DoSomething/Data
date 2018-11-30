@@ -3,7 +3,7 @@ library(glue)
 library(scales)
 library(grid)
 library(gridExtra)
-first=F
+first=T
 
 q <-
   "SELECT
@@ -83,7 +83,7 @@ for (i in 1:nrow(mam)) {
 
 ticksNew <-
   round(c(
-    seq(50000,225000,25000), seq(275000,300000,25000),
+    seq(50000,225000,25000), seq(275000,325000,25000),
     max(mam$expectMAM),max(mam$expectMAM.alt)
   ))
 
@@ -102,7 +102,7 @@ pnew <-
   ) +
   labs(x='', y='', title='No Previews') +
   scale_x_continuous(breaks = mam$monthSeq, labels = mam$month_year) +
-  scale_y_continuous(breaks = ticksNew, limits = c(50000,300000)) +
+  scale_y_continuous(breaks = ticksNew, limits = c(50000,325000)) +
   theme(
     plot.title=element_text(hjust=0.5),
     axis.text.x = element_text(angle=90),
@@ -111,7 +111,7 @@ pnew <-
 
 ticksOld <-
   round(c(
-    seq(50000,275000,25000),
+    seq(50000,325000,25000),
     max(mam$expectMAM.altOLD),max(mam$expectMAM.old)
   ))
 
@@ -130,7 +130,7 @@ pold <-
   ) +
   labs(x='', y='', title='With Previews') +
   scale_x_continuous(breaks = mam$monthSeq, labels = mam$month_year) +
-  scale_y_continuous(breaks = ticksOld, limits = c(50000,300000)) +
+  scale_y_continuous(breaks = ticksOld, limits = c(50000,325000)) +
   theme(
     plot.title=element_text(hjust=0.5),
     axis.text.x = element_text(angle=90),
@@ -148,15 +148,19 @@ forecastsMAM <-
   mam %>%
   filter(year>2018) %>%
   summarise(
-    Line.WithPreview = mean(expectMAM.old),
-    Line.NoPreview = mean(expectMAM),
-    twoPct.WithPreview = mean(expectMAM.altOLD),
-    twoPct.NoPreview = mean(expectMAM.alt)
+    Line.WithPreviews = mean(expectMAM.old),
+    Line.NoPreviews = mean(expectMAM),
+    twoPct.WithPreviews = mean(expectMAM.altOLD),
+    twoPct.NoPreviews = mean(expectMAM.alt)
   ) %>%
   gather(type, forecast) %>%
   mutate(
-    actual.2018 = ifelse(grepl('NoPrev', type), actualNoPreview, actualWithPreview),
-    pctChange = pctChange(actual.2018, forecast)
+    Actual.2018 = ifelse(grepl('NoPrev', type), actualNoPreview, actualWithPreview),
+    pctChange = pctChange(Actual.2018, forecast)
   ) %>%
-  select(type, actual.2018, forecast, pctChange)
+  select(Type = type, Actual.2018, Forecast.2019 = forecast, pctChange) %>%
+  mutate(
+    Forecast.2019 = formatC(Forecast.2019, format="d", big.mark=","),
+    Actual.2018 = formatC(Actual.2018, format="d", big.mark=",")
+  )
 

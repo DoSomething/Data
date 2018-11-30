@@ -93,7 +93,7 @@ yoy <-
 endVal <- max(yoy$expectedYearRunningTotal)
 ticks <- c(endVal,seq(0,275000,25000))
 
-p <-
+pRBForecast <-
   ggplot(yoy, aes(x=dayOfYear, y=yearRunningTotal, group=year)) +
   geom_line(aes(color=as.factor(year)), size=.5) +
   geom_line(aes(y=expectedYearRunningTotal,color=as.factor(year)),
@@ -107,11 +107,22 @@ p <-
   scale_x_continuous(breaks=c(seq(0,340,20),365),limits=c(0,365)) +
   scale_y_continuous(breaks=ticks)
 
+currentVal <- yoy %>% filter(date==today()) %$% yearRunningTotal
+
 forecastRB <-
   yoy %>%
   filter(grepl('-12-31',date)) %>%
   ungroup() %>%
-  select(date, yearRunningTotal, forecast = expectedYearRunningTotal) %>%
+  select(date, Reportbacks = yearRunningTotal, Forecast = expectedYearRunningTotal) %>%
   mutate(
-    growthRate = pctChange(lag(forecast),forecast)
+    Year = year(date),
+    Reportbacks = ifelse(date=='2018-12-31', currentVal, Reportbacks),
+    trueGrowthRate = pctChange(lag(Reportbacks),Reportbacks),
+    forecastGrowthRate = pctChange(lag(Forecast),Forecast)
+  ) %>%
+  select(-date) %>%
+  select(Year, everything()) %>%
+  mutate(
+    Reportbacks = formatC(Reportbacks, format="d", big.mark=","),
+    Forecast = formatC(Forecast, format="d", big.mark=",")
   )
