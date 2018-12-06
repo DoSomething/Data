@@ -19,7 +19,7 @@ nfl_activity <- glue_sql("SELECT email.*,activity.total_signups,activity.posts,m
                             (SELECT DISTINCT 
                               ca.northstar_id as nsid,
                               COUNT(DISTINCT ca.signup_id) AS total_signups,
-                              sum(CASE WHEN ca.post_id <> -1 THEN 1 ELSE 0 END) AS posts
+                              sum(CASE WHEN ca.post_id IS NOT NULL THEN 1 ELSE 0 END) AS posts
                             FROM public.campaign_activity ca 
                             GROUP BY ca.northstar_id) activity
                             ON email.nsid=activity.nsid
@@ -75,19 +75,25 @@ nfl_all<- left_join(nfl_merged, nfl_rbs)
 
 #select relevant vars and recode missing counts to 0 for average scores
 nfl_all <- nfl_all%>%
-  select(nsid,nfl_survey,What.is.your.gender.,How.would.you.feel.towards.each.company.below.if.they.partnered.with.the.NFL...DoSomething.org,If.the.NFL.changed.its.policy.to.the.one.stated.in.the.previous.question..how.would.you.feel.towards.each.company.if.they.partnered.with.the.NFL.after.the.fact...DoSomething.org,total_signups,active_lastmonth,count_actions,rbs)%>%
-  rename(like_DS=How.would.you.feel.towards.each.company.below.if.they.partnered.with.the.NFL...DoSomething.org)%>%
+  select(nsid,nfl_survey,What.is.your.gender.,Do.you.have.a.favorable.or.unfavorable.view.of.the.following.companies...DoSomething.org,How.would.you.feel.towards.each.company.below.if.they.partnered.with.the.NFL...DoSomething.org,If.the.NFL.changed.its.policy.to.the.one.stated.in.the.previous.question..how.would.you.feel.towards.each.company.if.they.partnered.with.the.NFL.after.the.fact...DoSomething.org,total_signups,active_lastmonth,count_actions,rbs)%>%
+  rename(like_DS=How.would.you.feel.towards.each.company.below.if.they.partnered.with.the.NFL...DoSomething.org,
+         know_DS=Do.you.have.a.favorable.or.unfavorable.view.of.the.following.companies...DoSomething.org)%>%
+  filter(!(know_DS == 'Never heard of' & nfl_survey==1))%>%
   mutate(reported_back=ifelse(rbs>0,1,0),
          count_actions=ifelse(is.na(count_actions),0,count_actions),
          rbs=ifelse(is.na(rbs),0,rbs),
          like_DS_cat=
-           case_when(like_DS=='I would like them a little less' | like_DS=='I would like them a lot less' ~ 'Like DS less',
-                     like_DS=='I would like them a little bit more' | like_DS=='I would like them a lot more' ~ 'Like DS more',
-                     like_DS=='My feelings would stay the same' ~ 'Feelings would stay the same',
-                     like_DS=='No opinion' ~ 'No opinion',
-                     like_DS=="Don't know" ~ 'Dont know'))
+           factor(
+             case_when(like_DS=='I would like them a little less' | like_DS=='I would like them a lot less' ~ 'Like DS less',
+                       like_DS=='I would like them a little bit more' | like_DS=='I would like them a lot more' ~ 'Like DS more',
+                       like_DS=='My feelings would stay the same' ~ 'Stay the same',
+                       like_DS=='No opinion' ~ 'No opinion',
+                       like_DS=="Don't know" ~ 'Dont know',
+                       nfl_survey==0 ~ 'Non-Survey'), 
+                       levels = c('Like DS less', 'Stay the same', 'Like DS more', 'No opinion', 'Dont know','Non-Survey'))
+           )
 
-#Average number of rbs for survey vs. conrtol
+#Average number of rbs for survey vs. control
 nfl_means <- nfl_all%>%
   group_by(nfl_survey)%>%
   summarise(mean_rbs = mean(rbs),
@@ -103,14 +109,19 @@ nfl_means_likeDS <- nfl_all%>%
 
 #Average rbs,signups,and actions per group by DS liking (condensed cat)
 nfl_means_likeDS <- nfl_all%>%
-  group_by(nfl_survey,like_DS_cat)%>%
+  group_by(like_DS_cat)%>%
   summarise(mean_rbs = mean(rbs),
             mean_actions = mean(count_actions),
-            mean_signups = mean(total_signups))
+            mean_signups = mean(total_signups))%>%
+  ungroup()%>%
+  print()
 
 write.csv(nfl_means_likeDS, file = 'NFL survey sentiment.csv')
 
-#bar charts
-ggplot(nfl_all, aes(x=factor(like_DS_cat), y=total_signups)) + stat_summary(fun.y="mean", geom="bar") 
-ggplot(nfl_all, aes(x=factor(like_DS_cat), y=count_actions)) + stat_summary(fun.y="mean", geom="bar")
-ggplot(nfl_all, aes(x=factor(like_DS_cat), y=rbs)) + stat_summary(fun.y="mean", geom="bar")
+#Melt to transform from wide to long
+nfl_means_likeDS <- nfl_means_likeDS%>%
+  melt(id.vars = "like_DS_cat", measure.vars = c("mean_rbs", "mean_actions", "mean_signups"))
+
+#chart
+ggplot(nfl_means_likeDS, aes(x=like_DS_cat, y=value, group = 1, color=variable)) + geom_line() + geom_point() +labs(x = 'How would you feel towards DS if they partnered with the NFL?') + facet_wrap(~variable, scales='free') + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
