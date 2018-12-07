@@ -53,8 +53,8 @@ process.2017 <- function(sheet) {
       social = `# of Social Shares (Verified, tracked to NSID)`,
       voter_registrations = `# of Voter Registrations`,
       other = `# of Verified Additional Actions`,
-      campaign_run_id = `Campaign Run ID`) %>%
-    select(date, rbs, calls, social, voter_registrations, other, campaign_run_id) %>%
+      campaign_id = `Campaign Run ID`) %>%
+    select(date, rbs, calls, social, voter_registrations, other, campaign_id) %>%
     mutate(
       dateVals = sapply(strsplit(date," "), `[`, 1) ,
       campaign = ifelse(grepl(paste(month.name, collapse="|"), date), NA, date),
@@ -62,7 +62,7 @@ process.2017 <- function(sheet) {
       rbs = ifelse(is.na(rbs), 0, rbs),
       date = na.locf(date)
     ) %>%
-    filter(!is.na(campaign_run_id)) %>%
+    filter(!is.na(campaign_id)) %>%
     select(-dateVals) %>%
     mutate_at(.vars = vars(-date,-campaign), .funs = funs(ifelse(is.na(.), 0, .))) %>%
     mutate(
@@ -86,7 +86,7 @@ process.2018 <- function(sheet) {
            social = `# of Social Shares (Verified, tracked to NSID)`,
            social_count = `Social shares as reportbacks?`,
            other = `# of Verified Additional Actions (Multiple photos of different actions in one campaign; bone marrow registrants; etc)`,
-           campaign_run_id = `Campaign Run ID`
+           campaign_id = `Campaign Run ID`
     ) %>%
     mutate(
       dateVals = sapply(strsplit(date," "), `[`, 1) ,
@@ -96,8 +96,8 @@ process.2018 <- function(sheet) {
       social = as.numeric(ifelse(social_count=='y', social, 0))
     ) %>%
     select(date, rbs, calls, voter_registrations, self_reported_registrations,
-           social, campaign, other, campaign_run_id) %>%
-    filter(!is.na(campaign_run_id)) %>%
+           social, campaign, other, campaign_id) %>%
+    filter(!is.na(campaign_id)) %>%
     mutate(
       rbs = as.numeric(gsub("[^0-9]", "",rbs)),
       date = as.Date(paste0('1 ',date), '%d %B %Y'),
@@ -163,13 +163,6 @@ makeRBCSV <- function() {
 
 reportbacks_asterisk <- makeRBCSV()
 
-write_csv(
-  reportbacks_asterisk,
-  path = '../../quasar/quasar/misc/reportbacks_asterisk.csv'
-  )
-
-system('scp ~/quasar/quasar/misc/reportbacks_asterisk.csv jump.d12g.co:/quasar-csv/reportbacks_asterisk.csv')
-
 channel <- pgConnect()
 if(dbExistsTable(channel,c("public", "legacy_reportbacks"))) {
   q <- "truncate public.legacy_reportbacks"
@@ -181,5 +174,5 @@ grant <- "grant select on public.legacy_reportbacks to public;"
 dbGetQuery(channel, grant)
 grant <- "grant select on public.legacy_reportbacks to looker;"
 dbGetQuery(channel, grant)
-grant <- "grant select on public.legacy_reportbacks to jli;"
+grant <- "grant select on public.legacy_reportbacks to dsanalyst;"
 dbGetQuery(channel, grant)

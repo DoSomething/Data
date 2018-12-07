@@ -7,8 +7,8 @@ pgConnect <- function(QA=F) {
 
   if (QA==T) {
     pw=Sys.getenv('QUASAR_QA_PW')
-    host="ec2-18-211-176-65.compute-1.amazonaws.com"
-    db="deh9oi912c63mc"
+    host="quasar-qa.c9ajz690mens.us-east-1.rds.amazonaws.com"
+    db="quasar"
   } else {
     pw=Sys.getenv('QUASAR_PG_PW')
     host="quasar-prod.c9ajz690mens.us-east-1.rds.amazonaws.com"
