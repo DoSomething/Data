@@ -1,0 +1,45 @@
+---
+title: "KPI Forecasts 2019"
+output: html_notebook
+---
+
+### Reportbacks
+#### Summary
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+library(knitr)
+library(kableExtra)
+options(knitr.kable.NA = '')
+```
+
+* 2018 had signficantly more reportbacks than our historical trend. Hence the model predicts mean reversion to historical growth rates, leading to a forecast that is not significantly higher than this year's total
+```{r warning=FALSE, echo=FALSE, message=FALSE}
+kable_styling(kable(forecastRB, digits=3))
+```
+
+#### Visual
+* X axis shows the progression of the year, by day, Y axis shows the cumulative sum of reportbacks
+* Solid lines are actual cumulative sums of reportbacks over time, dotted lines are the trend lines
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=13, fig.height=7}
+pRBForecast
+```
+
+### MAMs
+####Summary
+* For MAMs, we show 4 forecasts
+    * With or without bertly previews
+    * The type of forecast, one shows the simple trend forecast, the other assumes 2% month over month growth
+    * For all 4, we show the average actual MAMs across 2018 and the forecast average in 2019
+* We see that the trend line over time is essentially flat
+```{r warning=FALSE, echo=FALSE, message=FALSE}
+kable_styling(kable(forecastsMAM, digits=3))
+```
+
+#### Visual
+* X axis shows the month and year, Y axis shows MAMs for the month
+* Dashed lines are trend lines over time
+* Blue dashed line is the 2% month over month growth model
+* Dotted line simply shows the expected MAMs in December 2019
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=18, fig.height=8}
+grid.arrange(pnew, pold, ncol=2, top=textGrob('MAMs Over Time',gp=gpar(fontsize=15)))
+```
+
