@@ -14,8 +14,8 @@ fol_guide <- glue_sql("SELECT pe.northstar_id  AS id
                        FROM public.phoenix_events pe
                        INNER JOIN public.phoenix_sessions ps ON ps.session_id = pe.session_id 
                        INNER JOIN public.campaign_activity ca ON ca.northstar_id = pe.northstar_id
-                       WHERE (pe.href LIKE '%friends-on-lock-resource-guide%' 
-                       OR pe.href LIKE '%friends-on-lock-conversation-starters%') 
+                       WHERE (pe.href LIKE 'https://www.dosomething.org/us/articles/friends-on-lock-resource-guide%' 
+                       OR pe.href LIKE '%https://www.dosomething.org/us/articles/friends-on-lock-conversation-starters%') 
                        AND ((pe.northstar_id IS NOT NULL)) 
                        AND ((ps.end_datetime - ps.landing_datetime) >= INTERVAL '60 SECONDS') 
                        AND ca.campaign_run_id = '8227'
