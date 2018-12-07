@@ -8,7 +8,6 @@ fol_surveyed <- glue_sql("SELECT
 
 fol_surveyed <- runQuery(fol_surveyed)
 
-
 #Grab members who have viewed the FOL guide/conversation starter pages for at least 1 min and have signed up for FOL
 #exclude those who were already sent survey invites on 11/4 and 12/5 (from fol_surveyed above)
 fol_guide <- glue_sql("SELECT pe.northstar_id  AS id
