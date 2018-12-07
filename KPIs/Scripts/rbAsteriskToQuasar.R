@@ -163,13 +163,6 @@ makeRBCSV <- function() {
 
 reportbacks_asterisk <- makeRBCSV()
 
-write_csv(
-  reportbacks_asterisk,
-  path = '../../quasar/quasar/misc/reportbacks_asterisk.csv'
-  )
-
-system('scp ~/quasar/quasar/misc/reportbacks_asterisk.csv jump.d12g.co:/quasar-csv/reportbacks_asterisk.csv')
-
 channel <- pgConnect()
 if(dbExistsTable(channel,c("public", "legacy_reportbacks"))) {
   q <- "truncate public.legacy_reportbacks"
@@ -181,5 +174,5 @@ grant <- "grant select on public.legacy_reportbacks to public;"
 dbGetQuery(channel, grant)
 grant <- "grant select on public.legacy_reportbacks to looker;"
 dbGetQuery(channel, grant)
-grant <- "grant select on public.legacy_reportbacks to jli;"
+grant <- "grant select on public.legacy_reportbacks to dsanalyst;"
 dbGetQuery(channel, grant)
