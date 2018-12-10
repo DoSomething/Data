@@ -14,11 +14,11 @@ q <-
       c.quantity
     FROM campaign_activity c
     LEFT JOIN public.users u ON c.northstar_id = u.northstar_id
-    WHERE c.campaign_id IN ('822','8129','8119','8195','8202','8180','8208')
+    WHERE c.campaign_id IN ('822','6223','8103','8119','8129','8130','8180','8195','8202','8208')
     AND c.signup_created_at>='2018-05-01'
     AND c.post_id IS NOT NULL
     AND (
-      (c.campaign_id IN ('822','8129','8195','8202','8180','8208') AND c.post_status='accepted')
+      (c.campaign_id IN ('822','6223','8103','8119','8129','8130','8180','8195','8202','8208') AND c.post_status='accepted')
       OR (c.campaign_id IN ('8119') AND c.post_status <> 'rejected')
     )
     ;",
