@@ -68,11 +68,12 @@ skunkworks <- skunkworks_mam%>%
              )
           )
 
+
 #melt from wide to long
 skunkworks_pct <- skunkworks%>%
   select(month_active,roundup,askfreddie,spotsigns,weeklydo)%>%
   melt(id.vars = "month_active", measure.vars = c("roundup", "askfreddie", "spotsigns", "weeklydo"))
 
 #chart
-ggplot(skunkworks_pct, aes(x=variable, y=value, group = 1, fill=variable)) + geom_bar(stat="identity") +  geom_text(aes(label=scales::percent(value)), vjust=2, position = position_dodge(width=0.9),  size=2) + labs(x = 'Newsletter', y = 'Percentage of MAMS') + facet_wrap(~month_active, scales='free') + scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + theme(axis.text.x = element_text(angle = 20, hjust = 1))
+ggplot(skunkworks_pct, aes(x=variable, y=value, group = month_active, fill=month_active)) + geom_bar(stat="identity", position = "dodge", colour="grey") +  geom_text(aes(label=scales::percent(value)), vjust=2, position = position_dodge(width=0.9),  size=2) + labs(x = 'Newsletter', y = 'Percentage of MAMS') + scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + theme(axis.text.x = element_text(angle = 20, hjust = 1))
 
