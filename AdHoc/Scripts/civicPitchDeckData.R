@@ -239,3 +239,75 @@ ggplot(filter(agreePosition.Politics, Group=='Gen Pop' & quest %in% whichPositio
   guides(colour=guide_legend(title="Political Views")) +
   theme(plot.title=element_text(hjust=.5),
         axis.text.x = element_text(angle=30,hjust=1))
+
+
+# Carrie request ----------------------------------------------------------
+
+actionAwareness <- 
+  set %>%
+  filter(Group=='Gen Pop') %>% 
+  select(non_profit_awareness.DoSomething_org, starts_with('which_actions_taken')) %>%
+  mutate_at(
+    .vars = vars(starts_with('which_actions_taken')),
+    .funs = funs(
+      case_when(
+        . == 'Done in the past year' ~ 1,
+        . == 'Done over a year ago' ~ 0,
+        . == 'Not done and DONT KNOW if I would in the future' ~ 0,
+        . == 'Not done and would NEVER under any circumstances' ~ 0,
+        . == 'Not done but MIGHT in the future' ~ 0
+      )
+    )
+  ) %>%
+  mutate(
+    totalActions = rowSums(select(.,starts_with('which_actions_taken'))),
+    awareness = 
+      case_when(
+        non_profit_awareness.DoSomething_org %in% c('Very familiar','4') ~ 1,
+        non_profit_awareness.DoSomething_org %in% c('3','2','Not at all familiar') ~ 0
+        )
+  ) %>% 
+  select(totalActions,awareness) %>% 
+  group_by(awareness) %>% 
+  summarise(
+    meanActions = mean(totalActions)
+  )
+
+
+
+# Irene -------------------------------------------------------------------
+
+issueNum1 <-
+  set %>%
+  filter(Group=='Gen Pop' & age > 17) %>% 
+  select(Response_ID, Group, starts_with('top_issues_prompted')) %>%
+  mutate_at(
+    .vars = vars(starts_with('top_issues_prompted')),
+    .funs = funs(case_when(. == '1' ~ 1, TRUE ~ 0))
+  ) %>%
+  group_by(Group) %>%
+  summarise_at(
+    .vars = vars(starts_with('top_issues_prompted')),
+    .funs = funs(sum(.))
+  ) %>%
+  melt() %>%
+  group_by(Group) %>%
+  mutate(
+    pct=value/sum(value),
+    variable = case_when(!!!patterns)
+  ) %>%
+  group_by(variable) %>%
+  mutate(
+    orderVal = mean(value)
+  )
+
+ggplot(issueNum1, aes(x=reorder(variable, orderVal), y=pct)) +
+  geom_bar(stat='identity', position='dodge', fill='#6ac6b4') +
+  geom_text(aes(label=percent(pct)),hjust=-.11,size=3) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 30)) +
+  ylim(c(0,.3)) +
+  scale_fill_brewer(palette='Set2') +
+  coord_flip() +
+  labs(title='Which of These Causes is Most Important To You?',
+       x='',y='Percent Most Important') +
+  theme(plot.title=element_text(hjust=.5))
