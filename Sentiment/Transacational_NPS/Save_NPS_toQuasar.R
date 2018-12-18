@@ -33,7 +33,7 @@ nps_web$source <- 'web'
 #######################
 nps_typeforms <- bind_rows(nps_email,nps_sms,nps_web)
 
-#add in NPS category, create channel var (each month, change to relevant month in source == statement)
+#add in NPS category, create channel var
 nps_typeforms<- nps_typeforms%>%
   mutate(nps_cat = case_when(nps<7 ~ 'Detractor',
                              nps %in% c(7,8) ~ 'Persuadable',
