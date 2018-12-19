@@ -1,4 +1,8 @@
-library(lubricate)
+###Legacy script, run this once for NPS scores from Aug 2018 - Dec 2018###
+
+library(lubridate)
+library(dplyr)
+library(RPostgreSQL)
 
 #Pull SMS, Email and Web NPS Typeforms
 nps_trans <- "select *
@@ -25,23 +29,6 @@ nps_scores <- nps_trans%>%
 channel <- pgConnect()
 
 dbWriteTable(channel, c("survey", "nps_transactional"), nps_scores, row.names=F, append=T)
-
-grant <- "grant select on survey.nps_transactional to jli,shasan, mjain, ubrtjh45jniptr;"
-dbGetQuery(channel, grant)
-
-###########################################################################################
-#### AUTOMATED SCRIPT for 2019 - USE THIS GOING FORWARD TO ADD NEW SCORES TO POSTGRES######
-###########################################################################################
-#Filter for current month
-nps_month <- nps_trans%>%
-  filter(!duplicated(nsid) & month(submit_date)== month(Sys.Date()) & year(submit_date)==year(Sys.Date()))
-#Calculate NPS scores for current month
-nps_month <- nps_month%>%
-  group_by(channel,month)%>%
-  summarise(count=n(),nps=getNPS(nps,10))
-
-#Add these month's scores to Postgres NPS table
-dbWriteTable(channel, c("survey", "nps_transactional"), nps_month, row.names=F, append=T)
 
 grant <- "grant select on survey.nps_transactional to jli,shasan, mjain, ubrtjh45jniptr;"
 dbGetQuery(channel, grant)
