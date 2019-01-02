@@ -7,7 +7,10 @@ library(reshape2)
 
 vr <-
   tvrtv %>%
-  bind_rows(stv)
+  bind_rows(stv) %>%
+  mutate(
+    year = year(created_at)
+  )
 
 npPivot <- function(pivot) {
 
@@ -79,7 +82,7 @@ sourceStep <-
 
 byWeek <-
   vr %>%
-  group_by(week) %>%
+  group_by(year, week) %>%
   summarise(
     tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
     rbs = sum(reportback),
@@ -100,7 +103,7 @@ byWeekSource <-
 
 byWeekSourceDetails <-
   vr %>%
-  group_by(week, source, source_details) %>%
+  group_by(year, week, source, source_details) %>%
   summarise(
     tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
     rbs = sum(reportback),
@@ -120,7 +123,7 @@ aster <-
         TRUE ~ campaign_id
       )
   ) %>%
-  group_by(month, campaign_id) %>%
+  group_by(year, month, campaign_id) %>%
   summarise(
     rbs = sum(reportback),
     tot_vot_reg = grepl('register', ds_vr_status) %>% sum(),
@@ -140,16 +143,17 @@ MoM <-
     Registrations = length(which(grepl('register', ds_vr_status)))
   ) %>%
   mutate(
-    Month = months(date)
+    Month = months(date),
+    year = year(date)
   ) %>%
-  group_by(Month) %>%
+  group_by(year, Month) %>%
   mutate(
     registerToDate = cumsum(Registrations),
     dayOfMonth = as.numeric(format(date, "%d"))
   ) %>%
   ungroup() %>%
-  select(dayOfMonth, Month, registerToDate) %>%
-  melt(id.var=c('dayOfMonth','Month')) %>%
+  select(dayOfMonth, year, Month, registerToDate) %>%
+  melt(id.var=c('dayOfMonth','year','Month')) %>%
   mutate(Month = factor(Month, levels=month.name))
 
 # By Quarter and Source
@@ -165,9 +169,10 @@ QoQ.Source <-
     Registrations = length(which(grepl('register', ds_vr_status)))
   ) %>%
   mutate(
-    quarter = quarter(date)
+    quarter = quarter(date),
+    year = year(date)
   ) %>%
-  group_by(quarter, source) %>%
+  group_by(year, quarter, source) %>%
   mutate(
     registerToDate = cumsum(Registrations),
     dayOfQuarter = case_when(
@@ -178,8 +183,8 @@ QoQ.Source <-
     )
   ) %>%
   ungroup() %>%
-  select(dayOfQuarter, quarter, registerToDate, source) %>%
-  melt(id.var=c('dayOfQuarter','quarter','source')) %>%
+  select(dayOfQuarter, year, quarter, registerToDate, source) %>%
+  melt(id.var=c('dayOfQuarter','year','quarter','source')) %>%
   mutate(quarter = as.factor(quarter))
 
 
@@ -194,9 +199,10 @@ QoQ <-
     Registrations = length(which(grepl('register', ds_vr_status)))
   ) %>%
   mutate(
-    quarter = quarter(date)
+    quarter = quarter(date),
+    year = year(date)
   ) %>%
-  group_by(quarter) %>%
+  group_by(year, quarter) %>%
   mutate(
     registerToDate = cumsum(Registrations),
     dayOfQuarter = case_when(
@@ -207,8 +213,8 @@ QoQ <-
     )
   ) %>%
   ungroup() %>%
-  select(dayOfQuarter, quarter, registerToDate) %>%
-  melt(id.var=c('dayOfQuarter','quarter')) %>%
+  select(dayOfQuarter, year, quarter, registerToDate) %>%
+  melt(id.var=c('dayOfQuarter','year','quarter')) %>%
   mutate(quarter = as.factor(quarter))
 
 monthlyTotal <-
@@ -217,7 +223,7 @@ monthlyTotal <-
   mutate(
     month = month(as.Date(created_at))
   ) %>%
-  group_by(month) %>%
+  group_by(year, month) %>%
   summarise(
     Registrations = length(which(grepl('register', ds_vr_status)))
   )
@@ -228,7 +234,7 @@ quarterlyTotal <-
   mutate(
     quarter = quarter(as.Date(created_at))
   ) %>%
-  group_by(quarter) %>%
+  group_by(year, quarter) %>%
   summarise(
     Registrations = length(which(grepl('register', ds_vr_status)))
   )
