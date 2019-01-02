@@ -4,22 +4,23 @@ library(glue)
 q <-
   glue_sql(
     "SELECT
-      c.northstar_id,
+      s.northstar_id,
       CASE WHEN u.source = 'niche' THEN 'niche'
            WHEN u.source = 'sms' THEN 'sms'
            ELSE 'web' END AS user_source,
-      c.post_id AS id,
-      c.post_created_at AS created_at,
-      c.campaign_run_id::varchar,
-      c.quantity
-    FROM campaign_activity c
-    LEFT JOIN public.users u ON c.northstar_id = u.northstar_id
-    WHERE c.campaign_id IN ('822','6223','8103','8119','8129','8130','8180','8195','8202','8208')
-    AND c.signup_created_at>='2018-05-01'
-    AND c.post_id IS NOT NULL
+      p.id AS id,
+      p.created_at AS created_at,
+      s.campaign_run_id::varchar,
+      p.quantity
+    FROM public.signups s
+    LEFT JOIN public.posts p ON s.id = p.signup_id
+    LEFT JOIN public.users u ON s.northstar_id = u.northstar_id
+    WHERE s.campaign_id IN ('822','6223','8103','8119','8129','8130','8180','8195','8202','8208')
+    AND s.created_at>='2018-05-01'
+    AND p.id IS NOT NULL
     AND (
-      (c.campaign_id IN ('822','6223','8103','8119','8129','8130','8180','8195','8202','8208') AND c.post_status='accepted')
-      OR (c.campaign_id IN ('8119') AND c.post_status <> 'rejected')
+      (s.campaign_id IN ('822','6223','8103','8119','8129','8130','8180','8195','8202','8208') AND p.status='accepted')
+      OR (s.campaign_id IN ('8119') AND p.status <> 'rejected')
     )
     ;",
     .con = pg

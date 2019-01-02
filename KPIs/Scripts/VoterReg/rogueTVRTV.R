@@ -60,22 +60,23 @@ getData <- function() {
   q <-
     glue_sql(
       "SELECT DISTINCT
-        c.northstar_id as nsid,
-        c.campaign_id::varchar,
-        c.campaign_run_id::varchar,
-        CASE WHEN c.post_status IN ('rejected','pending') THEN 'uncertain'
-          ELSE c.post_status END AS ds_vr_status,
-        CASE WHEN c.post_attribution_date < '2017-01-01'
-             THEN c.post_attribution_date + interval '4 year'
-             ELSE c.post_attribution_date END AS created_at,
-        CASE WHEN c.post_source='rock-the-vote' THEN 'RockTheVote'
+        s.northstar_id as nsid,
+        s.campaign_id::varchar,
+        s.campaign_run_id::varchar,
+        CASE WHEN p.status IN ('rejected','pending') THEN 'uncertain'
+          ELSE p.status END AS ds_vr_status,
+        CASE WHEN p.created_at < '2017-01-01'
+             THEN p.created_at + interval '4 year'
+             ELSE p.created_at END AS created_at,
+        CASE WHEN p.source='rock-the-vote' THEN 'RockTheVote'
           ELSE 'TurboVote' END AS file,
         ref.referral_code,
         u.created_at AS ds_registration_date,
         CASE WHEN u.source = 'niche' THEN 'niche'
           WHEN u.source = 'sms' THEN 'sms'
         ELSE 'web' END AS user_source
-      FROM public.campaign_activity c
+      FROM public.signups s
+      LEFT JOIN public.posts p on s.id = p.signup_id
       INNER JOIN
         (
         SELECT DISTINCT
@@ -91,10 +92,10 @@ getData <- function() {
             rtv.tracking_source AS referral_code
           FROM rogue.rock_the_vote rtv) det
         ) ref
-      ON c.post_id::bigint = ref.post_id::bigint
-      LEFT JOIN public.users u ON c.northstar_id = u.northstar_id
-      WHERE c.post_id IS NOT NULL
-      AND c.post_type = 'voter-reg'",
+      ON p.id::bigint = ref.post_id::bigint
+      LEFT JOIN public.users u ON s.northstar_id = u.northstar_id
+      WHERE p.id IS NOT NULL
+      AND p.type = 'voter-reg'",
       .con='pg'
     )
 
@@ -223,7 +224,7 @@ addFields <- function(dat) {
           cut(
             as.Date(created_at),
             breaks=
-              seq.Date(as.Date('2018-02-06'),as.Date('2019-01-01'),by = '7 days')
+              seq.Date(as.Date('2018-02-06'),as.Date('2020-01-01'),by = '7 days')
           ) %>% as.character()
       )
     )
