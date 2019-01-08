@@ -1,0 +1,187 @@
+---
+title: "Multiple Campaigns and Rbs Data Request"
+output: html_notebook
+---
+
+```{r}
+#Request: #https://trello.com/c/PFl9hk7X/1412-members-who-sign-up-for-multiple-campaigns-and-reportbacks
+library(dplyr)
+library(tidyverse)
+#set environment time zone so R pulls timestamps in correctly from Quasar 
+Sys.setenv(TZ='UTC') 
+```
+
+```{r}
+#Pull members who signed up in the last year, their max/min dates, and total their signups/rbs for only photo posts
+active_last6month <- ("SELECT signups.*,rbs.total_rbs, rbs.last_rb, rbs.first_rb
+                          FROM
+                            ((SELECT 
+                                s.northstar_id  AS nsid,
+	                              COUNT(DISTINCT(s.id)) AS total_signups,
+                                max(s.created_at) as last_signup,
+                                min(s.created_at) as first_signup
+                            FROM public.signups s
+                            INNER JOIN public.users u ON u.northstar_id=s.northstar_id
+                              WHERE u.email IS NOT NULL 
+                              AND u.subscribed_member = 'true'
+                              AND s.created_at > now() - INTERVAL ' 1 year'
+                              AND s.campaign_run_id NOT IN ('8176', '8227', '8291')
+                              AND s.campaign_id NOT IN ('8176', '8226', '8303', '8291')
+                            GROUP BY s.northstar_id) signups
+                          LEFT JOIN 
+                              (SELECT 
+                                posts.northstar_id  AS nsid,
+                                COUNT(DISTINCT(posts.id)) AS total_rbs,
+                                max(posts.created_at) as last_rb,
+                                min(posts.created_at) as first_rb
+                              FROM public.posts posts
+                              WHERE posts.TYPE IN ('photo')
+                              GROUP BY posts.northstar_id) rbs
+                              ON signups.nsid=rbs.nsid)" 
+)
+
+active_last6month <- runQuery(active_last6month)
+
+```
+
+```{r}
+#create variables for time between first and last signup/rb
+email_activity <- active_last6month%>%
+  mutate(multiple_signup=ifelse(total_signups>1,'2+ signups','1 or less signup'),
+         multiple_rb=ifelse(total_rbs>1,'2+ rbs','1 or less rb'),
+         hours_between_signup = abs(difftime(last_signup, first_signup, units = "hours")),
+         hours_between_rb = abs(difftime(last_rb, first_rb, units = "hours")),
+         days_between_signup = abs(difftime(last_signup, first_signup, units = "days")),
+         days_between_rb = abs(difftime(last_rb, first_rb, units = "days")),
+         time_multiple_signups = 
+              case_when(days_between_signup<1 & total_signups>=2 ~ 'On same day',
+                        days_between_signup>=1 & days_between_signup <3 & total_signups>=2 ~ 'Within 1-2 days',
+                        days_between_signup>=3 & days_between_signup <8 & total_signups>=2 ~ 'Within 3- 7 days',
+                        days_between_signup>7 & total_signups>=2 ~ 'Within 8+ days'),
+         time_multiple_rbs = 
+           case_when(days_between_rb<1 & total_rbs>=2 ~ 'On same day',
+                     days_between_rb>=1 & days_between_rb <3 & total_rbs>=2 ~ 'Within 1-2 day',
+                     days_between_rb>=3 & days_between_rb <8 & total_rbs>=2 ~ 'Within 3- 7 days',
+                     days_between_rb>7 & total_rbs>=2 ~ 'Within 8+ days')
+           )
+```
+
+**SIGNUPS**
+
+* *The majority of those who signed up in the last year only signed up for 1 campaign*
+```{r}
+#Plot count of signups/member
+ggplot(email_activity, aes(x=total_signups)) +
+  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-1) + xlim(c(0,15)) + 
+  ylim(c(0,400000)) +
+  labs(x='Number of signups/member in the last year', title = 'Signups per member in the last year')
+```
+
+* *Only 28% of members who signed up in the last year signed up for 2+ campaigns*
+```{r}
+#Pct of members with 2+ signups in the last year
+count(email_activity, multiple_signup, sort = TRUE)%>%mutate(pct=n/sum(n)*100)
+```
+
+* *Looking at only those with 2+ signups, the majority (75.2%) signed up for their second campaign over a week after their first campaign. *
+* *15.8% signed up for more than one campaign on the same day.*
+
+```{r}
+#Look at only multiple signups
+multiple_signups <- email_activity%>%
+  filter(multiple_signup=='2+ signups')%>%
+  mutate(days_between_signup=as.numeric(days_between_signup))
+
+#Number of days between multiple signups
+count(multiple_signups, time_multiple_signups)%>%mutate(pct=n/sum(n)*100)
+
+#Plot above
+ggplot(multiple_signups, aes(x=time_multiple_signups)) + geom_bar() +
+  geom_text(stat='count',aes(label=..count..),vjust=-1) +
+  ylim(c(0,120000)) +
+  labs(x='Duration between first and last signup', title = 'Members with multiple signups in the last year') 
+```
+* *For multiple signups on the same day, the median time between the first and last signup time for multiple signups was 0.15hrs.*
+```{r}
+#Look at only multiple signups on same day
+multiple_signup_sameday <- multiple_signups%>%
+  filter(time_multiple_signups=='On same day')%>%
+  mutate(hours_between_signup=as.numeric(hours_between_signup))
+
+#look at median/mean number of hours between first and last sign up
+summary(multiple_signup_sameday$hours_between_signup)
+
+```
+
+```{r}
+#Looks at density of 2 hours
+ggplot(multiple_signup_sameday, aes(x=hours_between_signup)) +
+  geom_density() + xlim(c(0,2)) +
+  labs(x='Number of hours between first and last signup', title = 'Members with 2+ signups on same day') 
+```
+
+
+* *The majority of members who had multiple signups in a day, only signed up for **2** campaigns.*
+```{r}
+#Distribution of members with 2+ signups on the same day
+count(multiple_signup_sameday, total_signups, sort = TRUE)%>%mutate(pct=n/sum(n)*100)
+```
+
+
+**REPORTBACKS**
+
+* *Only 3% of members who signed up for a campaign in the last year submitted 2+ photo rbs *
+
+```{r}
+#Pct of members with 2+ rbs in the last year
+count(email_activity, multiple_rb, sort = TRUE)%>%mutate(pct=n/sum(n)*100)
+```
+* *The majority of members who submitted a photo rb only submitted 1*
+```{r}
+#Plot rbs/member
+ggplot(email_activity, aes(x=total_rbs)) +
+  geom_bar() + geom_text(stat='count',aes(label=..count..),vjust=-1) + xlim(0,10) + ylim(c(0,36000)) +
+  labs(x='Count of photo rbs/member in the last year', title = 'Total photo rbs per member in the last year')
+```
+
+* *Looking at those who have multiple rbs, 30% submitted photo rbs on the same day*
+```{r}
+#Look at only multiple rbs
+multiple_rbs <- email_activity%>%
+  filter(multiple_rb=='2+ rbs')%>%
+  mutate(days_between_rb=as.numeric(days_between_rb))
+
+#Number of days between multiple rbs
+count(multiple_rbs, time_multiple_rbs)%>%mutate(pct=n/sum(n)*100)
+
+#bar chart of above
+ggplot(multiple_rbs, aes(x=time_multiple_rbs)) + geom_bar() +
+  geom_text(stat='count',aes(label=..count..),vjust=-1) + ylim(c(0,11000)) +
+  labs(x='Duration between first and last reportback', title = 'Members with multiple reportbacks in the last year') 
+```
+
+
+* *For multiple photo rbs on the same day, the median time between the first and last rb was 0.2 hrs*
+```{r}
+#Look at only multiple rbs on same day
+multiple_rb_sameday <- multiple_rbs%>%
+  filter(time_multiple_rbs=='On same day')%>%
+  mutate(hours_between_rb=as.numeric(hours_between_rb))
+
+#look at median/mean number of hours between first and last rb
+summary(multiple_rb_sameday$hours_between_rb)
+
+```
+
+```{r}
+#look at number of hours for multiple rbs on a same day
+ggplot(multiple_rb_sameday, aes(x=hours_between_rb)) +
+  geom_density() + xlim(c(0,3)) +
+  labs(x='Number of hours between first and last rb', title = 'Members with 2+ rbs on same day') 
+```
+
+* *The majority of members who had multiple photo rbs in a day, only reported back **2** times in a day.*
+```{r}
+#Distribution of members with 2+ signups on the same day
+count(multiple_rb_sameday, total_rbs, sort = TRUE)%>%mutate(pct=n/sum(n)*100)
+```
