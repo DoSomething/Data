@@ -27,7 +27,9 @@ SELECT
 	e.records #>> '{user,northstarId}' AS "user.northstarId"
 FROM puck.events_json e
 LEFT JOIN public.phoenix_events p ON e.records #>> '{_id,$oid}' = p.event_id
-WHERE e.records #>> '{event,name}' in ('share action completed','facebook share posted')
-AND to_timestamp((e.records #>> '{meta,timestamp}')::bigint/1000) < '2018-08-09 19:31:59'
+WHERE p.event_name in ('share action completed','facebook share posted')
+-- AND to_timestamp((e.records #>> '{meta,timestamp}')::bigint/1000) < '2018-08-09 19:31:59'
+AND (e.records #>> '{meta,timestamp}')::bigint >= 1545149040000
+AND (e.records #>> '{meta,timestamp}')::bigint < 1546551180000
 ORDER BY (e.records #>> '{meta,timestamp}')::bigint DESC ;
 
