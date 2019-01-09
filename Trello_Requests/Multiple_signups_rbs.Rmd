@@ -189,3 +189,44 @@ ggplot(multiple_rb_sameday, aes(x=hours_between_rb)) +
 #Distribution of members with 2+ signups on the same day
 count(multiple_rb_sameday, total_rbs, sort = TRUE)%>%mutate(pct=n/sum(n)*100)
 ```
+
+**TIME BETWEEN PHOTO SENT AND APPROVED**
+
+```{r}
+#Pull all accepted photo rbs and dates of when they were submitted. Pull for those submitted
+#after 3/19/2018 (when triggered email was set up)
+rb_time <- sql("SELECT rogue.northstar_id AS nsid,
+		                  rogue.created_at AS date_submitted,
+		                  rogue.updated_at AS date_approved
+                FROM rogue.posts rogue
+                WHERE rogue.status IN ('accepted') 
+	                AND rogue.created_at >= '2018-03-19'
+	                AND rogue.type ='photo' 
+                GROUP BY 1,2,3")
+
+rb_time <- runQuery(rb_time)
+```
+
+* 61% of photo reportbacks get accepted within 2 days of submission
+
+```{r}
+rb_time <- rb_time%>%
+  mutate(hours_between_approval = difftime(date_approved, date_submitted, units = "hours"),
+         days_between_approval = difftime(date_approved, date_submitted, units = "days"),
+         time_between = 
+              case_when(days_between_approval <1  ~ 'Approved on same day',
+                        days_between_approval>=1 & days_between_approval <3  ~ 'Approved w/in 1-2 days',
+                        days_between_approval>=3 & days_between_approval <8 ~ 'Approved w/in 3- 7 days',
+                        days_between_approval>7 ~ 'Approved w/in 8+ days'),
+           days_between_approval=as.numeric(days_between_approval)
+           )
+
+#Distribution
+count(rb_time, time_between)%>%mutate(pct=n/sum(n)*100)
+
+#bar chart of above
+ggplot(rb_time, aes(x=time_between)) + geom_bar() +
+  geom_text(stat='count',aes(label=..count..),vjust=-1) + ylim(c(0,8000)) +
+  labs(x='Duration between submission and approval', title = 'Duration between submitting and accepting photo rb') 
+```
+
