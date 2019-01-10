@@ -48,7 +48,7 @@ FROM -- creating a winners dataset
         u.mobile,
         sum(r.reportback_volume) AS reportbacks
     FROM signups s
-    LEFT JOIN reportbacks r ON s.id = r.signup_id
+    INNER JOIN reportbacks r ON s.id = r.signup_id
     LEFT JOIN users u -- left joining users 
         on u.northstar_id = s.northstar_id
     WHERE s.campaign_id = '8017' -- use campaign_id in place of **** 
