@@ -5,23 +5,25 @@ This model aims to predict whether a user will respond to a broadcast. Below are
 Ensure that you are in the main directory (sms_model) while running the following commands:
 
 1. Create a virtual environment and install the requirements: `pip3 install -r requirements.txt`
-2. Create the raw dataset: python src/data/load_raw_data.py
-3. Process the raw dataset: python src/data/make_dataset.py [input_file] [output_file]
-   where input file is the raw datset and output file is where the processed dataset will be stored
-   recommended is: python src/data/make_dataset.py data/raw/gambit.csv.gz data/processed/sms_cleaned.csv.gz
-   This command generates several supporting files and several output files, the latter include:
-   	- The final cleaned dataset to data/processed
-	- The train, validation, and test datasets for modeling to data/final
-5. Train a model: python src/models/train_model.py [train_file] [model_type (str of variable defined in src/models/models.py)]
-   The feature pipeline and model parameters used for training are specified in src/models/models.py.
-   E.g. python src/models/train_model.py data/final/sms_data_train.csv.gz 'rf'
-   This writes out serialized models to the models/ folder.
-6. Grid search: python src/models/train_model.py [train_file] [model_type] --grid-search [grid params string defined in src/models.py]
-7. Once grid search is complete, you can either update the model params in models.py or define a new model to be used and fit
-   using step 5's instructions. 
-8. Make predictions: python src/models/predict_model.py [validation/test_file] [model_type] --model-verison (optional int)
-   This prints out a report with the f1 score and generates images of the top 3 performing trees in reports/[model-version]/figures.
-   The default model version is the most recently written model, but this can be set to earlier models if required.
+2. Create the raw dataset: `python src/data/load_raw_data.py`
+3. Process the raw dataset: `python src/data/make_dataset.py [input_file]`
+
+   Input file is the raw datset and output file is where the processed dataset will be stored.
+   
+   Command is: `python src/data/make_dataset.py data/raw/gambit_sample.csv.gz`
+   
+   This command generates several supporting files (to data/processed) and several output files (to data/final), the latter include: the final cleaned dataset, and the train, validation, and test datasets for modeling to data/final
+4. Train a model: `python src/models/train_model.py [train_file] [model_type (str of variable defined in src/models/models.py)]`
+
+   The feature pipeline and model parameters used for training are specified in src/models/models.py. This writes out serialized models to the models/folder.
+   
+   Command is: `python src/models/train_model.py data/final/sms_data_train.csv.gz 'rf'`
+5. Grid search: `python src/models/train_model.py [train_file] [model_type] --grid-search [string defined in src/models.py]`
+6. Once grid search is complete, you can either update the model params in models.py or define a new model to be used and fit
+   using step 4's instructions.
+7. Make predictions: `python src/models/predict_model.py [validation/test_file] [model_type] --model-verison (optional int)`
+
+   This prints out a report with the f1 score, segments for the best 3 trees, and generates images of the top 3 performing trees in reports/[model-type-version]/figures. The default model version is the most recently written model, but this can be set to earlier models using the `model-version` flag.
 
 
 Project Organization
