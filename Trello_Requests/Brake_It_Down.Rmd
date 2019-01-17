@@ -1,0 +1,890 @@
+---
+title: "Brake It Down Survey Analyses"
+output: html_notebook
+---
+
+```{r, include = FALSE}
+library(gmodels)
+library(glue)
+library(tidyverse)
+library(reshape2)
+library(scales)
+library(ggpubr)
+```
+
+
+```{r, include = FALSE}
+#############################################################
+################ QUIZ DATA #######################
+#############################################################
+
+#Pull Quiz data
+bid_quiz <- ("SELECT 
+             e.records #>> '{_id,$oid}' AS event_id,
+             to_timestamp((e.records #>> '{meta,timestamp}')::bigint/1000) AS meta_timestamp,
+             e.records #>> '{user,northstarId}' AS northstar_id,
+             e.records #>> '{page,path}' AS url,
+             e.records #> '{data,responses}' ->> '0' AS response_1,
+             e.records #> '{data,responses}' ->> '1' AS response_2,
+             e.records #> '{data,responses}' ->> '2' AS response_3,
+             e.records #> '{data,responses}' ->> '3' AS response_4
+             FROM puck.events_json e
+             WHERE e.records #>> '{data,responses}' IS NOT NULL 
+             AND e.records #>> '{page,path}' ILIKE '%brake%'")
+
+bid_quiz<- runQuery(bid_quiz)
+
+#Only look at those with url best-friend or sms
+bid_quiz <- bid_quiz%>%
+  filter((url=='/us/campaigns/brake-it-down/quiz/best-friend'| url=='/us/campaigns/brake-it-down/quiz/best-friend-sms'))%>%
+  mutate(group = 
+           case_when(response_4=='0' ~ 'Driving',
+                     response_4=='1' ~ 'Riding in the Passenger Seat',
+                     response_4=='2'|response_4=='3' ~ 'Riding a Bike/Walking'),
+         car =
+           case_when(response_1=='0' ~ 'Electric Car',
+                     response_1=='1' ~ 'Pickup truck',
+                     response_1=='2' ~ 'Convertible',
+                     response_1=='3' ~ 'SUV'),
+        snack =
+            case_when(response_2=='0' ~ 'Chips',
+                      response_2=='1' ~ 'Cookies',
+                      response_2=='2' ~ 'Fruit',
+                      response_2=='3' ~ 'Candy'),
+        dj =
+            case_when(response_3=='0' ~ 'Drake',
+                      response_3=='1' ~ 'Ed Sheeran',
+                      response_3=='2' ~ 'Taylor Swift',
+                      response_3=='3' ~ 'Beyonce'))
+```
+
+#BID ONLINE QUIZ#
+
+####Most quiz takers said their friends were Drivers (59%)####
+
+```{r, include = FALSE}
+#Percentages of friends are drivers/passengers/pedestrians from BID quiz
+driver_type <- count(bid_quiz, group, sort = TRUE)%>%
+  filter(group!="")%>%
+  mutate(pct=round(n/sum(n)*100,2))
+
+# Create a basic bar
+driver = ggplot(driver_type, aes(x="", y=pct, fill=group)) + 
+          geom_bar(stat="identity", width=1) +
+          coord_polar("y", start=0) + 
+          geom_text(aes(label = paste0(round(pct), "%")), position = position_stack(vjust = 0.5)) +
+          labs(x = NULL, y = NULL, fill = NULL, title = "How is your friend most likely to get around?") +
+          theme_classic() +
+          theme(axis.line = element_blank(),
+            axis.text = element_blank(),
+            axis.ticks = element_blank(),
+            plot.title = element_text(hjust = 0.5, color = "#666666"))
+```
+```{r}
+driver
+```
+
+```{r, include=FALSE}
+# Percent of car preference
+car_type <- count(bid_quiz, car, sort = TRUE)%>%
+  filter(car!="")%>%
+  mutate(pct=round(n/sum(n)*100,2))
+
+# Create chart
+car = ggplot(car_type, aes(x="", y=pct, fill=car)) + 
+        geom_bar(stat="identity", width=1) +
+        coord_polar("y", start=0) + geom_text(aes(label = paste0(round(pct), "%")), position = position_stack(vjust = 0.5)) +
+        labs(x = NULL, y = NULL, fill = NULL, title = "Which would your friend most like to drive?") +
+        theme_classic() +
+        scale_fill_brewer(type = "qual", palette = "Dark2") +
+        theme(axis.line = element_blank(),
+          axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          plot.title = element_text(hjust = 0.5, color = "#666666"))
+```
+
+####34% said their friend would want to drive a convertible, 31% said an electric car####
+
+```{r}
+car
+```
+
+
+```{r, include = FALSE}
+#Pull Phoenix Next Data to look at counts of views for each guide
+guide_types <- sql("SELECT 
+                      COUNT(DISTINCT (CASE WHEN pe.href LIKE '%road-safety-guide-daredevil%'
+                	      then pe.event_id else NULL end)) AS Daredevil,
+                	    COUNT(DISTINCT (case when pe.href LIKE '%road-safety-guide-jaywalker%'
+                	      then pe.event_id else NULL end)) AS Jaywalker,
+                	    COUNT(DISTINCT (case when pe.href LIKE '%road-safety-guide-cell%'
+                	      then pe.event_id else NULL end)) AS Cell,
+                	    COUNT(DISTINCT (case when pe.href LIKE '%road-safety-guide-chatty%'
+                	      then pe.event_id else NULL end)) AS Chatty_Cathy,
+                	    COUNT(DISTINCT (case when pe.href LIKE '%road-safety-guide-impatient%'
+                	      then pe.event_id else NULL end)) AS Impatient,
+                	    COUNT(DISTINCT (case when pe.href LIKE '%road-safety-guide-late%'
+                	      then pe.event_id else NULL end)) AS Late,
+                	    COUNT(DISTINCT (case when pe.href LIKE '%road-safety-guide-karaoke%'
+                	      then pe.event_id else NULL end)) AS Karaoke
+                	  FROM public.phoenix_events pe
+                	  WHERE pe.event_name = 'view'")
+
+guide_types <-runQuery(guide_types)
+
+#reshape from wide to long
+guide_total <-melt(guide_types)
+
+```
+
+####The most popularly viewed guides were the Late and Impatient guides (followed by the Karaoke)####
+
+```{r, include = FALSE}
+#calculate pct
+guide_total <- guide_total%>%
+                rename(Guide=variable)%>%
+                mutate(total=as.numeric(sum(value)),
+                       pct=(value/total)*100,
+                       Guide=
+                         case_when(
+                           Guide=='daredevil' ~ 'Daredevil',
+                           Guide=='jaywalker' ~ 'Jaywalker',
+                           Guide=='cell' ~ 'Cell Phone Stroller',
+                           Guide=='chatty_cathy' ~ 'Chatty Cathy',
+                           Guide=='impatient' ~ 'Impatient Player',
+                           Guide=='late' ~ 'Late Date',
+                           Guide=='karaoke' ~ 'Karaoke')
+                              )%>%
+                select(-value,-total)
+
+# Create pie chart
+pie = ggplot(guide_total, aes(x="", y=pct, fill=Guide)) + 
+      geom_bar(stat="identity", width=1) +
+      # Convert to pie (polar coordinates) and add labels
+      coord_polar("y", start=0) + geom_text(aes(label = paste0(round(pct), "%")), position = position_stack(vjust = 0.5)) +
+      # Remove labels and add title
+      labs(x = NULL, y = NULL, fill = NULL, title = "Break It Down Guides Viewed") +
+      # Tidy up the theme
+      theme_classic() + theme(axis.line = element_blank(),
+          axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          plot.title = element_text(hjust = 0.5, color = "#666666"))
+```
+
+```{r}
+print(pie)
+```
+
+
+#BRAKE IT DOWN SURVEY DATA#
+
+```{r, include = FALSE}
+################## TYPEFORM DATA ############################
+## Upload experiment/control surveys and rename columns
+
+#Upload Typeform Brake It Down responses 
+bid_typeform <- read.csv('~/Documents/Brake it Down/Brake It Down Oct 9.csv', na.strings=c("", "NA"))
+bid_typeform$group = "experiment"
+
+#Rename columns
+desiredColnames <- c('X.', 
+                     'age', 
+                     'gender', 
+                     'gender_other', 
+                     'region', 
+                     'zipcode', 
+                     'mode_transportation', 
+                     'perceived_speeding', 
+                     'feeling_nervous', 
+                     'feeling_indifferent', 
+                     'feeling_exhilarated', 
+                     'feeling_annoyed', 
+                     'feeling_dont_notice', 
+                     'speeding_reason_other', 
+                     'speeding_reason', 
+                     'Other.2', 
+                     'speeding_freq_highways', 
+                     'speeding_freq_residential', 
+                     'danger', 
+                     'perception_reduces_crash', 
+                     'perception_5mph_acceptable', 
+                     'perception_15mph_notacceptable', 
+                     'intervention', 
+                     'witnessed', 
+                     'attempted_intervention', 
+                     'intervened_asked', 
+                     'intervened_stats', 
+                     'intervened_jokes', 
+                     'intervened_honked', 
+                     'intervened_shouted', 
+                     'intervened_other', 
+                     'read_guide', 
+                     'thought_differently', 
+                     'thought_differently_how', 
+                     'email', 
+                     'id', 
+                     'source', 
+                     'Start.Date..UTC.', 
+                     'Submit.Date..UTC.', 
+                     'Network.ID',
+                     'group')
+
+#Set names 
+for (i in 1:length(colnames(bid_typeform))) {
+  colnames(bid_typeform)[i] <- desiredColnames[i]
+}
+
+#remove duplicate emails, irrelevant vars and only select members who read the BID guide
+bid_typeform_nodup <-bid_typeform%>%
+  filter(!duplicated(email) & read_guide==1)%>%
+  select(-id, -source, -Network.ID, -X.)
+
+############### CONTROL SURVEY ######################
+#Upload Control survey data
+bid_control <-read.csv('~/Documents/Brake it Down/Brake it Down Control Oct 9.csv', na.strings=c("", "NA"))
+bid_control$group = "control"
+
+#Rename columns
+desiredColnames_control <- c('X.', 
+                             'age', 
+                             'gender', 
+                             'gender_other', 
+                             'region', 
+                             'zipcode', 
+                             'mode_transportation', 
+                             'perceived_speeding', 
+                             'feeling_nervous', 
+                             'feeling_indifferent', 
+                             'feeling_exhilarated', 
+                             'feeling_annoyed', 
+                             'feeling_dont_notice', 
+                             'speeding_reason_other', 
+                             'speeding_reason', 
+                             'Other.2', 
+                             'speeding_freq_highways', 
+                             'speeding_freq_residential', 
+                             'danger', 
+                             'perception_reduces_crash', 
+                             'perception_5mph_acceptable', 
+                             'perception_15mph_notacceptable', 
+                             'intervention', 
+                             'witnessed', 
+                             'attempted_intervention', 
+                             'intervened_asked', 
+                             'intervened_stats', 
+                             'intervened_jokes', 
+                             'intervened_honked', 
+                             'intervened_shouted', 
+                             'intervened_other', 
+                             'northstar_id', 
+                             'Start.Date..UTC.', 
+                             'Submit.Date..UTC.', 
+                             'Network.ID',
+                             'group')
+
+#Set names for control
+for (i in 1:length(colnames(bid_control))) {
+  colnames(bid_control)[i] <- desiredColnames_control[i]
+}
+
+#remove dups and irrelevant vars
+bid_control_nodup <- bid_control%>%
+  filter(!duplicated(northstar_id))%>%
+  select(-X., -Network.ID)
+```
+
+```{r, include = FALSE}
+#Combine Control and Experiment surveys 
+all_bid_readguide <- bind_rows(bid_control_nodup,bid_typeform_nodup)
+
+#Create new variables
+all_bid_readguide <-all_bid_readguide %>%
+  mutate_at(vars(starts_with('perception')), function(x) as.numeric(substr(x, 1, 1)))%>%
+  mutate_at(vars(starts_with('feeling')), .funs = funs(ifelse(is.na(.), 0, 1)))%>%
+  mutate_at(vars(starts_with('intervened')), .funs = funs(ifelse(is.na(.), 0, 1)))%>%
+  mutate(survey_submit = as.Date(as.numeric(as.Date(substr(Submit.Date..UTC., 1, 10))), origin='1970-01-01'),
+           gender = 
+             case_when(
+               gender == 'Woman' ~ 'Female',
+               gender == 'Man' ~ 'Male',
+               TRUE ~ 'Other'),
+           age = 
+            case_when(
+               age == 'Older than 25' ~ '26',
+               age == 'Younger than 15' ~ '14',
+               TRUE ~ as.character(age)),
+           # age_numeric = 
+           #   as.numeric(age),
+           # age_over18 =
+           #   if_else(age_numeric>18,"Older than 18","18 and younger"),
+           attempted_intervention_dummy = 
+             case_when(
+               attempted_intervention == 'No, I did not try to convince them to slow down' ~ 'No',
+               attempted_intervention == 'Yes, I tried to convince them to slow down' ~ 'Yes'),
+            speeding_freq_highways_numeric = 
+             case_when(
+               speeding_freq_highways == 'Never' ~ 0,
+               speeding_freq_highways == 'Rarely' ~ .33,
+               speeding_freq_highways == 'Sometimes' ~ .66,
+               speeding_freq_highways == 'Often' ~ 1,
+               speeding_freq_highways %in% 'I don' ~ NA_real_,
+               speeding_freq_highways = is.na(speeding_freq_highways) ~ NA_real_),
+            witnessed_speeding = 
+             case_when(
+               witnessed == 'No, as far as I know everyone drove the speed limit' ~ 'No',
+               witnessed == 'Yes, I saw someone speeding' ~ 'Yes'),
+            transportation = 
+             case_when(
+               mode_transportation == 'Driving' ~ 'Driver',
+               mode_transportation == 'Riding in the passenger seat' ~ 'Passenger',
+               TRUE ~ 'Pedestrian'),
+            speeding_freq_residential_numeric = 
+             case_when(
+               speeding_freq_residential == 'Never' ~ 0,
+               speeding_freq_residential == 'Rarely' ~ .33,
+               speeding_freq_residential == 'Sometimes' ~ .66,
+               speeding_freq_residential == 'Often' ~ 1,
+               speeding_freq_residential %in% 'I don' ~ NA_real_,
+               speeding_freq_residential = is.na(speeding_freq_residential) ~ NA_real_)
+    )
+```
+
+###_How are you most likely to get around?_###
+####54% of respondents were Drivers####
+
+```{r}
+count(all_bid_readguide, mode_transportation, sort = TRUE)%>% mutate(pct=round(n/sum(n)*100,2))
+```
+
+    
+###_What would be your main motivation for speeding?_###
+
+####49% of respondents said they would speed to get where they're going faster####
+
+
+```{r}
+#Reasons for speeding
+count(all_bid_readguide, speeding_reason, sort = TRUE)%>% filter(speeding_reason!=is.na(speeding_reason))%>%mutate(pct=round(n/sum(n)*100,2))
+
+```
+
+###_How do you feel when you witness friends or family speeding? _###
+
+#### The majority of respondents (70%) said they felt nervous
+    
+```{r, include=FALSE}
+#only look at feelings
+feelings <- all_bid_readguide%>%
+  select(starts_with('feeling'))
+#Calculate sum of 1s for each feeling dummy variable
+feelings_ct <- colSums(feelings)
+#reshape from short to long
+feelings_ct <-melt(feelings_ct)%>%
+             select(value)
+
+#Grab column names and reshape to long
+feelings_names <-colnames(feelings)
+feelings_names <- melt(feelings_names)%>%
+                 rename(feeling=value)
+
+#combine column names and totals and add pct
+feelings_merged <-cbind(feelings_ct,feelings_names)%>%
+  mutate(pct=round(value/nrow(feelings),4),
+         feeling=
+           case_when(
+             feeling == 'feeling_nervous' ~ 'Nervous',
+             feeling == 'feeling_indifferent' ~ 'Indifferent',
+             feeling == 'feeling_exhilarated' ~ 'Exhilarated',
+             feeling == 'feeling_annoyed' ~ 'Annoyed',
+             feeling == 'feeling_dont_notice' ~ 'Dont Notice')
+           )
+
+```
+
+```{r, include=FALSE}
+#Bar chart
+feelings_chart <- ggplot(feelings_pct, aes(x=feeling, y=pct)) + 
+                        geom_bar(stat="identity", width= 0.75, position = "dodge", fill="#FF6666") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position =position_dodge(width=0.9),  size=3) + 
+                        ylab('Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
+                                           limits = c(0, .80)) + 
+                        theme(axis.text.x = element_text(angle = 15, hjust = 1), 
+                              legend.position="top", legend.title=element_blank(),
+                              axis.title.x=element_blank(),
+                              axis.title.y=element_blank()) + 
+                        ggtitle("How do you feel when you witness friends or family speeding??") +
+                        scale_fill_manual(values=c('#000000',"#23b7fbff"))
+```
+
+```{r}
+feelings_chart
+```
+
+    
+```{r, include=FALSE}
+#quickly check counts/pcts match chart 
+# count(all_bid_readguide, feeling_annoyed)%>% mutate(pct=round(n/sum(n)*100,2))
+# count(all_bid_readguide, feeling_nervous)%>% mutate(pct=round(n/sum(n)*100,2))
+# count(all_bid_readguide, feeling_indifferent)%>% mutate(pct=round(n/sum(n)*100,2))
+# count(all_bid_readguide, feeling_exhilarated)%>% mutate(pct=round(n/sum(n)*100,2))
+# count(all_bid_readguide, feeling_dont_notice)%>% mutate(pct=round(n/sum(n)*100,2))
+```
+
+###Speeding Frequency###
+
+####We saw no statistically significant change in speeding behavior between the control and experiment groups (p>0.05) ####
+
+```{r, include = FALSE}
+freq_highway <- all_bid_readguide%>%
+  group_by(group)%>%
+  filter(!is.na(speeding_freq_highways_numeric) & !is.na(speeding_freq_highways))%>%
+  count(speeding_freq_highways, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         speeding_freq_highways=
+           factor(speeding_freq_highways,c("Never", "Rarely", "Sometimes", "Often")))
+
+freq_residential <- all_bid_readguide%>%
+  group_by(group)%>%
+  filter(!is.na(speeding_freq_residential_numeric) & !is.na(speeding_freq_residential))%>%
+  count(speeding_freq_residential, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         speeding_freq_residential=
+           factor(speeding_freq_residential,c("Never", "Rarely", "Sometimes", "Often")))
+```
+
+```{r, include = FALSE}
+#Bar charts
+speed_highway_chart <- ggplot(freq_highway, aes(x=speeding_freq_highways, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x = 'Frequency', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 0.45)) + 
+                        theme(axis.text.x = element_text(angle = 20, hjust = 1), legend.position="top", 
+                              legend.title=element_blank(),
+                              axis.title.x=element_blank(),
+                              axis.title.y=element_blank()) + 
+                        ggtitle("How often do you drive 15 miles an hour over the speed limit on highways?") +
+                        scale_fill_manual(values=c('#000000',"#23b7fbff"))
+```
+
+```{r}
+print(speed_highway_chart)
+```
+
+```{r, include = FALSE}
+speed_res_chart <- ggplot(freq_residential, aes(x=speeding_freq_residential, y=pct, group = group, fill=group)) + 
+                    geom_bar(stat="identity", position = "dodge", colour="grey") +
+                    geom_text(aes(label=scales::percent(pct)), vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                    labs(title = "How often do you drive 10 miles an hour over the speed limit on \n neighborhood/residential streets?",
+                         x = 'Frequency', 
+                         y = 'Percentage') + 
+                    scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 0.45)) + 
+                    theme(axis.text.x = element_text(angle = 20, hjust = 1), legend.position="top", 
+                          legend.title=element_blank(), plot.title = element_text(hjust = 0.5),
+                          axis.title.x=element_blank(),
+                          axis.title.y=element_blank()) + 
+                    scale_fill_manual(values=c('#000000',"#23b7fbff"))
+```
+
+```{r}
+print(speed_res_chart)
+```
+
+```{r, include=FALSE}
+#chi-square test to test significance of group differences
+test_highway <- all_bid_readguide%>%
+                filter(!is.na(speeding_freq_highways_numeric) & !is.na(speeding_freq_highways))
+CrossTable(test_highway$speeding_freq_highways, test_highway$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+
+test_residential <- all_bid_readguide%>%
+                filter(!is.na(speeding_freq_residential_numeric) & !is.na(speeding_freq_residential))
+CrossTable(test_residential$speeding_freq_residential, test_residential$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+
+```
+
+
+###Perceptions###
+
+    + Respondents were asked "How dangerous is it to speed?" (1=Not Very Dangerous, 5= Very Dangerous)
+    
+    + Respondents were also asked "How much do you agree with the following?"(1=Strongly disagree, 5= Strongly Agree)
+        + It is unacceptable to exceed speed limits by more than 15mph 
+        + It is socially acceptable to exceed speed limits by 5mph
+        + Driving at or near the speed limit reduces my chances of a crash
+        
+####BID participants were more likely to agree that speeding is very dangerous and disagree that it is socially acceptable to drive over 5mpg than the control group (p<0.05)####
+
+
+```{r, include = FALSE}
+#Bar charts for perceptions
+pivotBars <- function(expid='group', pivot=NULL, title=NULL) {
+  if (is.null(pivot)) {
+    all_bid_readguide %>% 
+      group_by_(expid) %>% 
+      summarise(
+        `Driving at the speed limit reduces chances of crashing` = round(mean(perception_reduces_crash),2),
+        `Socially acceptable to exceed speed limits by 5mph`= round(mean(perception_5mph_acceptable),2),
+        `Unacceptable to exceed speed limits by more than 15mph` = round(mean(perception_15mph_notacceptable),2),
+        `Speeding is very dangerous` = round(mean(danger),2)
+      ) %>%
+      melt(id.var=c(expid)) %>%
+      ggplot(.,aes(x=variable, y=value, fill=get(expid))) +
+      geom_bar(stat='identity', position='dodge') +
+      geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=3, hjust=0) +
+      coord_flip() + 
+      ggtitle('Perceptions towards speeding') +
+      theme(legend.position='bottom', 
+            legend.title=element_blank(), 
+            axis.title.y=element_blank(),
+            axis.title.x=element_blank(),
+            plot.title = element_text(hjust = 0.5),
+            axis.text.y = element_text(face="bold", size=9)) +
+      scale_fill_manual(values=c('#000000',"#23b7fbff"))
+  } else {
+    all_bid_readguide %>% 
+      group_by_(expid, pivot) %>% 
+      summarise(
+        Reduces_crash = mean(perception_reduces_crash),
+        Five_mph_acceptable= mean(perception_5mph_acceptable),
+        Fifteen_mph_notacceptable = meant(perception_15mph_notacceptable),
+        Dangers = mean(danger)
+      ) %>%
+      melt(id.var=c(expid,pivot)) %>%
+      ggplot(.,aes(x=get(pivot), y=value, fill=get(expid))) +
+      geom_bar(stat='identity', position='dodge') +
+      geom_text(aes(label=round(value, 3)), vjust=-0.25, position = position_dodge(width = 1), size=2) +
+      ggtitle(paste0('Pivoted by ',title)) +
+      facet_wrap(~variable) + 
+      theme(legend.position='none',
+            axis.title.x=element_blank(), 
+            axis.title.y=element_blank(),
+            plot.title = element_text(hjust = 0.5),
+            axis.text.x = element_text(face="bold", size=5),
+            axis.text.y = element_text(face="bold", size=5),
+            strip.text.x = element_text(size = 8)) +
+      scale_fill_manual(values=c('#000000',"#23b7fbff"))
+  }
+}
+```
+
+```{r}
+pivotBars(expid='group') %>% print()
+```
+
+```{r, include = FALSE}
+#Test significance of perception means
+t.test(all_bid_readguide$danger~all_bid_readguide$group)
+t.test(all_bid_readguide$perception_reduces_crash~all_bid_readguide$group)
+t.test(all_bid_readguide$perception_5mph_acceptable~all_bid_readguide$group)
+t.test(all_bid_readguide$perception_15mph_notacceptable~all_bid_readguide$group)
+```
+
+```{r, include = FALSE}
+# Perceptions pivoted by controls
+pivotBars_dems <- function(expid='group', pivot=NULL, title=NULL) {
+  if (is.null(pivot)) {
+    all_bid_readguide %>% 
+      group_by_(expid) %>% 
+      summarise(
+        `Driving at the speed limit reduces chances of crashing` = mean(perception_reduces_crash),
+        `Socially acceptable to exceed limits by 5mph`= mean(perception_5mph_acceptable),
+        `Unacceptable to exceed limits by more than 15mph` = mean(perception_15mph_notacceptable),
+        `Speeding is very dangerous` = mean(danger)
+      ) %>%
+      melt(id.var=c(expid)) %>%
+      ggplot(.,aes(x=variable, y=value, fill=get(expid))) +
+      geom_bar(stat='identity', position='dodge') +
+      geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=2, hjust=0) +
+      coord_flip() + ggtitle('Control vs. Experiment') +
+      theme(legend.position='bottom', 
+            legend.title=element_blank(), 
+            axis.title.x=element_blank(),
+            axis.title.y=element_blank(),
+            plot.title = element_text(hjust = 0.5),
+            axis.text.y = element_text(face="bold", size=12)) +
+      scale_fill_manual(values=c('#000000',"#23b7fbff"))
+  } else {
+    all_bid_readguide %>% 
+      group_by_(expid, pivot) %>% 
+      summarise(
+        `Driving at the speed limit reduces chances of crashing` = mean(perception_reduces_crash),
+        `Socially acceptable to exceed speed limits by 5mph`= mean(perception_5mph_acceptable),
+        `Unacceptable to exceed speed limits by more than 15mph` = mean(perception_15mph_notacceptable),
+        `Speeding is very dangerous` = mean(danger)
+      ) %>%
+      melt(id.var=c(expid,pivot)) %>%
+      ggplot(.,aes(x=get(pivot), y=value, fill=get(expid))) +
+      geom_bar(stat='identity', position='dodge') +
+      geom_text(aes(label=round(value, 3)), vjust=-0.25, position = position_dodge(width = 1), size=2) +
+      ggtitle(paste0('Pivoted by ',title)) +
+      facet_wrap(~variable) + 
+      theme(legend.position='none',
+            axis.title.x=element_blank(), 
+            axis.title.y=element_blank(),
+            plot.title = element_text(hjust = 0.5),
+            axis.text.x = element_text(face="bold", size=5),
+            axis.text.y = element_text(face="bold", size=5),
+            strip.text.x = element_text(size = 8)) +
+      scale_fill_manual(values=c('#000000',"#23b7fbff"))
+  }
+}
+
+```
+
+####Participants from rural/suburban areas and drivers/passengers were also more responsive on these two areas compared to other respective young people in the control group####
+
+```{r}
+#chart
+controls <- c('region', 'transportation')
+titles <- c('Region', 'Transportation Type')
+for (i in 1:length(controls)) {
+  pivotBars_dems(controls[i], titles[i],expid = 'group') %>% 
+    print()
+}
+```
+
+```{r, include=FALSE}
+#T-tests for region##
+
+#Rural
+rural <- all_bid_readguide%>%
+  filter(region == 'Rural')
+#Check p<0.05
+t.test(rural$danger~rural$group)
+t.test(rural$perception_5mph_acceptable~rural$group)
+#Check p>0.05
+t.test(rural$perception_15mph_notacceptable~rural$group)
+t.test(rural$perception_reduces_crash~rural$group)
+
+#Suburban
+suburban <- all_bid_readguide%>%
+  filter(region == 'Suburban')
+#Check p<0.05
+t.test(suburban$danger~suburban$group)
+t.test(suburban$perception_5mph_acceptable~suburban$group)
+#Check p>0.05
+t.test(suburban$perception_15mph_notacceptable~suburban$group)
+t.test(suburban$perception_reduces_crash~suburban$group)
+
+#Urban 
+urban <- all_bid_readguide%>%
+  filter(region == 'Urban')
+#Check p>0.05 - no significance found
+t.test(urban$danger~urban$group)
+t.test(urban$perception_5mph_acceptable~urban$group)
+t.test(urban$perception_15mph_notacceptable~urban$group)
+t.test(urban$perception_reduces_crash~urban$group)
+
+```
+
+```{r, include=FALSE}
+#T-tests for transportation type
+
+#Driver
+driver <- all_bid_readguide%>%
+  filter(transportation == 'Driver')
+#Check p<0.05
+t.test(driver$danger~driver$group)
+t.test(driver$perception_5mph_acceptable~driver$group)
+#Check p>0.05
+t.test(driver$perception_15mph_notacceptable~driver$group)
+t.test(driver$perception_reduces_crash~driver$group)
+
+#Passenger
+passenger <- all_bid_readguide%>%
+  filter(transportation == 'Passenger')
+#Check p<0.05
+t.test(passenger$danger~passenger$group)
+t.test(passenger$perception_5mph_acceptable~passenger$group)
+#Check p>0.05
+t.test(passenger$perception_15mph_notacceptable~passenger$group)
+t.test(passenger$perception_reduces_crash~passenger$group)
+
+#Pedestrian
+pedestrian<- all_bid_readguide%>%
+  filter(transportation == 'Pedestrian')
+#Check p<0.05
+t.test(pedestrian$danger~pedestrian$group)
+t.test(pedestrian$perception_5mph_acceptable~pedestrian$group)
+#Check p>0.05
+t.test(pedestrian$perception_15mph_notacceptable~pedestrian$group)
+t.test(pedestrian$perception_reduces_crash~pedestrian$group)
+```
+
+
+```{r, include=FALSE}
+#Check for any differences in speeding behavior by region - None found 
+# t.test(rural$speeding_freq_highways_numeric~rural$group)
+# t.test(rural$speeding_freq_residential_numeric~rural$group)
+# t.test(suburban$speeding_freq_highways_numeric~suburban$group)
+# t.test(suburban$speeding_freq_residential_numeric~suburban$group)
+# t.test(urban$speeding_freq_highways_numeric~urban$group)
+# t.test(urban$speeding_freq_residential_numeric~urban$group)
+```
+
+```{r, include=FALSE}
+#Look at hypothetical intervention situation
+intervened <- all_bid_readguide%>%
+  group_by(group)%>%
+  filter(!is.na(intervention))%>%
+  count(intervention, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         intervention=
+           factor(intervention,c("Do nothing", "Comment on it but not force them to slow down", "Ask them directly to slow down")))
+```
+
+```{r,include=FALSE}
+#Bar charts
+intervened_chart <- ggplot(intervened, aes(x=intervention, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x= 'Severity of intervention', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
+                                           limits = c(0, 0.7)) + 
+                        theme(axis.text.x = element_text(angle = 15, hjust = 1), 
+                              legend.position="top", legend.title=element_blank(),
+                              plot.title = element_text(hjust = 0.5),
+                              axis.title.x = element_blank(),
+                              axis.title.y = element_blank()) + 
+                        ggtitle("If you are a passenger in a vehicle and the driver is driving at least 15 \n miles per hour over the speed limit, which of the following \n would you be most likely to do?") +
+                        scale_fill_manual(values=c('#000000',"#23b7fbff"))
+
+```
+
+###INTERVENTION###
+
+###_If you are a passenger in a vehicle and the driver is driving at least 15 \n miles per hour over the speed limit, which of the following \n would you be most likely to do?_###
+
+####We saw a significant improvement on likelihood to intervene using the most severe intervention (p<0.05)####
+
+    64% of participants sid they would ask a speeding driver directly to slow down vs. 44% of the control
+    
+```{r}
+intervened_chart
+```
+
+```{r, include=FALSE}
+#Chi-square test to test significance of difference
+CrossTable(all_bid_readguide$intervention, all_bid_readguide$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+```
+
+###_In the last two weeks have you witnessed someone speeding in a vehicle?_###
+####The majority (73%) witnessed someone speeding in the last two weeks####
+
+
+```{r}
+#Witnessed speeding
+count(all_bid_readguide, witnessed_speeding, sort = TRUE)%>%
+  mutate(pct=round(n/sum(n)*100,2))
+```
+
+###_Did you attempt in any way to convince the driver to slow down?_###
+####We saw a significant improvement on actual intervention on a driver who is speeding (p>0.05)####
+
+    49% of those who participated in BID said they intervened vs. 38% of the control group
+
+```{r, include=FALSE}
+#Look at actual intervention behavior
+intervened_actual <- all_bid_readguide%>%
+  group_by(group)%>%
+  filter(!is.na(attempted_intervention_dummy))%>%
+  count(attempted_intervention_dummy, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4))
+```
+
+```{r, include=FALSE}
+#Bar charts
+intervened_actual_chart <- ggplot(intervened_actual, aes(x=attempted_intervention_dummy, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x= 'Tried to convince them to slow down', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
+                                           limits = c(0, 0.7)) + 
+                        theme(axis.text.x = element_text(angle = 0, hjust = 1), 
+                              legend.position="top", legend.title=element_blank(),
+                              plot.title = element_text(hjust = 0.5),
+                              axis.title.x = element_blank(),
+                              axis.title.y = element_blank()) + 
+                        ggtitle("Did you attempt in any way to convince the driver to slow down?") +
+                        scale_fill_manual(values=c('#000000',"#23b7fbff"))
+```
+
+```{r}
+intervened_actual_chart
+```
+
+
+
+```{r, include=FALSE}
+#Chi-square test to test significance of difference
+CrossTable(all_bid_readguide$attempted_intervention_dummy, all_bid_readguide$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+```
+
+####The majority (69%) of those who intervened asked the driver in a straight forward manner to convince them to slow down####
+
+```{r, include=FALSE}
+#Only look at those who intervened 
+intervention_methods <- all_bid_readguide%>%
+  filter(attempted_intervention_dummy=="Yes")%>%
+  select(starts_with('intervened'), -intervened_other)
+
+#Calculate sums of each intervention dummy variable
+methods_ct <- colSums(intervention_methods)
+#reshape from short to long
+methods_ct <-melt(methods_ct)%>%
+             select(value)
+
+#Grab column names and reshape to long
+interventions <-colnames(intervention_methods)
+interventions <- melt(interventions)%>%
+                 rename(intervention=value)
+
+#combine columns and totals
+interventions_merged <-cbind(methods_ct,interventions)
+#add percent
+interventions_pct <- interventions_merged%>%
+  mutate(pct=round(value/nrow(intervention_methods),4),
+         intervention=
+           case_when(
+             intervention == 'intervened_asked' ~ 'Asked directly',
+             intervention == 'intervened_stats' ~ 'Shared speed safety statistics',
+             intervention == 'intervened_jokes' ~ 'Lighthearted tactics (e.g. jokes)',
+             intervention == 'intervened_honked' ~ 'Honked horn',
+             intervention == 'intervened_shouted' ~ 'Shouted at them')
+           )
+
+#quickly check counts match chart
+# count(intervention_methods, intervened_asked, sort = TRUE)%>%mutate(pct=round(n/sum(n)*100,2))
+# count(intervention_methods, intervened_stats, sort = TRUE)%>%mutate(pct=round(n/sum(n)*100,2))
+# count(intervention_methods, intervened_jokes, sort = TRUE)%>%mutate(pct=round(n/sum(n)*100,2))
+# count(intervention_methods, intervened_honked, sort = TRUE)%>%mutate(pct=round(n/sum(n)*100,2))
+# count(intervention_methods, intervened_shouted, sort = TRUE)%>%mutate(pct=round(n/sum(n)*100,2))
+
+```
+
+```{r, inclue=FALSE}
+#Bar chart
+methods_chart <- ggplot(interventions_pct, aes(x=intervention, y=pct)) + 
+                        geom_bar(stat="identity", width= 0.75, position = "dodge", fill="#FF6666") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position =position_dodge(width=0.9),  size=3) + 
+                        labs(x = 'Method used', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
+                                           limits = c(0, .80)) + 
+                        theme(axis.text.x = element_text(angle = 15, hjust = 1), 
+                              legend.position="top", legend.title=element_blank(),
+                              axis.title.x = element_blank(),
+                              axis.title.y = element_blank()) + 
+                        ggtitle("What methods did you use to convince the driver to slow down?") +
+                        scale_fill_manual(values=c('#000000',"#23b7fbff"))
+```
+
+```{r}
+methods_chart
+```
+
+
