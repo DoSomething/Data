@@ -34,6 +34,10 @@ bid_quiz <- ("SELECT
 
 bid_quiz<- runQuery(bid_quiz)
 
+#remove dups if they retook the quiz
+bid_quiz <- bid_quiz%>%
+  filter(!duplicated(northstar_id))
+
 #Only look at those with url best-friend or sms
 bid_quiz <- bid_quiz%>%
   filter((url=='/us/campaigns/brake-it-down/quiz/best-friend'| url=='/us/campaigns/brake-it-down/quiz/best-friend-sms'))%>%
@@ -103,7 +107,7 @@ car = ggplot(car_type, aes(x="", y=pct, fill=car)) +
           plot.title = element_text(hjust = 0.5, color = "#666666"))
 ```
 
-####34% said their friend would want to drive a convertible, 31% said an electric car####
+####35% said their friend would want to drive a convertible, 30% said an electric car####
 
 ```{r}
 car
