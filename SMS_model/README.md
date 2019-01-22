@@ -23,7 +23,7 @@ Ensure that you are in the main directory (sms_model) while running the followin
    using step 4's instructions.
 7. Make predictions: `python src/models/predict_model.py [validation/test_file] [model_type] --model-verison (optional int)`
 
-   This prints out a report with the f1 score, segments for the best 3 trees, and generates images of the top 3 performing trees in reports/[model-type-version]/figures. The default model version is the most recently written model, but this can be set to earlier models using the `model-version` flag.
+   This prints out a report with the f1 score, segments for the best 3 trees, and generates images of the top 3 performing trees in reports/figures/[model-type-version]. The default model version is the most recently written model, but this can be set to earlier models using the `model-version` flag.
 
 
 Project Organization
