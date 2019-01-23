@@ -20,6 +20,7 @@ ipywidgets==7.4.2
 jedi==0.13.2
 Jinja2==2.10
 jinja2-time==0.2.0
+joblib==0.13.1
 jsonschema==2.6.0
 jupyter==1.0.0
 jupyter-client==5.2.4
@@ -37,11 +38,13 @@ numpy==1.15.4
 pandas==0.23.4
 pandocfilters==1.4.2
 parso==0.3.1
+PDPbox==0.2.0
 pexpect==4.6.0
 pickleshare==0.7.5
 poyo==0.4.2
 prometheus-client==0.5.0
 prompt-toolkit==2.0.7
+psutil==5.4.8
 psycopg2==2.7.6.1
 ptyprocess==0.6.0
 Pygments==2.3.1
@@ -63,6 +66,7 @@ terminado==0.8.1
 testpath==0.4.2
 tornado==5.1.1
 traitlets==4.3.2
+treeinterpreter==0.2.2
 urllib3==1.24.1
 wcwidth==0.1.7
 webencodings==0.5.1
