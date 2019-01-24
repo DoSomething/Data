@@ -13,11 +13,22 @@ rtvvr <-
   filter (
     file == 'RockTheVote',
     ds_vr_status %in% c('register-form', 'register-OVR')
-  )
+  ) %>%
+  distinct(., nsid, .keep_all = TRUE)
 
-leads_fnames <- list.files('../../Downloads/', 'leads*', full.names=TRUE)
+# pull in leads csv files
+leads_fnames <- list.files('../../Downloads/', 'leads*', full.names = TRUE)
 
 for (name in leads_fnames) {
+  df_sub <- read.csv(name, head = TRUE)
+
+  # not all files have a source column; this removes that column if it does exist
+  # in order to be able to concat the dataframes + it's not necessary for this effort
+  if('source' %in% colnames(df_sub)) {
+    df_sub <- subset(df_sub, select = -c(source))
+  }
+
+  # add a lead source column based on the filename (e.g. Snapchat, Facebook etc.)
   lead_source_str <-
     name %>%
     strsplit('_') %>%
@@ -25,14 +36,11 @@ for (name in leads_fnames) {
     strsplit(split='\\.') %>%
     sapply('[', 1)
 
-  df_sub <- read.csv(name, head=TRUE)
   df_sub$lead_source <- lead_source_str
 
-  if('source' %in% colnames(df_sub)) {
-    df_sub <- subset(df_sub, select = -c(source))
-  }
-
   print(lead_source_str)
+
+  # concat files
   if(length(df) == 0) {
     df <- df_sub
   } else {
@@ -41,29 +49,16 @@ for (name in leads_fnames) {
   print(nrow(df))
 }
 
-# remove dosomething members
-df <- dplyr::filter(df, !grepl('*dosomething*', Email))
-print(nrow(df))
+# remove dosomething members, sort by Email and Date, remove duplicate emails
+# because we don't care which source it came from, left join rtv data
+df <-
+  filter(df, !grepl('*dosomething*', Email)) %>%
+  arrange(Email, Date) %>%
+  distinct(., Email, .keep_all = TRUE) %>%
+  left_join(., rtvvr, by=c('Email' = 'email'))
 
-# sorted by Email and Date
-df <- df[with(df, order(df$Email, df$Date)),]
-
-# remove duplicates with same lead
-df_dedupe_same <- df[!duplicated(df[c('Email', 'lead_source')]),]
-print(nrow(df_dedupe_same))
-
-# remove duplicates with different leads
-df_deduped <- df_dedupe_same[!duplicated(df_dedupe_same[c('Email')]),]
-print(nrow(df_deduped))
-
-# dedupe rtvvr
-rtvvr <- rtvvr[!duplicated(rtvvr['nsid']),]
-
-# merge leads with signups
-df_merge <- merge(df_deduped, rtvvr, by.x = 'Email', by.y = 'email', all.x = TRUE)
-
-# grouped df
+# group by lead source to calculate conversion
 grouped_df <-
-  group_by(df_merge, lead_source) %>%
+  group_by(df, lead_source) %>%
   summarise(count_confirmed = sum(!is.na(ds_vr_status)), count_total = n()) %>%
   mutate(conversion = count_confirmed / count_total)
