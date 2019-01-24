@@ -312,15 +312,12 @@ all_bid_readguide <-all_bid_readguide %>%
                gender == 'Woman' ~ 'Female',
                gender == 'Man' ~ 'Male',
                TRUE ~ 'Other'),
-           age = 
+           age =
             case_when(
                age == 'Older than 25' ~ '26',
                age == 'Younger than 15' ~ '14',
                TRUE ~ as.character(age)),
-           # age_numeric = 
-           #   as.numeric(age),
-           # age_over18 =
-           #   if_else(age_numeric>18,"Older than 18","18 and younger"),
+           age_numeric = as.numeric(age),
            attempted_intervention_dummy = 
              case_when(
                attempted_intervention == 'No, I did not try to convince them to slow down' ~ 'No',
@@ -374,7 +371,7 @@ count(all_bid_readguide, speeding_reason, sort = TRUE)%>% filter(speeding_reason
 
 ###_How do you feel when you witness friends or family speeding? _###
 
-#### The majority of respondents (70%) said they felt nervous
+#### The majority of respondents (70%) said they felt nervous ####
     
 ```{r, include=FALSE}
 #only look at feelings
@@ -407,7 +404,7 @@ feelings_merged <-cbind(feelings_ct,feelings_names)%>%
 
 ```{r, include=FALSE}
 #Bar chart
-feelings_chart <- ggplot(feelings_pct, aes(x=feeling, y=pct)) + 
+feelings_chart <- ggplot(feelings_merged, aes(x=feeling, y=pct)) + 
                         geom_bar(stat="identity", width= 0.75, position = "dodge", fill="#FF6666") +
                         geom_text(aes(label=scales::percent(pct)), 
                                   vjust=-1, position =position_dodge(width=0.9),  size=3) + 
@@ -550,10 +547,10 @@ pivotBars <- function(expid='group', pivot=NULL, title=NULL) {
     all_bid_readguide %>% 
       group_by_(expid, pivot) %>% 
       summarise(
-        Reduces_crash = mean(perception_reduces_crash),
-        Five_mph_acceptable= mean(perception_5mph_acceptable),
-        Fifteen_mph_notacceptable = meant(perception_15mph_notacceptable),
-        Dangers = mean(danger)
+        `Driving at the speed limit reduces chances of crashing` = mean(perception_reduces_crash),
+        `Socially acceptable to exceed speed limits by 5mph`= mean(perception_5mph_acceptable),
+        `Unacceptable to exceed speed limits by more than 15mph` = mean(perception_15mph_notacceptable),
+        `Speeding is very dangerous` = mean(danger)
       ) %>%
       melt(id.var=c(expid,pivot)) %>%
       ggplot(.,aes(x=get(pivot), y=value, fill=get(expid))) +
@@ -585,66 +582,14 @@ t.test(all_bid_readguide$perception_5mph_acceptable~all_bid_readguide$group)
 t.test(all_bid_readguide$perception_15mph_notacceptable~all_bid_readguide$group)
 ```
 
-```{r, include = FALSE}
-# Perceptions pivoted by controls
-pivotBars_dems <- function(expid='group', pivot=NULL, title=NULL) {
-  if (is.null(pivot)) {
-    all_bid_readguide %>% 
-      group_by_(expid) %>% 
-      summarise(
-        `Driving at the speed limit reduces chances of crashing` = mean(perception_reduces_crash),
-        `Socially acceptable to exceed limits by 5mph`= mean(perception_5mph_acceptable),
-        `Unacceptable to exceed limits by more than 15mph` = mean(perception_15mph_notacceptable),
-        `Speeding is very dangerous` = mean(danger)
-      ) %>%
-      melt(id.var=c(expid)) %>%
-      ggplot(.,aes(x=variable, y=value, fill=get(expid))) +
-      geom_bar(stat='identity', position='dodge') +
-      geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=2, hjust=0) +
-      coord_flip() + ggtitle('Control vs. Experiment') +
-      theme(legend.position='bottom', 
-            legend.title=element_blank(), 
-            axis.title.x=element_blank(),
-            axis.title.y=element_blank(),
-            plot.title = element_text(hjust = 0.5),
-            axis.text.y = element_text(face="bold", size=12)) +
-      scale_fill_manual(values=c('#000000',"#23b7fbff"))
-  } else {
-    all_bid_readguide %>% 
-      group_by_(expid, pivot) %>% 
-      summarise(
-        `Driving at the speed limit reduces chances of crashing` = mean(perception_reduces_crash),
-        `Socially acceptable to exceed speed limits by 5mph`= mean(perception_5mph_acceptable),
-        `Unacceptable to exceed speed limits by more than 15mph` = mean(perception_15mph_notacceptable),
-        `Speeding is very dangerous` = mean(danger)
-      ) %>%
-      melt(id.var=c(expid,pivot)) %>%
-      ggplot(.,aes(x=get(pivot), y=value, fill=get(expid))) +
-      geom_bar(stat='identity', position='dodge') +
-      geom_text(aes(label=round(value, 3)), vjust=-0.25, position = position_dodge(width = 1), size=2) +
-      ggtitle(paste0('Pivoted by ',title)) +
-      facet_wrap(~variable) + 
-      theme(legend.position='none',
-            axis.title.x=element_blank(), 
-            axis.title.y=element_blank(),
-            plot.title = element_text(hjust = 0.5),
-            axis.text.x = element_text(face="bold", size=5),
-            axis.text.y = element_text(face="bold", size=5),
-            strip.text.x = element_text(size = 8)) +
-      scale_fill_manual(values=c('#000000',"#23b7fbff"))
-  }
-}
-
-```
-
-####Participants from rural/suburban areas and drivers/passengers were also more responsive on these two areas compared to other respective young people in the control group####
+####Participants from rural/suburban areas, drivers/passengers, and females were also more responsive on these two areas compared to other respective young people in the control group####
 
 ```{r}
-#chart
-controls <- c('region', 'transportation')
-titles <- c('Region', 'Transportation Type')
+# Perceptions pivoted by controls
+controls <- c('region', 'transportation', 'gender')
+titles <- c('Region', 'Transportation Type', 'Gender')
 for (i in 1:length(controls)) {
-  pivotBars_dems(controls[i], titles[i],expid = 'group') %>% 
+  pivotBars(controls[i], titles[i],expid = 'group') %>% 
     print()
 }
 ```
@@ -717,6 +662,27 @@ t.test(pedestrian$perception_15mph_notacceptable~pedestrian$group)
 t.test(pedestrian$perception_reduces_crash~pedestrian$group)
 ```
 
+```{r}
+#Gender
+male <- all_bid_readguide%>%
+  filter(gender == 'Male')
+#Check p>0.05
+t.test(male$danger~male$group)
+t.test(male$perception_5mph_acceptable~male$group)
+t.test(male$perception_15mph_notacceptable~male$group)
+t.test(male$perception_reduces_crash~male$group)
+
+female <- all_bid_readguide%>%
+  filter(gender == 'Female')
+#Check p<0.05
+t.test(female$danger~female$group)
+t.test(female$perception_5mph_acceptable~female$group)
+#Check p>0.05
+t.test(female$perception_15mph_notacceptable~female$group)
+t.test(female$perception_reduces_crash~female$group)
+```
+
+
 
 ```{r, include=FALSE}
 #Check for any differences in speeding behavior by region - None found 
@@ -727,6 +693,34 @@ t.test(pedestrian$perception_reduces_crash~pedestrian$group)
 # t.test(urban$speeding_freq_highways_numeric~urban$group)
 # t.test(urban$speeding_freq_residential_numeric~urban$group)
 ```
+
+###Younger respondents are more response on the outcome "It is socially acceptable to exceed limits by 5mph". They are more likely to disagree compared to older respondents###
+
+```{r}
+all_bid_readguide %>% 
+  group_by(group, age_numeric) %>% 
+  summarise(
+        `Driving at speed limit reduces chances of crashing` = mean(perception_reduces_crash),
+        `Socially acceptable to exceed limits by 5mph`= mean(perception_5mph_acceptable),
+        `Unacceptable to exceed limits more than 15mph` = mean(perception_15mph_notacceptable),
+        `Speeding is very dangerous` = mean(danger)
+  ) %>%
+  melt(id.var=c('group','age_numeric')) %>%
+  ggplot(.,aes(x=age_numeric, y=value, colour=group)) +
+  geom_point() + 
+  geom_smooth(method='lm', linetype='dotted', size=.8, se=F) +
+  geom_line() +
+  scale_x_continuous(breaks=pretty_breaks(15)) +
+  facet_wrap(~variable) + 
+  ggtitle('Age') + 
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.title=element_blank()) + 
+  scale_color_manual(values=c('#000000',"#23b7fbff"))
+```
+```{r}
+
+```
+
 
 ```{r, include=FALSE}
 #Look at hypothetical intervention situation
