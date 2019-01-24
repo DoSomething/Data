@@ -57,6 +57,9 @@ df <-
   distinct(., Email, .keep_all = TRUE) %>%
   left_join(., rtvvr, by=c('Email' = 'email'))
 
+df <- filter(df, !grepl('*test*', Email))
+df <- filter(df, !grepl('g@g.com', Email))
+
 # group by lead source to calculate conversion
 grouped_df <-
   group_by(df, lead_source) %>%
