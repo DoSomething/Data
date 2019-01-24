@@ -71,6 +71,7 @@ getData <- function() {
         CASE WHEN p.source='rock-the-vote' THEN 'RockTheVote'
           ELSE 'TurboVote' END AS file,
         ref.referral_code,
+        ref.email,
         u.created_at AS ds_registration_date,
         CASE WHEN u.source = 'niche' THEN 'niche'
           WHEN u.source = 'sms' THEN 'sms'
@@ -84,12 +85,14 @@ getData <- function() {
         FROM
           (SELECT DISTINCT
             tv.post_id,
-            tv.referral_code
+            tv.referral_code,
+            NULL as email
           FROM rogue.turbovote tv
           UNION
           SELECT DISTINCT
             rtv.post_id,
-            rtv.tracking_source AS referral_code
+            rtv.tracking_source AS referral_code,
+            rtv.email
           FROM rogue.rock_the_vote rtv) det
         ) ref
       ON p.id::bigint = ref.post_id::bigint
