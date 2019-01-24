@@ -85,7 +85,8 @@ getData <- function() {
         FROM
           (SELECT DISTINCT
             tv.post_id,
-            tv.referral_code
+            tv.referral_code,
+            NULL as email
           FROM rogue.turbovote tv
           UNION
           SELECT DISTINCT
