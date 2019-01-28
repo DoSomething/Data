@@ -5,6 +5,7 @@ q <-
   glue_sql(
     "SELECT
       s.northstar_id,
+      u.email,
       CASE WHEN u.source = 'niche' THEN 'niche'
            WHEN u.source = 'sms' THEN 'sms'
            ELSE 'web' END AS user_source,
