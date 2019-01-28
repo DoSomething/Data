@@ -71,7 +71,7 @@ getData <- function() {
         CASE WHEN p.source='rock-the-vote' THEN 'RockTheVote'
           ELSE 'TurboVote' END AS file,
         ref.referral_code,
-        ref.email,
+        COALESCE(ref.email, u.email) AS email,
         u.created_at AS ds_registration_date,
         CASE WHEN u.source = 'niche' THEN 'niche'
           WHEN u.source = 'sms' THEN 'sms'
