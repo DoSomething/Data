@@ -12,6 +12,72 @@ library(scales)
 library(ggpubr)
 library(dplyr)
 ```
+
+#FRIENDS ON LOCK SMS BETA DATA#
+
+    "Picture this -- you're leaving a party and see a friend get in their vehicle to drive home. Problem is, you've seen them drink three or four beers. Do you A) call them a rideshare or B) offer to drive them home? Text back A or B."
+
+#### 82% said they would call a rideshare if they saw a friend about to drive after seeing them drink 3-4 beers####
+```{r}
+#q1 
+fol_sms_q1 <- sql("SELECT
+                    	 COUNT(DISTINCT CASE WHEN  sms.text ILIKE '%a%' THEN sms.message_id ELSE NULL END) AS count_Q1_A,
+                    	 COUNT(DISTINCT CASE WHEN  sms.text ILIKE '%b%' THEN sms.message_id ELSE NULL END) AS count_Q1_B
+                  FROM public.gambit_messages_inbound sms
+                  WHERE sms.topic = 'friends_on_lock_parse_ask_first_question'")
+
+fol_sms_q1 <- runQuery(fol_sms_q1)
+
+fol_sms_q1 <- fol_sms_q1%>%
+  mutate(A=percent(count_q1_a/rowSums(fol_sms_q1)),
+         B=percent(count_q1_b/rowSums(fol_sms_q1)))%>%
+  select(A,B)%>%
+  print
+```
+    
+    "Have you ever heard someone say that driving while high actually makes them *safer* on the road? The truth is, weed and other drugs can slow your reaction time, mess with your focus, and compromise other skills you need for good driving. (Also, pot is still illegal in most states and *always* illegal behind the wheel.) You've told your friends over and over not to drive while high. But you hear them talking about Friday night plans to smoke and then drive somewhere to pick up food. Do you A) choose a designated driver or B) switch up the plans? Reply A or B."
+
+#### 63% said they would switch up plans if their friends talked about plans that involved smoking and then driving####
+```{r}
+#q2 
+fol_sms_q2 <- sql("SELECT
+                      	COUNT(DISTINCT CASE WHEN sms.text ILIKE '%a%' THEN sms.message_id ELSE NULL END) AS count_Q2_A,
+                      	COUNT(DISTINCT CASE WHEN sms.text ILIKE '%b%' THEN sms.message_id ELSE NULL END) AS count_Q2_B
+                  FROM public.gambit_messages_inbound sms
+                  WHERE sms.topic = 'friends_on_lock_parse_ask_second_question'")
+
+fol_sms_q2 <- runQuery(fol_sms_q2)
+
+fol_sms_q2 <- fol_sms_q2%>%
+  mutate(A=percent(count_q2_a/rowSums(fol_sms_q2)),
+         B=percent(count_q2_b/rowSums(fol_sms_q2)))%>%
+  select(A,B)%>%
+  print
+```
+
+
+    "Let's be honest, we're annoying when when we're tired: unfocused, sluggish, moody. Turns out, we're also terrible drivers when we're sleep-deprived too. Let's say you're walking into the library and see your friend walking out after pulling an all nighter. You know they're about to drive home. Do you: A) suggest a quick power nap or B) offer to buy them a coffee? Text back A or B."
+    
+#### 68% said they would suggest a quick power nap if their friend pulled an all nighter and thought about driving ####
+
+```{r}
+#q3 
+fol_sms_q3 <- sql("SELECT
+                      	COUNT(DISTINCT CASE WHEN sms.text ILIKE '%a%' THEN sms.message_id ELSE NULL END) AS count_Q3_A,
+                      	COUNT(DISTINCT CASE WHEN sms.text ILIKE '%b%' THEN sms.message_id ELSE NULL END) AS count_Q3_B
+                  FROM public.gambit_messages_inbound sms
+                  WHERE sms.topic = 'friends_on_lock_parse_ask_third_question'")
+
+fol_sms_q3 <- runQuery(fol_sms_q3)
+
+fol_sms_q3 <- fol_sms_q3%>%
+  mutate(A=percent(count_q3_a/rowSums(fol_sms_q3)),
+         B=percent(count_q3_b/rowSums(fol_sms_q3)))%>%
+  select(A,B)%>%
+  print
+```
+
+
 #FRIENDS ON LOCK SURVEY DATA#
 
 ```{r, include = FALSE}
@@ -149,6 +215,15 @@ fol_all <-fol_all%>%
                 grepl('Offer', intervention_alcohol) ~ 'Offer to drive/call rideshare',
                 grepl('Ask', intervention_alcohol) ~ 'Ask them for keys',
                 TRUE ~ NA_character_),
+            intervention_alcohol_dummy =
+              case_when(
+                intervention_alcohol_cat=='Do nothing' |
+                intervention_alcohol_cat=='Dont know' |
+                intervention_alcohol_cat=='Only comment on it' ~ 'Did not intervene',
+                intervention_alcohol_cat=='Recommend they wait' |
+                intervention_alcohol_cat=='Offer to drive/call rideshare' |
+                intervention_alcohol_cat=='Ask them for keys' ~ 'Intervened',
+                TRUE ~ NA_character_),
             intervention_sleepy_cat =
               case_when(
                 grepl('nothing', intervention_sleepy) ~ 'Do nothing',
@@ -157,6 +232,15 @@ fol_all <-fol_all%>%
                 grepl('Recommend', intervention_sleepy) ~ 'Recommend they take a nap',
                 grepl('Offer', intervention_sleepy) ~ 'Offer to drive/call rideshare',
                 grepl('Ask', intervention_sleepy) ~ 'Ask them for keys',
+                TRUE ~ NA_character_),
+            intervention_sleepy_dummy =
+              case_when(
+                intervention_sleepy_cat=='Do nothing' |
+                intervention_sleepy_cat=='Dont know' |
+                intervention_sleepy_cat=='Only comment on it' ~ 'Did not intervene',
+                intervention_sleepy_cat=='Recommend they take a nap' |
+                intervention_sleepy_cat=='Offer to drive/call rideshare' |
+                intervention_sleepy_cat=='Ask them for keys' ~ 'Intervened',
                 TRUE ~ NA_character_),
            freq_alcohol_dummy=
              ifelse(grepl('Never',freq_alcohol),"Never","At least once in the last year"),
@@ -219,7 +303,7 @@ print(transportation_chart)
 #Reasons for driving under influence of drugs
 count(fol_all, alcohol_reasons, sort = TRUE)%>%
   filter(alcohol_reasons!=is.na(alcohol_reasons))%>% 
-  mutate(pct=round(n/sum(n)*100,2))
+  mutate(pct=percent(n/sum(n)))
 ```
 
 ###_What do you think is the main reason for driving while drowsy/sleepy for people your age? _###
@@ -228,7 +312,7 @@ count(fol_all, alcohol_reasons, sort = TRUE)%>%
 
 ```{r}
 #Reasons for driving while sleepy
-count(fol_all, sleepy_reason, sort = TRUE)%>% filter(sleepy_reason!=is.na(sleepy_reason))%>%mutate(pct=round(n/sum(n)*100,2))
+count(fol_all, sleepy_reason, sort = TRUE)%>% filter(sleepy_reason!=is.na(sleepy_reason))%>%mutate(pct=percent(n/sum(n)))
 ```
 
 ## Between 40-47% have been in a vehicle with an impaired driver at least once in the last year
@@ -238,7 +322,8 @@ count(fol_all, sleepy_reason, sort = TRUE)%>% filter(sleepy_reason!=is.na(sleepy
 #### 40% of respondents reported they had been in a vehicle when the driver was under the influence at least once in the last year ####
 
 ```{r}
-count(fol_all, freq_alcohol, sort = TRUE)%>% filter(freq_alcohol!=is.na(freq_alcohol))%>%mutate(pct=round(n/sum(n)*100,2))
+count(fol_all, freq_alcohol, sort = TRUE)%>% filter(freq_alcohol!=is.na(freq_alcohol))%>%mutate(pct=percent(n/sum(n)))
+
 ```
 ###_How often have you been in a vehicle when you or the driver nodded off or fell asleep, even just for a brief moment, while driving?_###  
 
@@ -246,7 +331,7 @@ count(fol_all, freq_alcohol, sort = TRUE)%>% filter(freq_alcohol!=is.na(freq_alc
 
 
 ```{r}
-count(fol_all, freq_sleepy, sort = TRUE)%>% filter(freq_sleepy!=is.na(freq_sleepy))%>%mutate(pct=round(n/sum(n)*100,2))
+count(fol_all, freq_sleepy, sort = TRUE)%>% filter(freq_sleepy!=is.na(freq_sleepy))%>%mutate(pct=percent(n/sum(n)))
 ```
 
 
@@ -452,6 +537,84 @@ t.test(fol_all$agree_convo_alcohol~fol_all$group)
 t.test(fol_all$agree_convo_sleepy~fol_all$group)
 ```
 
+### 80% of participants agreed that they felt comfortable talking to their friends about driving under the influence vs. 73% of the control group (p<0.05)###
+
+```{r,include=FALSE}
+#percentages
+convo_alcohol <- fol_all%>%
+  group_by(group)%>%
+  filter(!is.na(agree_convo_alcohol))%>%
+  count(agree_convo_alcohol, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         agree_convo_alcohol=
+           factor(
+             case_when(agree_convo_alcohol==1 ~ 'Strongly disagree',
+                       agree_convo_alcohol==2 ~ 'Disagree',
+                       agree_convo_alcohol==3 ~ 'Neutral',
+                       agree_convo_alcohol==4 ~ 'Agree',
+                       agree_convo_alcohol==5 ~ 'Strongly agree'),
+              levels= c("Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree")
+             )
+  )
+
+convo_alcohol_chart <- ggplot(convo_alcohol, aes(x=agree_convo_alcohol, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
+                                           limits = c(0, 0.7)) + 
+                        theme(axis.text.x = element_text(angle = 0, hjust = 1), 
+                              legend.position="top", legend.title=element_blank(),
+                              plot.title = element_text(hjust = 0.5),
+                              axis.title.x = element_blank(),
+                              axis.title.y = element_blank()) + 
+                        ggtitle("I feel comfortable having a conversation with my friend \n about driving while under the influence of drugs/alcohol") +
+                        scale_fill_manual(values=c('#000000',"#23b7fbff"))
+```
+
+```{r}
+print(convo_alcohol_chart)
+```
+
+### 80% of participants agreed that they felt comfortable talking to their friends about driving while sleepy/drowsy vs. 72% of the control group (p<0.05) ###
+
+```{r,include=FALSE}
+#percentages
+convo_sleepy <- fol_all%>%
+  group_by(group)%>%
+  filter(!is.na(agree_convo_sleepy))%>%
+  count(agree_convo_sleepy, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         agree_convo_sleepy=
+           factor(
+             case_when(agree_convo_sleepy==1 ~ 'Strongly disagree',
+                       agree_convo_sleepy==2 ~ 'Disagree',
+                       agree_convo_sleepy==3 ~ 'Neutral',
+                       agree_convo_sleepy==4 ~ 'Agree',
+                       agree_convo_sleepy==5 ~ 'Strongly agree'),
+              levels= c("Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree")
+             )
+  )
+
+convo_sleepy_chart <- ggplot(convo_sleepy, aes(x=agree_convo_sleepy, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
+                                           limits = c(0, 0.7)) + 
+                        theme(axis.text.x = element_text(angle = 0, hjust = 1), 
+                              legend.position="top", legend.title=element_blank(),
+                              plot.title = element_text(hjust = 0.5),
+                              axis.title.x = element_blank(),
+                              axis.title.y = element_blank()) + 
+                        ggtitle("I feel comfortable having a conversation with my friend \n about driving while sleepy/drowsy") +
+                        scale_fill_manual(values=c('#000000',"#23b7fbff"))
+```
+
+```{r}
+print(convo_sleepy_chart)
+```
+
 ```{r}
 #Look at only betas
 # betas <-fol_all%>%
@@ -560,23 +723,94 @@ t.test(pedestrian$agree_convo_alcohol~pedestrian$group)
 t.test(pedestrian$agree_convo_sleepy~pedestrian$group)
 ```
 
-###INTERVENTION###
+###INTERVENTION (hypothetical)###
 
     We asked...
     "If you realize a friend is about to drive while under the influence of drugs or alcohol, which of the following would you be most likely to do?"
+    
     "If you realize a friend is about to drive while drowsy/sleepy, which of the following would you be most likely to do?"
-      + Comment on it but not stop them from driving
-      + Recommend they wait a few hours before driving/take a nap before driving
-      + Ask them for their keys and not let them enter their vehicle
-      + Offer to/ask someone else to drive for them or call them a rideshare (e.g. taxi, Uber, Lyft, etc.
-      + Do nothing
-      + Don't know
+    
+    We defined "DID NOT INTERVENE" as those who answered with the following:
+      -Comment on it but not stop them from driving
+      -Do nothing
+      -Don't know
+    
+    We defined "INTERVENED" as those who answered with the following:
+    - Recommend they wait a few hours before driving/take a nap before driving
+    - Offer to/ask someone else to drive for them or call them a rideshare (e.g. taxi, Uber, Lyft, etc.
+    - Ask them for their keys and not let them enter their vehicle
+      
 
-###The majority of young people were likely to take the second most severe intervention of offering to drive or calling a rideshare###
+###Overall, the majority said would intervene if they witnessed an impaired driver####
 
-####We saw no significant improvement on likelihood to intervene on a driver under the influence using the most severe intervention (p>0.05)####
+####98% of participants (vs. 96% of the control) said they would intervene on a driver who was going to drive while under the influence of drugs/alcohol (p<0.05)####
 
-####We saw a small significant improvement on likelihood to intervene on a driver who was sleepy/drosy using the most severe intervention (p<0.05)####
+####93% of participants (vs. 88% of the control group) said they would intervene on a driver who was driving while sleepy (p<0.05)####
+
+
+```{r, include=FALSE}
+#look at collapsed intervention categories to dummy (passive intervention vs. recommend/offer/ask) 
+intervened_alcohol_dummy <- fol_all%>%
+  group_by(group)%>%
+  filter(!is.na(intervention_alcohol_dummy))%>%
+  count(intervention_alcohol_dummy, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         intervention_alcohol_dummy=
+           factor(intervention_alcohol_dummy,c("Did not intervene", "Intervened")))
+
+intervened_sleepy_dummy <- fol_all%>%
+  group_by(group)%>%
+  filter(!is.na(intervention_sleepy_dummy))%>%
+  count(intervention_sleepy_dummy, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         intervention_dummy_cat=
+           factor(intervention_sleepy_dummy,c("Did not intervene", "Intervened")))
+
+#Bar charts
+intervened_al_chart_dummy <- ggplot(intervened_alcohol_dummy, aes(x=intervention_alcohol_dummy, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x= 'Severity of intervention', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                                           limits = c(0, 1.05)) + 
+                        theme(legend.position="top", legend.title=element_blank(),
+                              plot.title = element_text(hjust = 0.5),
+                              axis.title.x = element_blank(),
+                              axis.title.y = element_blank()) + 
+                        ggtitle("If you realize a friend is about to drive while under the influence of drugs or alcohol, \n which of the following would you be most likely to do?") +
+                        scale_fill_manual(values=c('#000000',"#23b7fbff"))
+
+intervened_sleep_chart_dummy <- ggplot(intervened_sleepy_dummy, aes(x=intervention_sleepy_dummy, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x= 'Severity of intervention', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                                           limits = c(0, 1.05)) + 
+                        theme(legend.position="top", legend.title=element_blank(),
+                              plot.title = element_text(hjust = 0.5),
+                              axis.title.x = element_blank(),
+                              axis.title.y = element_blank()) + 
+                        ggtitle("If you realize a friend is about to drive while drowsy/sleepy, \n which of the following would you be most likely to do?") +
+                        scale_fill_manual(values=c('#000000',"#23b7fbff"))
+```
+
+
+```{r}
+print(intervened_al_chart_dummy)
+
+```
+
+```{r}
+print(intervened_sleep_chart_dummy)
+```
+
+###If we look at each intervention type, the majority of young people were likely to take the second most severe intervention of offering to drive or calling a rideshare###
+
+####There were no significant differences however between methods used by both groups for intervening on an impaired driver under the influence of drugs/alcohol ####
+
+####FOL participants were significantly more likely than the control group to offer to drive or call a rideshare for a driver who was sleepy/drowsy while the control group was more likely to only comment on it (p<0.05)####
 
 ```{r, include=FALSE}
 #Look at hypothetical intervention situation
@@ -662,6 +896,7 @@ CrossTable(fol_all$intervention_sleepy_cat, fol_all$group, prop.c=TRUE, prop.r=F
 #CrossTable(guide$intervention_sleepy, guide$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
 ```
 
+
 ###_In the last month have you, as a passenger or pedestrian, witnessed someone who drove while under the influence of drugs/alcohol or while sleepy/drowsy? ?_###
 ####44% witnessed an impaired driver in the last month####
 
@@ -670,9 +905,11 @@ CrossTable(fol_all$intervention_sleepy_cat, fol_all$group, prop.c=TRUE, prop.r=F
 #Witnessed impaired driving 
 count(fol_all, witnessed, sort = TRUE)%>% 
   filter(witnessed!=is.na(witnessed))%>%
-  mutate(pct=round(n/sum(n)*100,2))
+  mutate(pct=percent(n/sum(n)))
 
 ```
+
+###INTEVENTION (actual)###
 
 ###_Did you attempt in any way to stop the driver from driving??_###
 #### Those who participated in FOL were more likely to intervene (p<0.05) ####
@@ -697,7 +934,7 @@ intervened_chart <- ggplot(intervened, aes(x=attempted_intervention, y=pct, grou
                         labs(x= 'Tried to convince them to pull over', y = 'Percentage') + 
                         scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
                                            limits = c(0, 0.7)) + 
-                        theme(axis.text.x = element_text(angle = 0, hjust = 1), 
+                        theme(axis.text.x = element_text(angle = 0, hjust = 0.5), 
                               legend.position="top", legend.title=element_blank(),
                               plot.title = element_text(hjust = 0.5),
                               axis.title.x = element_blank(),
@@ -726,12 +963,27 @@ CrossTable(intervened_driver$attempted_intervention, intervened_driver$group, pr
 #### Two-third of participants said they thought they or their friend would be "very unlikely" to drive while under the influence ####
 
 ```{r}
-count(fol_all, likelihood_alcohol, sort = TRUE)%>%filter(likelihood_alcohol!=is.na(likelihood_alcohol))%>%mutate(pct=round(n/sum(n)*100,2))
+count(fol_all, likelihood_alcohol, sort = TRUE)%>%filter(likelihood_alcohol!=is.na(likelihood_alcohol))%>%mutate(pct=percent(n/sum(n)))
 ```
 ###_After participating in our campaign, how likely do you think you or your friend will drive while drowsy or sleepy in the future?_###
 
 #### Half of participants said they thought they or their friend would be "very unlikely" to drive while under the influence ####
 
 ```{r}
-count(fol_all, likelihood_sleepy, sort = TRUE)%>%filter(likelihood_sleepy!=is.na(likelihood_sleepy))%>%mutate(pct=round(n/sum(n)*100,2))
+count(fol_all, likelihood_sleepy, sort = TRUE)%>%filter(likelihood_sleepy!=is.na(likelihood_sleepy))%>%mutate(pct=percent(n/sum(n)))
 ```
+```{r, include=FALSE}
+#Testing pivots on Level of comfort of having conversations 
+#Convo on Alcohol/drugs
+# CrossTable(fol_all$agree_convo_alcohol, fol_all$gender, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+# CrossTable(fol_all$agree_convo_alcohol, fol_all$region, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+# CrossTable(fol_all$agree_convo_alcohol, fol_all$age, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+# CrossTable(fol_all$agree_convo_alcohol, fol_all$fol_engagement, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+
+#Convo on sleepy/drowsy
+# CrossTable(fol_all$agree_convo_sleepy, fol_all$gender, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+# CrossTable(fol_all$agree_convo_sleepy, fol_all$region, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+# CrossTable(fol_all$agree_convo_sleepy, fol_all$age, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+# CrossTable(fol_all$agree_convo_alcohol, fol_all$fol_engagement, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+```
+
