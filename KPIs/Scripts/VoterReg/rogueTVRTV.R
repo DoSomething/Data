@@ -75,6 +75,7 @@ getData <- function() {
         u.created_at AS ds_registration_date,
         CASE WHEN u.source = 'niche' THEN 'niche'
           WHEN u.source = 'sms' THEN 'sms'
+          WHEN u.source = 'importer-client' then 'importer-app'
         ELSE 'web' END AS user_source
       FROM public.signups s
       LEFT JOIN public.posts p on s.id = p.signup_id
