@@ -4,7 +4,8 @@ source('Scripts/VoterReg/rogueTVRTV.R')
 source('Scripts/VoterReg/schoolTheVote.R')
 library(reshape2)
 library(eeptools)
-
+library(zipcode)
+library(scales)
 
 # Data Prep ---------------------------------------------------------------
 
@@ -49,18 +50,22 @@ both_extra <-
   bind_rows(rtv_extra, tv_extra) %>%
   group_by(email) %>%
   filter(created_at==max(created_at)) %>%
-  select(-created_at) %>%
   mutate(zip = substr(zip, 1, 5))
 
 zipPop <-
   read_csv('Data/Zipcode-ZCTA-Population-Density-And-Area-Unsorted.csv') %>%
   setNames(c('zip','population','sq_miles','pop_density'))
 
+data("zipcode")
+
 set <-
   vr %>%
-  left_join(both_extra) %>%
+  rename(created_at_backup=created_at) %>%
+  left_join(both_extra, by = 'email') %>%
   left_join(zipPop) %>%
+  left_join(zipcode) %>%
   mutate(
+    created_at = coalesce(created_at, created_at_backup),
     neighborhood =
       case_when(
         pop_density >= 3000 ~ 'Urban',
@@ -77,33 +82,29 @@ set <-
             units='years'
             ),
         TRUE ~ NA_real_
-      )
+      ),
+    Type = case_when(user_source=='importer-app' ~ 'New', TRUE ~ 'Existing')
   )
 
-# Analysis ----------------------------------------------------------------
+nsids <- unique(set$nsid)
 
-ggplot(filter(set, inInterval(age, c(16,75))), aes(x=neighborhood, y=age)) +
-  geom_violin(aes(fill=neighborhood)) +
-  scale_y_continuous(breaks=pretty_breaks(20)) +
-  coord_flip()
+q <-
+  glue_sql(
+    "SELECT
+      m.northstar_id AS nsid,
+      m.action_type,
+      m.timestamp AS action_ts
+    FROM member_event_log m
+    INNER JOIN (
+      SELECT DISTINCT p.northstar_id
+      FROM posts p
+      WHERE p.type = 'voter-reg'
+      AND p.status ilike '%register%'
+    ) reg ON reg.northstar_id = m.northstar_id
+    WHERE m.timestamp >= '2018-01-01'
+    ",
+    .con=pg
+  )
 
-sourceDetails <-
-  set %>%
-  count(source)
-
-ggplot(sourceDetails, aes(x='', y=n, fill=source)) +
-  geom_bar(position='stack', stat='identity') +
-  coord_polar("y", start=0) +
-  geom_text(aes(label = n), position=position_stack(vjust=.5),size=2.5) +
-  theme_void()
-
-locationSource <-
-  set %>%
-  filter(!is.na(neighborhood)) %>%
-  count(neighborhood, source) %>%
-  group_by(neighborhood) %>%
-  mutate(p=round(n/sum(n),4)*100)
-
-ggplot(locationSource, aes(x=neighborhood, y=p, fill=source)) +
-  geom_bar(position='stack', stat='identity') +
-  geom_text(aes(label = p), position=position_stack(vjust=.5),size=2.5)
+mamActions <-
+  runQuery(q)

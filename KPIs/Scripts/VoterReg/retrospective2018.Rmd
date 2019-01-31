@@ -1,0 +1,280 @@
+---
+title: "Voter Registration 2018 Retrospective"
+output: html_notebook
+---
+
+### Age Breakdown
+* Nearly 20% of registrations were 18 years old
+* Including pre-registrations, 57% of registrants were 21 or younger
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+ageBreakdown <- 
+  set %>% 
+  filter(inInterval(age, c(16,50))) %>% 
+  mutate(age=floor(age)) %>% 
+  count(age) %>% 
+  mutate(p=n/sum(n))
+ggplot(ageBreakdown, aes(x=age,y=p)) +
+  geom_bar(stat='identity', fill='darkcyan') +
+  geom_text(aes(label=percent(p)), size=2, vjust=-1) +
+  labs(x='Age',y='Percent of Registrations') +
+  scale_x_continuous(breaks=pretty_breaks(20)) +
+  theme_minimal()
+```
+### Source Breakdown
+* Our top performers were paid ads and the web channel
+* Weakest performers were company and social
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+sourceDetails <-
+  set %>%
+  count(source) %>%
+  mutate(p=n/sum(n)) %>%
+  melt() %>% as_tibble()
+levels(sourceDetails$variable) <- c('Count','Proportion')
+
+ggplot(sourceDetails, aes(x='', y=value, fill=source)) +
+  geom_bar(position='stack', stat='identity', width=.66) +
+  geom_text(aes(label = round(value,3)), position=position_stack(vjust=.5),size=2.5) +
+  facet_wrap(~variable, scales='free_y') +
+  labs(x='',y='',title='') +
+  scale_fill_brewer(palette = 'Set3')
+```
+
+* Web was our most consistent performer over time. 
+* Paid ads came online later in the year but had exponential growth thereafter
+* All channels gained momentum over the course of the year
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+sourceOverTime <- 
+  set %>% 
+  filter(created_at <= '2018-12-31') %>% 
+  group_by(created_at, source) %>% 
+  summarise(Count=n()) %>% 
+  group_by(source) %>% 
+  arrange(source,created_at) %>% 
+  mutate(runningTotal = cumsum(Count))
+ggplot(sourceOverTime, aes(x=created_at, y=runningTotal, color=source)) +
+  geom_line() +
+  scale_x_datetime(breaks=pretty_breaks(15)) +
+  scale_color_brewer(palette='Set3')
+```
+
+### New vs. Existing Members
+* Our efforts targeted existing members and non-members at similar rates, with existing members having a slight edge
+* While existing member targeting consistently outpaced new people, targeting of non-members improved over time 
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+typeOverTime <- 
+  set %>% 
+  filter(created_at <= '2018-12-31') %>% 
+  mutate(created_at = as.Date(created_at)) %>% 
+  group_by(created_at, Type) %>% 
+  summarise(Count=n()) %>% 
+  group_by(Type) %>% 
+  arrange(Type,created_at) %>% 
+  mutate(runningTotal = cumsum(Count))
+
+newReturn <-
+  set %>%
+  count(Type) %>%
+  mutate(p=round(n/sum(n),3)*100)
+
+ggplot(newReturn, aes(x='', y=p, fill=Type)) +
+  geom_bar(position='stack', stat='identity') +
+  coord_polar("y", start=0) +
+  geom_text(aes(label = p), position=position_stack(vjust=.5),size=3.5) +
+  scale_fill_brewer(palette = 'Set2') +
+  theme_void()
+ggplot(typeOverTime, aes(x=created_at, y=runningTotal, color=Type)) +
+  geom_line() +
+  scale_x_date(breaks=pretty_breaks(15)) +
+  scale_color_brewer(palette='Set2')
+```
+
+### Patterns by Location
+* The breakdown of registrations shows we had roughly the same number from rural and urban areas, slightly fewer in suburban areas
+* However, dividing the registrations we had by the population that resides in such areas gives us an estimate of the amount of penetration we had in each neighborhood type. This shows that we had the greatest amount of penetration in rural areas, the least in urban areas
+* Breaking down further by initiative type doesn't show big differences by neighborhood; all of our efforts were roughly equally successful across regardless of whether the registrants' neighborhood was rural, urban, or suburban 
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+library(gridExtra)
+location <-
+  set %>%
+  filter(!is.na(neighborhood)) %>% 
+  group_by(neighborhood) %>%
+  summarise(
+    proportion = n(),
+    penetration = round(n() / sum(population), 6)*100
+  ) %>% 
+  mutate(
+    proportion = round(proportion / sum(proportion),3)*100
+  )
+
+loc.breakdown <- 
+  ggplot(location, aes(x='', y=proportion, fill=neighborhood)) +
+  geom_bar(position='stack', stat='identity') +
+  coord_polar("y", start=0) +
+  geom_text(aes(label = proportion), position=position_stack(vjust=.5),size=3.5) +
+  scale_fill_brewer(palette = 'Set2') +
+  ggtitle('Registrations by Neighborhood Type') +
+  theme_void() +
+  theme(
+    plot.title = element_text(hjust=.5),
+    legend.position = "none"
+    )
+
+locPenetation <- 
+  ggplot(location, aes(x=neighborhood, y=penetration, fill=neighborhood)) +
+  geom_bar(stat='identity') +
+  labs(x='',y='',title='Regional Penetration') +
+  scale_fill_brewer(palette = 'Set2') +
+  theme(legend.title = element_blank(),
+        plot.title = element_text(hjust=.5))
+
+grid.arrange(loc.breakdown, locPenetation, ncol=2)
+
+locationSource <-
+  set %>%
+  filter(!is.na(neighborhood)) %>%
+  count(neighborhood, source) %>%
+  group_by(neighborhood) %>%
+  mutate(p=round(n/sum(n),4)*100)
+
+ggplot(locationSource, aes(x=neighborhood, y=p, fill=source)) +
+  geom_bar(position='stack', stat='identity', width=.66) +
+  geom_text(aes(label = p), position=position_stack(vjust=.5),size=2.75) +
+  labs(x='',y='') +
+  scale_fill_brewer(palette = 'Set3')
+```
+
+### Indexing by State
+* By taking the delta between the percentage of our registrants in a state and the percentage of the population in the state, we can construct a measure for the degree to which we over or under indexed in a particular state. 
+* A value of 0 would mean that the percentage of our registrants from that state was the same as the percent of the national population from that state
+* We see that our efforts overperformed most in Texas, New York, and Georgia
+* Our efforts were least effective in Pennsylvania, Virginia, Ohio, and California
+* There isn't an immediately discernible pattern in the states that we over or under-indexed on
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+## State over/under index
+statePop <-
+  set %>%
+  filter(!is.na(zip) & population>0) %>%
+  group_by(zip) %>%
+  summarise(
+    registrations = n(),
+    population = max(population)
+  ) %>%
+  left_join(zipcode) %>%
+  filter(!is.na(state)) %>%
+  group_by(state) %>%
+  summarise(
+    registrations = sum(registrations),
+    population = sum(population, na.rm=T)
+  ) %>%
+  mutate(
+    pctPop = population/sum(population),
+    pctRegistrations = registrations/sum(registrations),
+    overUnder = pctRegistrations-pctPop
+  )
+
+ggplot(statePop, aes(x=reorder(state, -overUnder), y=overUnder)) +
+  geom_bar(stat='identity',fill='darkcyan') +
+  labs(x='State',y='Over/Under Index',title='') +
+  theme_minimal()
+```
+
+### Activity Post Registration
+* We looked at activity patterns of registrants, divided up by whether they were new or existing members, and further breaking apart new members into whether or not they were acquired from paid ad efforts
+* We see that, on average, existing members were about 4x times more likely to re-engage after registering
+* We were 17% more successful in re-engaging members acquired through paid ads channels than other channels
+    * Members acquired through paid channels were 60% more likely to visit the website and 75% more likely to signup or reportback for a campaign
+    * At the same time we haven't done a great job of getting new members to take either of these actions, existing members were 10x more likely to visit the website
+* Existing members were most likely to engage in the 30 days immediately after registering - most often over SMS
+* New members were most likely to re-engage in 60-90 days after registering - most often via email
+* Broad patterns of activity over time by different acquisition types can be seen in the visual below
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=8, results='asis'}
+mamPostReg <-
+  set %>%
+  select(nsid, created_at, neighborhood, source, age, Type) %>%
+  left_join(mamActions) %>%
+  mutate(
+    action_buckets =
+      case_when(
+        action_type %in% c('site_login','site_access') ~ 'visit_website',
+        action_type %in% c('messaged_gambit','bertly_link_click','bertly_link_uncertain') ~ 'sms_interaction',
+        action_type %in% c('clicked_link') ~ 'email_interaction',
+        action_type %in% c('signup','post') ~ 'signup/reportback',
+        TRUE ~ action_type
+      ),
+    daysSince = as.Date(action_ts) - as.Date(created_at),
+    Type.NewBreak =
+      case_when(
+        Type=='New' & source %in% c('source','no_attribution') ~ 'New - Ads',
+        Type=='New' & !source %in% c('source','no_attribution') ~ 'New - Other',
+        TRUE ~ Type
+      )
+  ) %>%
+  filter(
+    source!='on_the_ground' &
+      daysSince != 0 &
+      !(Type=='Existing' & action_buckets=='account_creation' & daysSince > 0) &
+      !(Type=='New' & daysSince < 0)
+  )
+
+postRegSum.NoDay <- 
+  mamPostReg %>% 
+  filter(daysSince >= 0) %>% 
+  group_by(Type.NewBreak, nsid) %>% 
+  summarise(
+    N_Actions = n(),
+    siteVisits = length(which(action_buckets=='visit_website')),
+    smsInteract = length(which(action_buckets=='sms_interaction')),
+    emailInteract = length(which(action_buckets=='email_interaction')),
+    campaignActivity = length(which(action_buckets=='signup/reportback'))
+  ) %>% 
+  summarise(
+    `Total Actions` = mean(N_Actions),
+    `Site Visits` = mean(siteVisits),
+    `SMS Interactions` = mean(smsInteract),
+    `Email Interactions` = mean(emailInteract),
+    `Campaign Activity` = mean(campaignActivity)
+  ) %>% 
+  rename(Type = Type.NewBreak)
+
+postRegSum <- 
+  mamPostReg %>% 
+  mutate(
+    daysBuckets = 
+      case_when(
+        daysSince < 0 ~ 'Pre-Registration',
+        daysSince < 30 ~ '30 Days Post',
+        daysSince < 60 ~ '30-60 Days Post',
+        daysSince < 90 ~ '60-90 Days Post',
+        daysSince < 120 ~ '90-120 Days Post',
+        daysSince >= 120 ~ '90+ Days Post'
+      )
+    ) %>% 
+  group_by(Type.NewBreak, daysBuckets, nsid) %>% 
+  summarise(
+    N_Actions = n(),
+    siteVisits = length(which(action_buckets=='visit_website')),
+    smsInteract = length(which(action_buckets=='sms_interaction')),
+    emailInteract = length(which(action_buckets=='email_interaction')),
+    campaignActivity = length(which(action_buckets=='signup/reportback'))
+  ) %>% 
+  summarise(
+    `Total Actions` = mean(N_Actions),
+    `Site Visits` = mean(siteVisits),
+    `SMS Interactions` = mean(smsInteract),
+    `Email Interactions` = mean(emailInteract),
+    `Campaign Activity` = mean(campaignActivity)
+  ) %>% 
+  rename(Type = Type.NewBreak)
+
+kable(postRegSum.NoDay, digits=2) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=F)
+kable(postRegSum, digits=3) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=F)
+
+ggplot(filter(mamPostReg, action_type!='account_creation'),
+       aes(x=action_buckets, y=daysSince)) +
+  geom_violin(aes(fill=action_buckets)) + coord_flip() +
+  facet_wrap(~Type.NewBreak, ncol=1, scale='free_x') +
+  scale_y_continuous(breaks=pretty_breaks(20)) +
+  theme(legend.position = 'none')
+```
