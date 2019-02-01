@@ -4,8 +4,8 @@ SELECT 	g1.broadcast_id,
 	count(DISTINCT g1.user_id) AS num_users
 FROM (
 	SELECT  g.broadcast_id,
-		CASE WHEN (g.metadata ->> 'delivery')::json ->> 'failureData' IS NOT NULL
-		THEN (g.metadata #> '{delivery, failureData}')::json ->> 'code'
+		CASE WHEN (g.metadata #> '{delivery}') ->> 'failureData' IS NOT NULL
+		THEN (g.metadata #> '{delivery, failureData}') ->> 'code'
 		ELSE '0' END AS failure_code,
 		g.user_id
 	FROM (
