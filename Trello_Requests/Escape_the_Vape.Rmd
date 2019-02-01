@@ -1,0 +1,625 @@
+---
+title: "Escape the Vape Survey Analyses"
+output: html_notebook
+---
+
+```{r, include = FALSE}
+library(gmodels)
+library(glue)
+library(tidyverse)
+library(reshape2)
+library(scales)
+library(ggpubr)
+library(dplyr)
+```
+
+
+```{r, include = FALSE}
+#############################################################
+################ QUIZ DATA #######################
+#############################################################
+
+#Pull Quiz data
+etv_quiz <- ("SELECT 
+               e.records #>> '{_id,$oid}' AS event_id,
+               to_timestamp((e.records #>> '{meta,timestamp}')::bigint/1000) AS meta_timestamp,
+               e.records #>> '{user,northstarId}' AS northstar_id,
+               e.records #>> '{page,path}' AS url,
+               e.records #>> '{event,name}' AS converted_on_quiz,
+               e.records #> '{data,responses}' ->> '0' AS response_1,
+               e.records #> '{data,responses}' ->> '1' AS response_2,
+               e.records #> '{data,responses}' ->> '2' AS response_3,
+               e.records #> '{data,responses}' ->> '3' AS response_4,
+               e.records #> '{data,responses}' ->> '4' AS response_5
+             FROM puck.events_json e
+             WHERE e.records #>> '{data,responses}' IS NOT NULL 
+             AND e.records #>> '{page,path}' ILIKE '%vape-quiz%'
+             AND e.records #>> '{event,name}' = 'converted on quiz'
+             AND e.records #>> '{user,northstarId}' IS NOT NULL")
+
+etv_quiz<- runQuery(etv_quiz)
+
+#remove duplicates
+etv_quiz <- etv_quiz%>%
+  filter(!duplicated(northstar_id))
+
+#Create vars
+etv_quiz <- etv_quiz%>%
+            mutate_at(vars(starts_with('response')), function(x) as.numeric(substr(x, 1, 1)))%>%
+            mutate(
+              aerosol = 
+                 case_when(response_1==0 ~ 'True',
+                           response_1==1 ~ 'False'),
+               nicotine = 
+                 case_when(response_2==0~'True',
+                           response_2==1 ~ 'False'),
+               jul_pod = 
+                 case_when(response_3==0 ~ 'True',
+                           response_3==1 ~ 'False'),
+               jul_designed = 
+                 case_when(response_4==0~'True',
+                           response_4==1 ~ 'False'),
+               ecig_flavors = 
+                 case_when(response_5==0~'True',
+                           response_5==1 ~ 'False'),
+              total_wrong = rowSums(.[grep("response", names(.))], na.rm = TRUE),
+              all_correct = if_else(total_wrong==0,"All correct", "At least one wrong")
+                   ) 
+```
+
+#ESCAPE THE VAPE ONLINE QUIZ#
+
+###_The aerosol from e-cigs usually contains nicotine and can contain toxic and cancer-causing chemicals, like formaldehyde and heavy metals._ ###
+```{r}
+count(etv_quiz, aerosol, sort = TRUE)%>%
+  mutate(pct=percent(n/sum(n)))
+```
+
+###_Highly addictive nicotine can harm development of a young person’s brain._###
+
+```{r}
+count(etv_quiz, nicotine, sort = TRUE)%>%
+  mutate(pct=percent(n/sum(n)))
+```
+
+###_One JUUL pod contains the same amount of nicotine as an entire pack of cigarettes._###
+
+```{r}
+count(etv_quiz, jul_pod, sort = TRUE)%>%
+  mutate(pct=percent(n/sum(n)))
+```
+
+###_Some e-cigs like JUUL were designed intentionally to not look like regular cigarettes, and instead resemble everyday items like USB drives, pens and markers._###
+
+```{r}
+count(etv_quiz, jul_designed, sort = TRUE)%>%
+  mutate(pct=percent(n/sum(n)))
+```
+
+###_Youth e-cig users say flavors are one of the main reasons they use these products._###
+
+```{r}
+
+count(etv_quiz, ecig_flavors, sort = TRUE)%>%
+  mutate(pct=percent(n/sum(n)))
+```
+
+
+### 79% of quiz takers got all the questions correct###
+
+```{r}
+#Pct got all correct
+count(etv_quiz, all_correct, sort = TRUE)%>%
+  mutate(pct=percent(n/sum(n)))
+
+count(etv_quiz, total_wrong, sort = TRUE)%>%
+  mutate(pct=percent(n/sum(n)))
+```
+
+#ESCAPE THE VAPE SURVEY#
+```{r}
+## Upload experiment/control surveys and rename columns
+
+#Upload Typeform Escape the Vape responses 
+etv_experiment <- read.csv('~/Documents/Escape the Vape/Escape the Vape Feb 1.csv',na.strings=c("", "NA"))
+etv_experiment$group = "participants"
+
+#Upload Control survey data
+etv_control <-read.csv('~/Documents/Escape the Vape/What are your thoughts on e-cigarettes Feb 1.csv', na.strings=c("", "NA"))
+etv_control$group = "control"
+
+#Combine Control and Experiment surveys 
+etv_all <- bind_rows(etv_experiment,etv_control)
+
+#Rename columns
+
+etv_all <- etv_all%>%
+  rename(gender=What.is.your.gender.,
+         gender_other=Other,
+         age=How.old.are.you.,
+         region=What.type.of.region.do.you.live.in.,
+         freq_vape=How.often.would.you.say.you.are.exposed.to.vaping.e.cigarette.smoke.,
+         reason_cheaper=It.s.cheaper.than.smoking.cigarettes,
+         reason_lessdanger=They.think.it.s.less.dangerous.than.cigarettes,
+         reason_taste=They.like.the.taste.of.the.flavors,
+         reason_cool=They.think.it.s.cool,
+         reason_friends=Their.friends.are.doing.it,
+         reason_parents=Their.parents.smoke,
+         reason_stress=To.help.with.stress,
+         reason_harmless=They.think.it.s.harmless,
+         reason_other=Other.1,
+         agree_marketing=E.cigarette.companies.use.marketing.tactics.to.target.young.people,
+         agree_hidedangers=E.cigarette.companies.intentionally.hide.the.dangers.of.vaping.so.more.people.will.buy.their.products,
+         agree_tobacco=Tobacco.use.in.any.form..including.e.cigarettes.like.JUUL..vape.pens..mods..e.hookas..and.tank.systems..is..strong.not..strong..safe,
+         read_guide=Did.you.read.our...em.7.THINGS.E.CIG.AND.VAPE.COMPANIES.DON.T.WANT.YOU.TO.KNOW...em..guide.,
+         guide_thoughts=What.did.you.think.about.the.content.in.the.guide.,
+         smoker_stop=If.you.are.a.current.smoker..do.you.want.to.stop.vaping..now.or.in.the.future..,
+         intervention=If.you.were.to.witness.a.friend.or.family.member.vaping..which.of.the.following.would.you.be.most.likely.to.do.,
+         thought_differently=Have.you.thought.differently.about.vaping.since.participating.in.Escape.the.Vape.,
+         thought_differently_how=How.have.you.thought.differently.,
+         nps=Based.on.your.experience..how.likely.would.you.be.to.recommend.DoSomething.to.a.friend.,
+         suggestions=If.you.have.any.suggestions.on.how.we.could.improve.this.campaign.or.your.experience..please.share.below.)
+
+#remove duplicate emails and irrelevant vars
+etv_all <- etv_all%>%
+  filter(!duplicated(id))%>%
+  select(-X.,Network.ID)
+```
+
+```{r}
+#Create new vars
+etv_all <-etv_all%>%
+  mutate_at(vars(starts_with('reason')), .funs = funs(ifelse(is.na(.), 0, 1)))%>%
+  mutate(survey_submit = as.Date(paste0(Submit.Date..UTC., ':00'), '%m/%d/%y %H:%M:%S'),
+          gender =
+             case_when(
+               gender == 'Woman' ~ 'Female',
+               gender == 'Man' ~ 'Male',
+               TRUE ~ 'Other'),
+           age =
+            case_when(
+               age == 'Older than 25' ~ '26',
+               age == 'Younger than 15' ~ '14',
+               TRUE ~ as.character(age)),
+           age_numeric = as.numeric(age)
+    )
+```
+
+
+```{r}
+# demographics for each group
+CrossTable(etv_all$gender, etv_all$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+
+CrossTable(etv_all$region, etv_all$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+
+CrossTable(etv_all$age, etv_all$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+
+CrossTable(etv_all$freq_vape, etv_all$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+```
+
+### Almost half (49%) said they were exposed to vaping/e-cigarette smoke at least once a week ###
+
+```{r}
+#look at freq exposed to vaping by group
+freq_vape_group <- etv_all%>%
+  group_by(group)%>%
+  count(freq_vape, sort=TRUE)%>%
+  mutate(pct=(n/sum(n)),
+         freq_vape=
+           factor(
+             case_when(
+               freq_vape=='A few times a month' ~ 'Few times a month',
+               freq_vape=='A few times a week' ~ 'Few times a week',
+               freq_vape=='Everyday' ~ 'Everyday',
+               freq_vape=='Less than a few times a month' ~ '< Few times a month',
+               freq_vape=='Never' ~ 'Never',
+               freq_vape=='Not sure' ~ 'Not sure'), 
+                levels=c('Never','Not sure','< Few times a month', 'Few times a month','Few times a week','Everyday'))
+          )
+
+#look at freq exposed to vaping overall
+freq_vape <- count(etv_all,freq_vape, sort=TRUE)%>%
+  mutate(pct=(n/sum(n)),
+         freq_vape=
+           factor(
+             case_when(
+               freq_vape=='A few times a month' ~ 'Few times a month',
+               freq_vape=='A few times a week' ~ 'Few times a week',
+               freq_vape=='Everyday' ~ 'Everyday',
+               freq_vape=='Less than a few times a month' ~ '< Few times a month',
+               freq_vape=='Never' ~ 'Never',
+               freq_vape=='Not sure' ~ 'Not sure'), 
+                levels=c('Never','Not sure','< Few times a month', 'Few times a month','Few times a week','Everyday'))
+          )
+
+#bar chart by group
+freq_vape_chart_group<- ggplot(freq_vape_group, aes(x=freq_vape, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", width= 0.75, position = "dodge") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position =position_dodge(width=0.9),  size=3) + 
+                        ylab('Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
+                                           limits = c(0, 0.5)) + 
+                        theme(plot.title = element_text(hjust = 0.5),
+                              axis.text.x = element_text(angle = 15, hjust = 1), 
+                              legend.position="top", legend.title=element_blank(),
+                              axis.title.x=element_blank(),
+                              axis.title.y=element_blank()) + 
+                        ggtitle("How often would you say you are exposed to vaping/e-cigarette smoke??") +
+                        scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
+
+#bar chart
+freq_vape_chart<- ggplot(freq_vape, aes(x=freq_vape, y=pct)) + 
+                        geom_bar(stat="identity", width= 0.75, position = "dodge", fill="#4e2b63ff") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position =position_dodge(width=0.9),  size=3) + 
+                        ylab('Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
+                                           limits = c(0, 0.5)) + 
+                        theme(plot.title = element_text(hjust = 0.5),
+                              axis.text.x = element_text(angle = 15, hjust = 1), 
+                              legend.position="top", legend.title=element_blank(),
+                              axis.title.x=element_blank(),
+                              axis.title.y=element_blank()) + 
+                        ggtitle("How often would you say you are exposed to vaping/e-cigarette smoke??") 
+```
+
+```{r}
+print(freq_vape_chart_group)
+print(freq_vape_chart)
+```
+
+### Participants were more likely to agree that E-cigarette use marketing tactics to target young people ###
+
+```{r, include = FALSE}
+agree_marketing <- etv_all%>%
+  group_by(group)%>%
+  filter(!is.na(agree_marketing))%>%
+  count(agree_marketing, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         agree_marketing=
+           factor(
+             case_when(
+               agree_marketing == 1 ~ 'Strongly Disagree',
+               agree_marketing == 2 ~ '2',
+               agree_marketing == 3 ~ '3',
+               agree_marketing == 4 ~ '4',
+               agree_marketing == 5 ~ 'Strongly Agree'),
+                levels = c("Strongly Disagree", "2", "3", "4", "Strongly Agree")))
+
+freq_residential <- all_bid_readguide%>%
+  group_by(group)%>%
+  filter(!is.na(speeding_freq_residential_numeric) & !is.na(speeding_freq_residential))%>%
+  count(speeding_freq_residential, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         speeding_freq_residential=
+           factor(speeding_freq_residential,c("Never", "Rarely", "Sometimes", "Often")))
+```
+
+```{r, include = FALSE}
+#Bar charts
+agree_marketing_chart <- ggplot(agree_marketing, aes(x=agree_marketing, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x = 'Frequency', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 0.7)) + 
+                        theme(axis.text.x = element_text(angle = 20, hjust = 1), legend.position="top", 
+                              legend.title=element_blank(),
+                              axis.title.x=element_blank(),
+                              axis.title.y=element_blank(),
+                              plot.title = element_text(hjust = 0.5)) + 
+                        ggtitle("E-cigarette companies use marketing tactics to target young people") +
+                        scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
+```
+
+```{r}
+print(agree_marketing_chart)
+```
+
+```{r, include= FALSE}
+#test significance of differences
+CrossTable(etv_all$agree_marketing, etv_all$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+```
+
+### Participants were more likely to agree that E-cigarette companies intentionally hide the dangers of vaping ###
+
+```{r, include = FALSE}
+agree_hidedangers <- etv_all%>%
+  group_by(group)%>%
+  filter(!is.na(agree_hidedangers))%>%
+  count(agree_hidedangers, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         agree_hidedangers=
+           factor(
+             case_when(
+               agree_hidedangers == 1 ~ 'Strongly Disagree',
+               agree_hidedangers == 2 ~ '2',
+               agree_hidedangers == 3 ~ '3',
+               agree_hidedangers == 4 ~ '4',
+               agree_hidedangers == 5 ~ 'Strongly Agree'),
+                levels = c("Strongly Disagree", "2", "3", "4", "Strongly Agree")))
+```
+
+```{r, include = FALSE}
+#Bar charts
+agree_hidedangers_chart <- ggplot(agree_hidedangers, aes(x=agree_hidedangers, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x = 'Frequency', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 0.7)) + 
+                        theme(axis.text.x = element_text(angle = 20, hjust = 1), legend.position="top", 
+                              legend.title=element_blank(),
+                              axis.title.x=element_blank(),
+                              axis.title.y=element_blank(),
+                              plot.title = element_text(hjust = 0.5)) + 
+                        ggtitle("E-cigarette companies intentionally hide the dangers of vaping so more \n people will buy their products") +
+                        scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
+```
+
+```{r}
+print(agree_hidedangers_chart)
+```
+
+
+```{r, include= FALSE}
+#test significance of differences
+CrossTable(etv_all$agree_hidedangers, etv_all$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+```
+
+```{r, include = FALSE}
+agree_tobacco <- etv_all%>%
+  group_by(group)%>%
+  filter(!is.na(agree_tobacco))%>%
+  count(agree_tobacco, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         agree_marketing=
+           factor(
+             case_when(
+               agree_tobacco == 1 ~ 'Strongly Disagree',
+               agree_tobacco == 2 ~ '2',
+               agree_tobacco == 3 ~ '3',
+               agree_tobacco == 4 ~ '4',
+               agree_tobacco == 5 ~ 'Strongly Agree'),
+                levels = c("Strongly Disagree", "2", "3", "4", "Strongly Agree")))
+```
+
+```{r, include = FALSE}
+#Bar charts
+agree_tobacco_chart <- ggplot(agree_tobacco, aes(x=agree_tobacco, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x = 'Frequency', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 0.9)) + 
+                        theme(axis.text.x = element_text(angle = 20, hjust = 1), legend.position="top", 
+                              legend.title=element_blank(),
+                              axis.title.x=element_blank(),
+                              axis.title.y=element_blank(),
+                              plot.title = element_text(hjust = 0.5)) + 
+                        ggtitle("Tobacco use in any form (including e-cigarettes like JUUL, vape pens, mods, \n e-hookas, and tank systems) is not safe") +
+                        scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
+```
+
+### There was no difference in belief that tobacco is not safe between the groups ###
+
+```{r}
+print(agree_tobacco_chart)
+```
+
+```{r, include= FALSE}
+CrossTable(etv_all$agree_tobacco, etv_all$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+```
+
+
+```{r, include=FALSE}
+etv_reasons <- etv_all%>%
+  select(contains('reason'))
+
+#only look at feelings
+reasons <- etv_reasons%>%
+  select(starts_with('reason'))
+#Calculate sum of 1s for each feeling dummy variable
+reasons_ct <- colSums(reasons)
+#reshape from short to long
+reasons_ct <-melt(reasons_ct)%>%
+             select(value)
+
+#Grab column names and reshape to long
+reasons_names <-colnames(reasons)
+reasons_names <- melt(reasons_names)%>%
+                 rename(reasons=value)
+
+#combine column names and totals and add pct
+reasons_merged <-cbind(reasons_ct,reasons_names)%>%
+  mutate(pct=round(value/nrow(etv_reasons),4),
+         reasons=
+           factor(
+             case_when(
+               grepl('cool', reasons) ~ 'Think its cool',
+               grepl('danger', reasons) ~ 'Less dangerous than cigarettes',
+               grepl('taste', reasons) ~ 'Like the taste of flavors',
+               grepl('friends', reasons) ~ 'Friends are doing it',
+               grepl('harmless', reasons) ~ 'Think its harmless',
+               grepl('stress', reasons) ~ 'Help with stress',
+               grepl('cheaper', reasons) ~ 'Cheaper than cigarettes',
+               grepl('parent', reasons) ~ 'Parents smoke'),
+                levels=c('Think its cool','Less dangerous than cigarettes','Friends are doing it',
+                         'Like the taste of flavors','Think its harmless','Help with stress','Cheaper than cigarettes',
+                         'Parents smoke'))
+           )%>%
+  filter(!is.na(reasons))
+
+```
+
+```{r, include=FALSE}
+#Bar chart
+reasons_chart <- ggplot(reasons_merged, aes(x=reasons, y=pct)) + 
+                        geom_bar(stat="identity", width= 0.75, position = "dodge", fill="#23b7fbff") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position =position_dodge(width=0.9),  size=3) + 
+                        ylab('Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
+                                           limits = c(0, .80)) + 
+                        theme(axis.text.x = element_text(angle = 25, hjust = 1), 
+                              legend.position="top", legend.title=element_blank(),
+                              axis.title.x=element_blank(),
+                              axis.title.y=element_blank()) + 
+                        ggtitle("What do you think are the main reasons people your age vape (use e-cigarettes)?")
+```
+
+### Most thought young people use e-cigarettes because they think it's cool, think it's less dangerous than cigarettes, they're friends are doing it, they like the taste of flavors, and they think it's harmless ###
+
+```{r}
+reasons_chart
+```
+
+### Few were current smokers ###
+
+```{r, include = FALSE}
+smoker <- etv_all%>%
+  group_by(group)%>%
+  filter(!is.na(smoker_stop))%>%
+  count(smoker_stop, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         smoker_stop=
+           factor(
+             case_when(
+               grepl('Don', smoker_stop) ~ 'Dont know',
+               grepl('not', smoker_stop) ~ 'Not a smoker',
+               grepl('No', smoker_stop) ~ 'No',
+               grepl('Yes', smoker_stop) ~ 'Yes'),
+                levels = c("Not a smoker", "Dont know", "No", "Yes"))
+         )
+```
+
+```{r, include = FALSE}
+#Bar charts
+smoker_chart <- ggplot(smoker, aes(x=smoker_stop, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x = 'Frequency', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 1)) + 
+                        theme(axis.text.x = element_text(angle = 20, hjust = 1), legend.position="top", 
+                              legend.title=element_blank(),
+                              axis.title.x=element_blank(),
+                              axis.title.y=element_blank(),
+                              plot.title = element_text(hjust = 0.5)) + 
+                        ggtitle("If you are a current smoker, do you want to stop vaping (now or in the future?)") +
+                        scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
+```
+
+```{r}
+print(smoker_chart)
+```
+
+```{r, include= FALSE}
+CrossTable(etv_all$smoker_stop, etv_all$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+```
+
+```{r, include = FALSE}
+intervention <- etv_all%>%
+  group_by(group)%>%
+  filter(!is.na(intervention))%>%
+  count(intervention, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         intervention=
+           factor(
+             case_when(
+               grepl('Comment', intervention) ~ 'Comment',
+               grepl('Do nothing', intervention) ~ 'Do nothing',
+               grepl('Don', intervention) ~ 'Dont know',
+               grepl('Try', intervention) ~ 'Convince them to stop'),
+                levels = c("Do nothing", "Dont know", "Comment", "Convince them to stop"))
+         )
+```
+
+```{r, include = FALSE}
+#Bar charts
+intervention_chart <- ggplot(intervention, aes(x=intervention, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x = 'Frequency', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 0.7)) + 
+                        theme(axis.text.x = element_text(angle = 20, hjust = 1), legend.position="top", 
+                              legend.title=element_blank(),
+                              axis.title.x=element_blank(),
+                              axis.title.y=element_blank(),
+                              plot.title = element_text(hjust = 0.5)) + 
+                        ggtitle("If you were to witness a friend or family member vaping, \n which of the following would you be most likely to do??)") +
+                        scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
+```
+
+```{r}
+print(intervention_chart)
+```
+
+```{r, include= FALSE}
+CrossTable(etv_all$intervention, etv_all$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+```
+### 48% said they read the guide ###
+
+```{r}
+guide <- etv_all%>%
+   filter(group=='participants' & !is.na(read_guide))%>%
+      count(read_guide, sort = TRUE)%>%
+      mutate(pct=percent(n/sum(n)))%>%
+      print()
+```
+
+```{r}
+#Look at only participants
+guide <- etv_all%>%
+   filter(group=='participants' & !is.na(read_guide))
+
+guide <- guide%>%
+  mutate(
+    read_guide=
+           case_when(
+             read_guide==0 ~ 'Did not read guide',
+             read_guide==1 ~ 'Read guide'))%>%
+  group_by(read_guide)%>%
+  filter(!is.na(intervention))%>%
+  count(intervention, sort=TRUE)%>%
+  mutate(pct=round(n/sum(n),4),
+         intervention=
+           factor(
+             case_when(
+               grepl('Comment', intervention) ~ 'Comment',
+               grepl('Do nothing', intervention) ~ 'Do nothing',
+               grepl('Don', intervention) ~ 'Dont know',
+               grepl('Try', intervention) ~ 'Convince them to stop'),
+                levels = c("Do nothing", "Dont know", "Comment", "Convince them to stop"))
+         )
+```
+
+```{r, include = FALSE}
+#Bar charts
+guide_chart <- ggplot(guide, aes(x=intervention, y=pct, group = read_guide, fill=read_guide)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), vjust=-1, position = position_dodge(width=0.9),  size=3) +
+                        labs(x = 'Frequency', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 0.7)) + 
+                        theme(axis.text.x = element_text(angle = 20, hjust = 1), legend.position="top", 
+                              legend.title=element_blank(),
+                              axis.title.x=element_blank(),
+                              axis.title.y=element_blank(),
+                              plot.title = element_text(hjust = 0.5)) + 
+                        ggtitle("If you were to witness a friend or family member vaping, \n which of the following would you be most likely to do??)") +
+                        scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
+```
+
+### Those who read the guide more likely to intervene ###
+
+```{r}
+print(guide_chart)
+```
+
+```{r, include=FALSE}
+#check significance
+guide <- etv_all%>%
+   filter(group=='participants' & !is.na(read_guide))
+
+CrossTable(guide$intervention, guide$read_guide, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
+```
+
+
+
