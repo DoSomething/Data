@@ -39,6 +39,31 @@ ggplot(sourceDetails, aes(x='', y=value, fill=source)) +
   scale_fill_brewer(palette = 'Set3')
 ```
 
+### Source and Age Breakdown
+* Breaking down registration by source and channel shows that, for our two biggest channels, web was most effective for younger people, and this trend was exactly reversed for paid ads
+* SMS efforts were most effective for 20-22 year olds, and less so as we move away from these ages in either direction. This roughly aligns with the ages of our SMS members
+* Email efforts were most effective on our youngest audiences
+```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=6}
+sourceAge <-
+  set %>%
+  filter(inInterval(age, c(17,30))) %>% 
+  mutate(age=floor(age)) %>% 
+  group_by(age, source) %>%
+  summarise(
+    n=n()
+  ) %>% 
+  mutate(
+    p=n/sum(n)
+  )
+
+ggplot(sourceAge, aes(x=age, y=p, fill=source)) +
+  geom_bar(position='stack', stat='identity', width=.66) +
+  geom_text(aes(label = percent(p)), position=position_stack(vjust=.5),size=2.5) +
+  labs(x='',y='',title='') +
+  scale_x_continuous(breaks=seq(17,30,1)) +
+  scale_fill_brewer(palette = 'Set3')
+```
+
 * Web was our most consistent performer over time. 
 * Paid ads came online later in the year but had exponential growth thereafter
 * All channels gained momentum over the course of the year
@@ -180,7 +205,7 @@ ggplot(statePop, aes(x=reorder(state, -overUnder), y=overUnder)) +
 
 ### Activity Post Registration
 * We looked at activity patterns of registrants, divided up by whether they were new or existing members, and further breaking apart new members into whether or not they were acquired from paid ad efforts
-* We see that, on average, existing members were about 4x times more likely to re-engage after registering
+* 42% of existing members enagaged after registering via DS, compared to only 5% of new members
 * We were 17% more successful in re-engaging members acquired through paid ads channels than other channels
     * Members acquired through paid channels were 60% more likely to visit the website and 75% more likely to signup or reportback for a campaign
     * At the same time we haven't done a great job of getting new members to take either of these actions, existing members were 10x more likely to visit the website
@@ -188,32 +213,16 @@ ggplot(statePop, aes(x=reorder(state, -overUnder), y=overUnder)) +
 * New members were most likely to re-engage in 60-90 days after registering - most often via email
 * Broad patterns of activity over time by different acquisition types can be seen in the visual below
 ```{r warning=FALSE, echo=FALSE, message=FALSE, fig.width=11, fig.height=8, results='asis'}
-mamPostReg <-
-  set %>%
-  select(nsid, created_at, neighborhood, source, age, Type) %>%
-  left_join(mamActions) %>%
-  mutate(
-    action_buckets =
-      case_when(
-        action_type %in% c('site_login','site_access') ~ 'visit_website',
-        action_type %in% c('messaged_gambit','bertly_link_click','bertly_link_uncertain') ~ 'sms_interaction',
-        action_type %in% c('clicked_link') ~ 'email_interaction',
-        action_type %in% c('signup','post') ~ 'signup/reportback',
-        TRUE ~ action_type
-      ),
-    daysSince = as.Date(action_ts) - as.Date(created_at),
-    Type.NewBreak =
-      case_when(
-        Type=='New' & source %in% c('source','no_attribution') ~ 'New - Ads',
-        Type=='New' & !source %in% c('source','no_attribution') ~ 'New - Other',
-        TRUE ~ Type
-      )
+pctActed <-
+  mamPostReg %>%
+  group_by(nsid, Type) %>%
+  summarise(
+    actionsPostReg = length(which(daysSince>=1)),
+    actedPostReg = max(daysSince>=1)
   ) %>%
-  filter(
-    source!='on_the_ground' &
-      daysSince != 0 &
-      !(Type=='Existing' & action_buckets=='account_creation' & daysSince > 0) &
-      !(Type=='New' & daysSince < 0)
+  group_by(Type) %>%
+  summarise(
+    `Engaged Post Registration` = percent(mean(actedPostReg))
   )
 
 postRegSum.NoDay <- 
@@ -238,6 +247,7 @@ postRegSum.NoDay <-
 
 postRegSum <- 
   mamPostReg %>% 
+  filter(daysSince != 0) %>% 
   mutate(
     daysBuckets = 
       case_when(
@@ -266,13 +276,22 @@ postRegSum <-
   ) %>% 
   rename(Type = Type.NewBreak)
 
+kable(pctActed, digits=2) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=F)
 kable(postRegSum.NoDay, digits=2) %>% 
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=F)
 kable(postRegSum, digits=3) %>% 
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width=F)
 
-ggplot(filter(mamPostReg, action_type!='account_creation'),
-       aes(x=action_buckets, y=daysSince)) +
+ggplot(
+  filter(
+    mamPostReg, action_type!='account_creation' & 
+      daysSince != 0 &
+      source!='on_the_ground' &
+      !(Type=='Existing' & action_buckets=='account_creation' & daysSince > 0) &
+      !(Type=='New' & daysSince < 0)
+  ),
+  aes(x=action_buckets, y=daysSince)) +
   geom_violin(aes(fill=action_buckets)) + coord_flip() +
   facet_wrap(~Type.NewBreak, ncol=1, scale='free_x') +
   scale_y_continuous(breaks=pretty_breaks(20)) +

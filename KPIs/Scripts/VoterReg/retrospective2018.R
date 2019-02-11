@@ -6,6 +6,7 @@ library(reshape2)
 library(eeptools)
 library(zipcode)
 library(scales)
+library(kableExtra)
 
 # Data Prep ---------------------------------------------------------------
 
@@ -108,3 +109,38 @@ q <-
 
 mamActions <-
   runQuery(q)
+
+# TODO DUPES. Do we have any insight yet into all of the "duplicates"?  EG were most of our duplicates just random ppl registering twice or did we see spikes in conjunction with messaging we sent out about voter disenfranchisement
+
+mamPostReg <-
+  set %>%
+  select(nsid, created_at, neighborhood, source, age, Type) %>%
+  left_join(mamActions) %>%
+  mutate(
+    action_buckets =
+      case_when(
+        action_type %in% c('site_login','site_access') ~ 'visit_website',
+        action_type %in% c('messaged_gambit','bertly_link_click','bertly_link_uncertain') ~ 'sms_interaction',
+        action_type %in% c('clicked_link') ~ 'email_interaction',
+        action_type %in% c('signup','post') ~ 'signup/reportback',
+        TRUE ~ action_type
+      ),
+    daysSince = as.Date(action_ts) - as.Date(created_at),
+    Type.NewBreak =
+      case_when(
+        Type=='New' & source %in% c('source','no_attribution') ~ 'New - Ads',
+        Type=='New' & !source %in% c('source','no_attribution') ~ 'New - Other',
+        TRUE ~ Type
+      )
+  ) %>%
+  filter(
+    source!='on_the_ground' &
+      !(Type=='Existing' & action_buckets=='account_creation' & daysSince > 0) &
+      !(Type=='New' & daysSince < 0)
+  )
+
+pre2019 <- rtv_extra %>% filter(created_at < '2019-01-01')
+
+toMatch <- c("dosomething", "@example.com", "@test.com")
+testRegistrations <- length(grep(paste(toMatch,collapse="|"),
+                                 pre2019$email, value=TRUE))
