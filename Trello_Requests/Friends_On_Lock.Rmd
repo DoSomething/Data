@@ -86,11 +86,11 @@ fol_sms_q3 <- fol_sms_q3%>%
 
 #Upload Typeform Brake It Down responses 
 fol_experiment <- read.csv('~/Documents/Friends on Lock/FOL Data/Friends on Lock Jan 18.csv',na.strings=c("", "NA"))
-fol_experiment$group = "experiment"
+fol_experiment$group = "Experiment "
 
 #Upload Control survey data
 fol_control <-read.csv('~/Documents/Friends on Lock/FOL Data/What do you think about impaired driving_ Jan 18.csv', na.strings=c("", "NA"))
-fol_control$group = "control"
+fol_control$group = "Control "
 
 #Combine Control and Experiment surveys 
 fol_all <- bind_rows(fol_experiment,fol_control)
@@ -410,7 +410,7 @@ feelings_names <- melt(feelings_names)%>%
 #combine column names and totals and add pct
 feelings_merged <-cbind(feelings_ct,feelings_names)%>%
     mutate(
-      group=ifelse(grepl('alcohol',feeling),"drugs/alcohol","sleepy")
+      group=ifelse(grepl('alcohol',feeling),"Drugs/Alcohol   ","Drowsy  ")
       )%>%
   group_by(group)%>%
   mutate(pct=round(value/nrow(fol_feelings),4),
@@ -442,13 +442,154 @@ feelings_chart <- ggplot(feelings_merged, aes(x=feeling, y=pct, group = group, f
                               legend.title=element_blank(),
                               axis.title.x=element_blank(),
                               axis.title.y=element_blank(),
-                              plot.title = element_text(hjust = 0.5)) + 
+                              plot.title = element_text(hjust = 0.5, face="bold")) + 
                         ggtitle("How do you feel when you witness friends/family driving while \n sleepy/drowsy or under the influence of drugs/alcohol?") +
                         scale_fill_manual(values=c('#FF6666',"#23b7fbff"))
 ```
 
 ```{r}
 print(feelings_chart)
+ggsave("feelings.png",width=10, height=6, dpi=300)
+```
+
+
+
+```{r}
+#only look at feelings for those who were never in vehicle with impaired driver
+fol_feelings_alfreq <- fol_all%>%
+                      select(contains('alcohol_feeling'),-alcohol_feeling_neverwitnessed, freq_alcohol_dummy)%>%
+                      mutate(freq_alcohol_dummy =if_else(freq_alcohol_dummy=='Never',0,1))
+
+#create sums by frequency
+fol_feelings_alfreq <- aggregate(fol_feelings_alfreq,
+                                 by = list(fol_feelings_alfreq$freq_alcohol_dummy),
+                                 FUN = sum)
+
+fol_feelings_alfreq <- fol_feelings_alfreq%>%
+                        rename(group=Group.1)%>%
+                        select(-freq_alcohol_dummy,-alcohol_feeling_other)%>%
+                        mutate(group=
+                                 case_when(
+                                   group==0 ~ 'Never',
+                                   group==1 ~ 'At least once in last yr  '))
+
+fol_feelings_alfreq <- melt(fol_feelings_alfreq)
+
+#combine column names and totals and add pct
+fol_feelings_alfreq <- fol_feelings_alfreq%>%
+                      group_by(group)%>%
+                      rename(feeling=variable)%>%
+                      mutate(pct=
+                               case_when(
+                                 group == 'Never' ~ value/961,
+                                 group == 'At least once in last yr  ' ~ value/626),
+                            feeling=
+                               factor(
+                                 case_when(
+                                   grepl('nervous',feeling) ~ 'Nervous',
+                                   grepl('concerned',feeling) ~ 'Concerned',
+                                   grepl('scared',feeling) ~ 'Scared',
+                                   grepl('frustrated',feeling) ~ 'Frustrated',
+                                   grepl('annoyed',feeling) ~ 'Annoyed',
+                                   grepl('conflicted',feeling) ~ 'Conflicted',
+                                   grepl('indifferent',feeling) ~ 'Indifferent',
+                                   grepl('rebellious',feeling) ~ 'Rebellious',
+                                   grepl('excited',feeling) ~ 'Excited',
+                                   grepl('other',feeling) ~ 'Other'),
+                                 levels=c('Concerned','Scared','Nervous','Frustrated','Annoyed',
+                                          'Conflicted','Indifferent','Rebellious','Excited','Other'))
+                             )
+
+```
+
+```{r}
+feelings_chart_alfreq <- ggplot(fol_feelings_alfreq, aes(x=feeling, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 0.70)) + 
+                        theme(axis.text.x = element_text(angle = 20, hjust = 1), legend.position="top", 
+                              legend.title=element_blank(),
+                              axis.title.x=element_blank(),
+                              axis.title.y=element_blank(),
+                              plot.title = element_text(hjust = 0.5, face="bold")) + 
+                        ggtitle("How do you feel when you witness friends/family \n driving while under the influence of drugs/alcohol?") +
+                        scale_fill_manual(values=c('#FF6666',"#23b7fbff"))
+```
+
+### Those who experienced being in a vehicle where the driver was under the influence of drugs/alcohol last year were more significantly more likely to feel concerned, scared, nervous, frustrated and annoyed than those who have never experienced it ###
+
+```{r}
+print(feelings_chart_alfreq)
+ggsave("alcohol feelings.png",width=7, height=5, dpi=300)
+```
+
+```{r}
+#only look at feelings for those who were never in vehicle with impaired driver
+fol_feelings_sleepfreq <- fol_all%>%
+                          select(contains('sleepy_feeling'),-sleepy_feeling_neverwitness, freq_sleepy_dummy)%>%
+                          mutate(freq_sleepy_dummy =if_else(freq_sleepy_dummy=='Never',0,1))
+
+#create sums by frequency
+fol_feelings_sleepfreq <- aggregate(fol_feelings_sleepfreq,
+                                     by = list(fol_feelings_sleepfreq$freq_sleepy_dummy),
+                                     FUN = sum)
+
+fol_feelings_sleepfreq <- fol_feelings_sleepfreq%>%
+                          rename(group=Group.1)%>%
+                          select(-freq_sleepy_dummy,-sleepy_feeling_other)%>%
+                          mutate(group=
+                                   case_when(
+                                     group==0 ~ 'Never',
+                                     group==1 ~ 'At least once in last yr  '))
+
+fol_feelings_sleepfreq <- melt(fol_feelings_sleepfreq)
+
+#combine column names and totals and add pct
+fol_feelings_sleepfreq <- fol_feelings_sleepfreq%>%
+                          group_by(group)%>%
+                          rename(feeling=variable)%>%
+                          mutate(pct=
+                                   case_when(
+                                     group == 'Never' ~ value/843, 
+                                     group == 'At least once in last yr  ' ~ value/744),
+                                feeling=
+                                   factor(
+                                     case_when(
+                                       grepl('nervous',feeling) ~ 'Nervous',
+                                       grepl('concerned',feeling) ~ 'Concerned',
+                                       grepl('scared',feeling) ~ 'Scared',
+                                       grepl('frustrated',feeling) ~ 'Frustrated',
+                                       grepl('annoyed',feeling) ~ 'Annoyed',
+                                       grepl('conflicted',feeling) ~ 'Conflicted',
+                                       grepl('indifferent',feeling) ~ 'Indifferent',
+                                       grepl('rebellious',feeling) ~ 'Rebellious',
+                                       grepl('excited',feeling) ~ 'Excited',
+                                       grepl('other',feeling) ~ 'Other'),
+                                     levels=c('Concerned','Scared','Nervous','Frustrated','Annoyed',
+                                              'Conflicted','Indifferent','Rebellious','Excited','Other'))
+                                 )
+
+```
+
+```{r}
+feelings_chart_sleepfreq <- ggplot(fol_feelings_sleepfreq, aes(x=feeling, y=pct, group = group, fill=group)) + 
+                            geom_bar(stat="identity", position = "dodge", colour="grey") +
+                            geom_text(aes(label=scales::percent(pct)), vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                            scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, 0.70)) + 
+                            theme(axis.text.x = element_text(angle = 20, hjust = 1), legend.position="top", 
+                                  legend.title=element_blank(),
+                                  axis.title.x=element_blank(),
+                                  axis.title.y=element_blank(),
+                                  plot.title = element_text(hjust = 0.5, face="bold")) + 
+                            ggtitle("How do you feel when you witness friends/family \n driving while sleepy?") +
+                            scale_fill_manual(values=c('#FF6666',"#23b7fbff"))
+```
+
+### Those who experienced being in a vehicle where the driver nodded off or fell asleep in the last year were more likely to feel concerned, scared, and nervous than those who have never experienced it ###
+
+```{r}
+print(feelings_chart_sleepfreq)
+ggsave("sleepy feelings.png",width=7, height=5, dpi=300)
 ```
 
 
@@ -471,30 +612,30 @@ print(feelings_chart)
 
 
 ```{r, include = FALSE}
-#Bar charts for perceptions
+#Bar charts for only perceptions
 pivotBars <- function(expid='group', pivot=NULL, title=NULL) {
   if (is.null(pivot)) {
     fol_all %>% 
       group_by_(expid) %>% 
       summarise(
-        `Dangerous to drive under the influence` = round(mean(dangerous_alcohol),2),
+        `Dangerous to drive while \n under the influence` = round(mean(dangerous_alcohol),2),
         `Dangerous to drive while sleepy`= round(mean(dangerous_sleepy),2),
-        `Driving while sleepy should be considered impaired driving` = round(mean(agree_impaired),2),
-        `Comfortable talking about driving while under the influence` = round(mean(agree_convo_alcohol),2),
-        `Comfortable talking about driving while sleepy` = round(mean(agree_convo_sleepy),2)
+        `Driving while sleepy should \n be considered impaired driving` = round(mean(agree_impaired),2)
       ) %>%
       melt(id.var=c(expid)) %>%
       ggplot(.,aes(x=variable, y=value, fill=get(expid))) +
       geom_bar(stat='identity', position='dodge') +
-      geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=3, hjust=0) +
+      geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=3.5, hjust=0) +
       coord_flip() + 
       ggtitle('Perceptions towards impaired driving') +
       theme(legend.position='bottom', 
             legend.title=element_blank(), 
             axis.title.y=element_blank(),
             axis.title.x=element_blank(),
-            plot.title = element_text(hjust = 0.5),
-            axis.text.y = element_text(face="bold", size=9)) +
+            plot.title = element_text(face="bold", hjust = 0.5, size=13),
+            axis.text.y = element_text(face="bold", size=15),
+            legend.text=element_text(size=15),
+            axis.text.x = element_text(hjust = 0.5, size=15)) +
       scale_fill_manual(values=c('#000000',"#23b7fbff"))
   } else {
     fol_all %>% 
@@ -502,31 +643,84 @@ pivotBars <- function(expid='group', pivot=NULL, title=NULL) {
       summarise(
         Danger_alcohol = round(mean(dangerous_alcohol),2),
         Danger_sleepy= round(mean(dangerous_sleepy),2),
-        Sleepy_impaired = round(mean(agree_impaired),2),
-        Convo_alcohol = round(mean(agree_convo_alcohol),2),
-        Convo_sleepy = round(mean(agree_convo_sleepy),2)
+        Sleepy_impaired = round(mean(agree_impaired),2)
       ) %>%
       melt(id.var=c(expid,pivot)) %>%
       ggplot(.,aes(x=get(pivot), y=value, fill=get(expid))) +
       geom_bar(stat='identity', position='dodge') +
-      geom_text(aes(label=round(value, 3)), vjust=-0.25, position = position_dodge(width = 1), size=2) +
+      geom_text(aes(label=round(value, 3)), vjust=-0.25, position = position_dodge(width = 1), size=5) +
       ggtitle(paste0('Pivoted by ',title)) +
       facet_wrap(~variable) + 
       theme(legend.position='none',
             axis.title.x=element_blank(), 
             axis.title.y=element_blank(),
-            plot.title = element_text(hjust = 0.5),
-            axis.text.x = element_text(face="bold", size=5),
-            axis.text.y = element_text(face="bold", size=5),
+            plot.title = element_text(face="bold",hjust = 0.5),
+            axis.text.x = element_text(face="bold", size=10),
+            axis.text.y = element_text(face="bold", size=13),
             strip.text.x = element_text(size = 8)) +
       scale_fill_manual(values=c('#000000',"#23b7fbff"))
   }
 }
+
+ggsave("perceptions.png",width=10, height=6, dpi=300)
 ```
 
 ```{r}
 pivotBars(expid='group') %>% print()
+
 ```
+
+```{r}
+#Bar charts for only conversations
+
+pivotBars_comfort <- function(expid='group', pivot=NULL, title=NULL) {
+  if (is.null(pivot)) {
+    fol_all %>% 
+      group_by_(expid) %>% 
+      summarise(`Comfortable talking about \n driving while under the influence` =round(mean(agree_convo_alcohol),2),
+                `Comfortable talking about \n driving while sleepy` = round(mean(agree_convo_sleepy),2)
+      ) %>%
+      melt(id.var=c(expid)) %>%
+      ggplot(.,aes(x=variable, y=value, fill=get(expid))) +
+      geom_bar(stat='identity', position='dodge') +
+      geom_text(aes(label=round(value, 3)), position = position_dodge(width = 1), size=4, hjust=0) +
+      coord_flip() + 
+      theme(legend.position='bottom', 
+            legend.title=element_blank(), 
+            axis.title.y=element_blank(),
+            axis.title.x=element_text(face="bold", size=25),
+            plot.title = element_text(face="bold", hjust = 0.5, size=13),
+            axis.text.y = element_text(face="bold", size=15)) +
+      scale_fill_manual(values=c('#000000',"#23b7fbff"))
+  } else {
+    fol_all %>% 
+      group_by_(expid, pivot) %>% 
+      summarise(Conversation_on_alcohol = round(mean(agree_convo_alcohol),2),
+                Conversation_on_sleepy = round(mean(agree_convo_sleepy),2)
+      ) %>%
+      melt(id.var=c(expid,pivot)) %>%
+      ggplot(.,aes(x=get(pivot), y=value, fill=get(expid))) +
+      geom_bar(stat='identity', position='dodge') +
+      geom_text(aes(label=round(value, 3)), vjust=-0.25, position = position_dodge(width = 1), size=3) +
+      facet_wrap(~variable) + 
+      theme(legend.position='none',
+            axis.title.x=element_blank(), 
+            axis.title.y=element_blank(),
+            plot.title = element_text(face="bold",hjust = 0.5),
+            axis.text.x = element_text(face="bold", size=5),
+            axis.text.y = element_text(face="bold", size=10),
+            strip.text.x = element_text(size = 8)) +
+      scale_fill_manual(values=c('#000000',"#23b7fbff"))
+  }
+}
+
+ggsave("conversations.png",width=15, height=6, dpi=300)
+```
+
+```{r}
+pivotBars_comfort(expid='group') %>% print()
+```
+
 
 ```{r, include = FALSE}
 #Test significance of perception means
@@ -560,12 +754,12 @@ convo_alcohol <- fol_all%>%
 convo_alcohol_chart <- ggplot(convo_alcohol, aes(x=agree_convo_alcohol, y=pct, group = group, fill=group)) + 
                         geom_bar(stat="identity", position = "dodge", colour="grey") +
                         geom_text(aes(label=scales::percent(pct)), 
-                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=4) + 
                         scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
                                            limits = c(0, 0.7)) + 
-                        theme(axis.text.x = element_text(angle = 0, hjust = 1), 
+                        theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=12), 
                               legend.position="top", legend.title=element_blank(),
-                              plot.title = element_text(hjust = 0.5),
+                              plot.title = element_text(hjust = 0.5, face="bold", size=20),
                               axis.title.x = element_blank(),
                               axis.title.y = element_blank()) + 
                         ggtitle("I feel comfortable having a conversation with my friend \n about driving while under the influence of drugs/alcohol") +
@@ -574,6 +768,8 @@ convo_alcohol_chart <- ggplot(convo_alcohol, aes(x=agree_convo_alcohol, y=pct, g
 
 ```{r}
 print(convo_alcohol_chart)
+ggsave("intervened comfort alcohol.png",width=9, height=6, dpi=300)
+
 ```
 
 ### 80% of participants agreed that they felt comfortable talking to their friends about driving while sleepy/drowsy vs. 72% of the control group (p<0.05) ###
@@ -599,12 +795,12 @@ convo_sleepy <- fol_all%>%
 convo_sleepy_chart <- ggplot(convo_sleepy, aes(x=agree_convo_sleepy, y=pct, group = group, fill=group)) + 
                         geom_bar(stat="identity", position = "dodge", colour="grey") +
                         geom_text(aes(label=scales::percent(pct)), 
-                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=4) + 
                         scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
                                            limits = c(0, 0.7)) + 
-                        theme(axis.text.x = element_text(angle = 0, hjust = 1), 
+                        theme(axis.text.x = element_text(angle = 0, hjust = 0.5, size=12), 
                               legend.position="top", legend.title=element_blank(),
-                              plot.title = element_text(hjust = 0.5),
+                              plot.title = element_text(hjust = 0.5, face="bold", size=20),
                               axis.title.x = element_blank(),
                               axis.title.y = element_blank()) + 
                         ggtitle("I feel comfortable having a conversation with my friend \n about driving while sleepy/drowsy") +
@@ -613,6 +809,7 @@ convo_sleepy_chart <- ggplot(convo_sleepy, aes(x=agree_convo_sleepy, y=pct, grou
 
 ```{r}
 print(convo_sleepy_chart)
+ggsave("intervened sleepy alcohol.png",width=9, height=6, dpi=300)
 ```
 
 ```{r}
@@ -641,12 +838,14 @@ print(convo_sleepy_chart)
 ```{r}
 # Perceptions pivoted by controls
 #chart
-controls <- c('region', 'transportation_cat', 'gender')
-titles <- c('Region', 'Transportation Type', 'Gender')
+controls <- c('region')
+titles <- c('Region')
 for (i in 1:length(controls)) {
-  pivotBars(controls[i], titles[i],expid = 'group') %>% 
+  pivotBars_comfort(controls[i], titles[i],expid = 'group') %>% 
     print()
 }
+
+ggsave("conversations.png",width=10, height=6, dpi=300)
 ```
 
 ```{r, include=FALSE}
@@ -758,6 +957,9 @@ intervened_alcohol_dummy <- fol_all%>%
          intervention_alcohol_dummy=
            factor(intervention_alcohol_dummy,c("Did not intervene", "Intervened")))
 
+intervened_al_hyp <-intervened_alcohol_dummy%>%
+  filter(intervention_alcohol_dummy=='Intervened')
+
 intervened_sleepy_dummy <- fol_all%>%
   group_by(group)%>%
   filter(!is.na(intervention_sleepy_dummy))%>%
@@ -765,6 +967,9 @@ intervened_sleepy_dummy <- fol_all%>%
   mutate(pct=round(n/sum(n),4),
          intervention_dummy_cat=
            factor(intervention_sleepy_dummy,c("Did not intervene", "Intervened")))
+
+intervened_sleepy_hyp <-intervened_sleepy_dummy%>%
+  filter(intervention_sleepy_dummy=='Intervened')
 
 #Bar charts
 intervened_al_chart_dummy <- ggplot(intervened_alcohol_dummy, aes(x=intervention_alcohol_dummy, y=pct, group = group, fill=group)) + 
@@ -782,7 +987,7 @@ intervened_al_chart_dummy <- ggplot(intervened_alcohol_dummy, aes(x=intervention
                         scale_fill_manual(values=c('#000000',"#23b7fbff"))
 
 intervened_sleep_chart_dummy <- ggplot(intervened_sleepy_dummy, aes(x=intervention_sleepy_dummy, y=pct, group = group, fill=group)) + 
-                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_bar(stat="identity", width = 0.5,position = "dodge", colour="grey") +
                         geom_text(aes(label=scales::percent(pct)), 
                                   vjust=-1, position = position_dodge(width=0.9),  size=3) + 
                         labs(x= 'Severity of intervention', y = 'Percentage') + 
@@ -792,18 +997,60 @@ intervened_sleep_chart_dummy <- ggplot(intervened_sleepy_dummy, aes(x=interventi
                               plot.title = element_text(hjust = 0.5),
                               axis.title.x = element_blank(),
                               axis.title.y = element_blank()) + 
-                        ggtitle("If you realize a friend is about to drive while drowsy/sleepy, \n which of the following would you be most likely to do?") +
+                        scale_fill_manual(values=c('#000000',"#23b7fbff"))
+
+intervened_al_chart_hyp <- ggplot(intervened_al_hyp, aes(x=intervention_alcohol_dummy, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", width = 0.75, position = position_dodge(width=1), colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x= 'Severity of intervention', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                                           limits = c(0, 1.05)) + 
+                        theme(legend.position="top", legend.title=element_blank(),
+                              plot.title = element_text(hjust = 0.5),
+                              axis.title.x = element_blank(),
+                              axis.title.y = element_blank(),
+                              axis.text.x = element_text(hjust = 0.5, size=9)) + 
+                        scale_fill_manual(values=c('#000000',"#23b7fbff"))
+
+intervened_sleep_chart_dummy <- ggplot(intervened_sleepy_dummy, aes(x=intervention_sleepy_dummy, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x= 'Severity of intervention', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                                           limits = c(0, 1.05)) + 
+                        theme(legend.position="top", legend.title=element_blank(),
+                              plot.title = element_text(hjust = 0.5),
+                              axis.title.x = element_blank(),
+                              axis.title.y = element_blank(),
+                              legend.text=element_text(size=15)) + 
+                        scale_fill_manual(values=c('#000000',"#23b7fbff"))
+
+intervened_sleepy_chart_hyp <- ggplot(intervened_sleepy_hyp, aes(x=intervention_sleepy_dummy, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", width = 0.75, position = position_dodge(width=1), colour="grey") +
+                        geom_text(aes(label=scales::percent(pct)), 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                        labs(x= 'Severity of intervention', y = 'Percentage') + 
+                        scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                                           limits = c(0, 1.05)) + 
+                        theme(legend.position="top", legend.title=element_blank(),
+                              plot.title = element_text(hjust = 0.5),
+                              axis.title.x = element_blank(),
+                              axis.title.y = element_blank(),
+                              axis.text.x = element_text(hjust = 0.5, size=9)) + 
                         scale_fill_manual(values=c('#000000',"#23b7fbff"))
 ```
 
 
 ```{r}
-print(intervened_al_chart_dummy)
-
+print(intervened_al_chart_hyp)
+ggsave("intervened alcohol.png",width=3, height=3, dpi=300)
 ```
 
 ```{r}
-print(intervened_sleep_chart_dummy)
+print(intervened_sleepy_chart_hyp)
+ggsave("intervened sleep.png",width=3, height=3, dpi=300)
 ```
 
 ###If we look at each intervention type, the majority of young people were likely to take the second most severe intervention of offering to drive or calling a rideshare###
@@ -838,28 +1085,28 @@ intervened_sleepy <- fol_all%>%
 intervened_al_chart <- ggplot(intervened_alcohol, aes(x=intervention_alcohol_cat, y=pct, group = group, fill=group)) + 
                         geom_bar(stat="identity", position = "dodge", colour="grey") +
                         geom_text(aes(label=scales::percent(pct)), 
-                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=3.5) + 
                         labs(x= 'Severity of intervention', y = 'Percentage') + 
                         scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
                                            limits = c(0, 0.7)) + 
-                        theme(axis.text.x = element_text(angle = 20, hjust = 1), 
+                        theme(axis.text.x = element_text(angle = 20, hjust = 1, size=12), 
                               legend.position="top", legend.title=element_blank(),
-                              plot.title = element_text(hjust = 0.5),
+                              plot.title = element_text(hjust = 0.5, face="bold", size=20),
                               axis.title.x = element_blank(),
                               axis.title.y = element_blank()) + 
-                        ggtitle("If you realize a friend is about to drive while under the influence of drugs or alcohol, \n which of the following would you be most likely to do?") +
+                        ggtitle("If you realize a friend is about to drive while under the influence of drugs \n or alcohol, which of the following would you be most likely to do?") +
                         scale_fill_manual(values=c('#000000',"#23b7fbff"))
 
 intervened_sleep_chart <- ggplot(intervened_sleepy, aes(x=intervention_sleepy_cat, y=pct, group = group, fill=group)) + 
                         geom_bar(stat="identity", position = "dodge", colour="grey") +
                         geom_text(aes(label=scales::percent(pct)), 
-                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
+                                  vjust=-1, position = position_dodge(width=0.9),  size=3.5) + 
                         labs(x= 'Severity of intervention', y = 'Percentage') + 
                         scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
                                            limits = c(0, 0.7)) + 
-                        theme(axis.text.x = element_text(angle = 20, hjust = 1), 
+                        theme(axis.text.x = element_text(angle = 20, hjust = 1, size=12), 
                               legend.position="top", legend.title=element_blank(),
-                              plot.title = element_text(hjust = 0.5),
+                              plot.title = element_text(hjust = 0.5, face="bold", size=20),
                               axis.title.x = element_blank(),
                               axis.title.y = element_blank()) + 
                         ggtitle("If you realize a friend is about to drive while drowsy/sleepy, \n which of the following would you be most likely to do?") +
@@ -870,9 +1117,14 @@ intervened_sleep_chart <- ggplot(intervened_sleepy, aes(x=intervention_sleepy_ca
     
 ```{r}
 intervened_al_chart
-intervened_sleep_chart
-
+ggsave("intervened alcohol methods.png",width=9, height=6, dpi=300)
 ```
+
+```{r}
+intervened_sleep_chart
+ggsave("intervened sleepy methods.png",width=9, height=6, dpi=300)
+```
+
 
 ```{r, include=FALSE}
 #Chi-square test to test significance of difference between groups
@@ -923,28 +1175,34 @@ intervened <- fol_all%>%
   filter(!is.na(attempted_intervention) & witnessed_either == 'Yes')%>%
   count(attempted_intervention, sort=TRUE)%>%
   mutate(pct=round(n/sum(n),4))
+
+intervened_chart <- intervened%>%
+  filter(attempted_intervention=='Yes, I tried to convince them to pull over')
 ```
 
 ```{r, include=FALSE}
 #Bar charts
-intervened_chart <- ggplot(intervened, aes(x=attempted_intervention, y=pct, group = group, fill=group)) + 
-                        geom_bar(stat="identity", position = "dodge", colour="grey") +
+intervened_chart <- ggplot(intervened_chart, aes(x=attempted_intervention, y=pct, group = group, fill=group)) + 
+                        geom_bar(stat="identity", width = 0.5, position = position_dodge(width=0.75), colour="grey") +
                         geom_text(aes(label=scales::percent(pct)), 
-                                  vjust=-1, position = position_dodge(width=0.9),  size=3) + 
-                        labs(x= 'Tried to convince them to pull over', y = 'Percentage') + 
+                                  vjust=-1, position = position_dodge(width=0.75),  size=5) + 
+                        labs(x= 'Tried to convince them to pull over') + 
                         scale_y_continuous(labels = scales::percent_format(accuracy = 1), 
                                            limits = c(0, 0.7)) + 
-                        theme(axis.text.x = element_text(angle = 0, hjust = 0.5), 
+                        theme(axis.text.x = element_text(hjust = 0.5, size=15), 
+                              axis.text.y = element_text(size=10),
                               legend.position="top", legend.title=element_blank(),
                               plot.title = element_text(hjust = 0.5),
                               axis.title.x = element_blank(),
-                              axis.title.y = element_blank()) + 
-                        ggtitle("Did you attempt in any way to stop the driver from driving??") +
+                              axis.title.y = element_blank(),
+                              legend.text=element_text(size=15)) + 
                         scale_fill_manual(values=c('#000000',"#23b7fbff"))
 ```
 
 ```{r}
 intervened_chart
+
+ggsave("intervened.png",width=10, height=6, dpi=300)
 ```
 
 
