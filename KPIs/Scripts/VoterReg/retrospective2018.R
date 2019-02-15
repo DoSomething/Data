@@ -110,8 +110,6 @@ q <-
 mamActions <-
   runQuery(q)
 
-# TODO DUPES. Do we have any insight yet into all of the "duplicates"?  EG were most of our duplicates just random ppl registering twice or did we see spikes in conjunction with messaging we sent out about voter disenfranchisement
-
 mamPostReg <-
   set %>%
   select(nsid, created_at, neighborhood, source, age, Type) %>%
@@ -144,3 +142,25 @@ pre2019 <- rtv_extra %>% filter(created_at < '2019-01-01')
 toMatch <- c("dosomething", "@example.com", "@test.com")
 testRegistrations <- length(grep(paste(toMatch,collapse="|"),
                                  pre2019$email, value=TRUE))
+
+
+purgeBroadcastList <-
+  c(
+    'newsletter_1385',
+    'houston',
+    'newsletter_991button',
+    'newsletter_991link',
+    'broadcastID_3brtwet8H6kA4CwCMGeeIO',
+    'broadcastID_7btGiJbYeQc6gqsigSSsiI',
+    'broadcastID_48fjF3NjQkW80yyckAWawG'
+  )
+
+purgeRelatedDupes <-
+  vr %>%
+  filter(source %in% c('sms','email')) %>%
+  mutate(
+    purgeBroadcast =
+      case_when(source_details %in% purgeBroadcastList ~ 'purge_broadcast',
+                TRUE ~ 'non_purge_broadcast')
+  ) %>%
+  count(purgeBroadcast)
