@@ -245,7 +245,7 @@ freq_vape_chart_group<- ggplot(freq_vape_group, aes(x=freq_vape, y=pct, group = 
                               legend.position="top", legend.title=element_blank(),
                               axis.title.x=element_blank(),
                               axis.title.y=element_blank()) + 
-                        ggtitle("How often would you say you are exposed to vaping/e-cigarette smoke??") +
+                        ggtitle("How often would you say you are exposed to vaping/e-cigarette smoke?") +
                         scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
 
 #bar chart
@@ -261,13 +261,18 @@ freq_vape_chart<- ggplot(freq_vape, aes(x=freq_vape, y=pct)) +
                               legend.position="top", legend.title=element_blank(),
                               axis.title.x=element_blank(),
                               axis.title.y=element_blank()) + 
-                        ggtitle("How often would you say you are exposed to vaping/e-cigarette smoke??") 
+                        ggtitle("How often would you say you are exposed to vaping/e-cigarette smoke?") 
 ```
 
 ```{r}
 print(freq_vape_chart_group)
 print(freq_vape_chart)
 ```
+
+```{r}
+ggsave("vape_exposure.png", width = 8, height=5,dpi=300)
+```
+
 
 ### Participants were more likely to agree that E-cigarette use marketing tactics to target young people ###
 
@@ -307,7 +312,7 @@ agree_marketing_chart <- ggplot(agree_marketing, aes(x=agree_marketing, y=pct, g
                               legend.title=element_blank(),
                               axis.title.x=element_blank(),
                               axis.title.y=element_blank(),
-                              plot.title = element_text(hjust = 0.5)) + 
+                              plot.title = element_text(hjust = 0.5, face="bold")) + 
                         ggtitle("E-cigarette companies use marketing tactics to target young people") +
                         scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
 ```
@@ -315,6 +320,11 @@ agree_marketing_chart <- ggplot(agree_marketing, aes(x=agree_marketing, y=pct, g
 ```{r}
 print(agree_marketing_chart)
 ```
+
+```{r}
+ggsave("target.png", width=9, height=5, dpi=300)
+```
+
 
 ```{r, include= FALSE}
 #test significance of differences
@@ -351,7 +361,7 @@ agree_hidedangers_chart <- ggplot(agree_hidedangers, aes(x=agree_hidedangers, y=
                               legend.title=element_blank(),
                               axis.title.x=element_blank(),
                               axis.title.y=element_blank(),
-                              plot.title = element_text(hjust = 0.5)) + 
+                              plot.title = element_text(hjust = 0.5, face = "bold")) + 
                         ggtitle("E-cigarette companies intentionally hide the dangers of vaping so more \n people will buy their products") +
                         scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
 ```
@@ -360,6 +370,9 @@ agree_hidedangers_chart <- ggplot(agree_hidedangers, aes(x=agree_hidedangers, y=
 print(agree_hidedangers_chart)
 ```
 
+```{r}
+ggsave("hide_dangers.png", width=9, height=5, dpi=300)
+```
 
 ```{r, include= FALSE}
 #test significance of differences
@@ -394,7 +407,7 @@ agree_tobacco_chart <- ggplot(agree_tobacco, aes(x=agree_tobacco, y=pct, group =
                               legend.title=element_blank(),
                               axis.title.x=element_blank(),
                               axis.title.y=element_blank(),
-                              plot.title = element_text(hjust = 0.5)) + 
+                              plot.title = element_text(hjust = 0.5, face="bold")) + 
                         ggtitle("Tobacco use in any form (including e-cigarettes like JUUL, vape pens, mods, \n e-hookas, and tank systems) is not safe") +
                         scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
 ```
@@ -404,6 +417,10 @@ agree_tobacco_chart <- ggplot(agree_tobacco, aes(x=agree_tobacco, y=pct, group =
 ```{r}
 print(agree_tobacco_chart)
 ```
+```{r}
+ggsave("tobacco.png", width=9, height=5, dpi=300)
+```
+
 
 ```{r, include= FALSE}
 CrossTable(etv_all$agree_tobacco, etv_all$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
@@ -462,7 +479,8 @@ reasons_chart <- ggplot(reasons_merged, aes(x=reasons, y=pct)) +
                         theme(axis.text.x = element_text(angle = 25, hjust = 1), 
                               legend.position="top", legend.title=element_blank(),
                               axis.title.x=element_blank(),
-                              axis.title.y=element_blank()) + 
+                              axis.title.y=element_blank(),
+                              plot.title = element_text(hjust = 0.5, face="bold")) + 
                         ggtitle("What do you think are the main reasons people your age vape (use e-cigarettes)?")
 ```
 
@@ -470,6 +488,11 @@ reasons_chart <- ggplot(reasons_merged, aes(x=reasons, y=pct)) +
 
 ```{r}
 reasons_chart
+```
+
+ggsave("")
+```{r}
+ggsave("reasons.png", width=8, height=5, dpi=300)
 ```
 
 ### Few were current smokers ###
@@ -511,6 +534,10 @@ smoker_chart <- ggplot(smoker, aes(x=smoker_stop, y=pct, group = group, fill=gro
 print(smoker_chart)
 ```
 
+```{r}
+ggsave("smoker.png", width=9, height=5, dpi=300)
+```
+
 ```{r, include= FALSE}
 CrossTable(etv_all$smoker_stop, etv_all$group, prop.c=TRUE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE, missing.include = FALSE,format= c("SPSS"))
 ```
@@ -543,13 +570,17 @@ intervention_chart <- ggplot(intervention, aes(x=intervention, y=pct, group = gr
                               legend.title=element_blank(),
                               axis.title.x=element_blank(),
                               axis.title.y=element_blank(),
-                              plot.title = element_text(hjust = 0.5)) + 
-                        ggtitle("If you were to witness a friend or family member vaping, \n which of the following would you be most likely to do??)") +
+                              plot.title = element_text(hjust = 0.5, face="bold")) + 
+                        ggtitle("If you were to witness a friend or family member vaping, \n which of the following would you be most likely to do?") +
                         scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
 ```
 
 ```{r}
 print(intervention_chart)
+```
+
+```{r}
+ggsave("witness.png", width=9,height=5,dpi=300)
 ```
 
 ```{r, include= FALSE}
@@ -602,7 +633,7 @@ guide_chart <- ggplot(guide, aes(x=intervention, y=pct, group = read_guide, fill
                               legend.title=element_blank(),
                               axis.title.x=element_blank(),
                               axis.title.y=element_blank(),
-                              plot.title = element_text(hjust = 0.5)) + 
+                              plot.title = element_text(hjust = 0.5, face="bold")) + 
                         ggtitle("If you were to witness a friend or family member vaping, \n which of the following would you be most likely to do??)") +
                         scale_fill_manual(values=c('#fcd116ff',"#23b7fbff"))
 ```
@@ -612,6 +643,10 @@ guide_chart <- ggplot(guide, aes(x=intervention, y=pct, group = read_guide, fill
 ```{r}
 print(guide_chart)
 ```
+```{r}
+ggsave("guide.png", width=9, height=5, dpi=300)
+```
+
 
 ```{r, include=FALSE}
 #check significance
