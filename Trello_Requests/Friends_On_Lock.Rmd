@@ -410,7 +410,7 @@ feelings_names <- melt(feelings_names)%>%
 #combine column names and totals and add pct
 feelings_merged <-cbind(feelings_ct,feelings_names)%>%
     mutate(
-      group=ifelse(grepl('alcohol',feeling),"Drugs/Alcohol   ","Drowsy  ")
+      group=ifelse(grepl('alcohol',feeling),"Drugs/Alcohol   ","Sleepy  ")
       )%>%
   group_by(group)%>%
   mutate(pct=round(value/nrow(fol_feelings),4),
@@ -443,8 +443,7 @@ feelings_chart <- ggplot(feelings_merged, aes(x=feeling, y=pct, group = group, f
                               axis.title.x=element_blank(),
                               axis.title.y=element_blank(),
                               plot.title = element_text(hjust = 0.5, face="bold")) + 
-                        ggtitle("How do you feel when you witness friends/family driving while \n sleepy/drowsy or under the influence of drugs/alcohol?") +
-                        scale_fill_manual(values=c('#FF6666',"#23b7fbff"))
+                        ggtitle("How do you feel when you witness friends/family driving while \n sleepy/drowsy or under the influence of drugs/alcohol?")
 ```
 
 ```{r}
