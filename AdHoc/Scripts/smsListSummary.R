@@ -24,6 +24,16 @@ dat <-
   qres %>% 
   mutate(
     membership_length = age(created_at, units='months')/12,
+    mlengthDays = age(created_at, units='days'),
+    lengthBuckets = 
+      case_when(
+        mlengthDays < 90 ~ '<90',
+        mlengthDays < 365 ~ '90-365 days',
+        mlengthDays < 730 ~ '1-2 yrs',
+        mlengthDays < 1095 ~ '2-3 yrs',
+        mlengthDays < 1460 ~ '3-4 yrs',
+        mlengthDays >= 1460 ~ '4+ yrs'
+      ),
     channel = case_when(!source %in% c('sms','niche') ~ 'web',
                         TRUE ~ source),
     age = age(birthdate)
@@ -37,6 +47,13 @@ sumstats <-
     avgLengthMembership = mean(membership_length),
     avgAge = mean(age, na.rm = T)
   )
+
+dat %>% 
+  filter(channel=='sms') %>% 
+  count(lengthBuckets) %>% 
+  mutate(n/sum(n))
+
+quantile(dat %>% filter(channel=='sms') %$% membership_length, seq(.05,.95,.05))
 
 ggplot(filter(dat, membership_length<8), aes(x=channel, y=membership_length)) +
   geom_violin(aes(fill=channel)) +
