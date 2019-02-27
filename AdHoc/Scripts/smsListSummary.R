@@ -51,9 +51,26 @@ sumstats <-
 dat %>% 
   filter(channel=='sms') %>% 
   count(lengthBuckets) %>% 
-  mutate(n/sum(n))
+  mutate(pct=n/sum(n))
+
+dat %>% 
+  filter(channel=='sms') %>% 
+  count(source_detail) %>% 
+  arrange(-n) 
 
 quantile(dat %>% filter(channel=='sms') %$% membership_length, seq(.05,.95,.05))
+
+dat %>% 
+  filter(channel=='sms' & source_detail=='tell_a_friend') %>% 
+  mutate(
+    monthYear = as.Date(paste0(substr(created_at, 1, 7),'-01'))
+  ) %>% 
+  count(monthYear) %>% 
+  filter(monthYear >= '2011-01-01') %>% 
+  ggplot(.,aes(x=monthYear, y=n)) + 
+  geom_line() +
+  scale_x_date(breaks = pretty_breaks(20)) +
+  ggtitle('SMS Tell a Friend Accounts Created')
 
 ggplot(filter(dat, membership_length<8), aes(x=channel, y=membership_length)) +
   geom_violin(aes(fill=channel)) +
@@ -62,3 +79,14 @@ ggplot(filter(dat, membership_length<8), aes(x=channel, y=membership_length)) +
 
 ggplot(filter(dat, age<40), aes(x=age, fill=channel)) + 
   geom_bar(stat='count', position='dodge')
+
+q <- "SELECT DISTINCT northstar_id 
+FROM member_event_log 
+WHERE timestamp >= '2019-01-01'"
+
+qres <- runQuery(q)
+
+dat %>%
+  filter(northstar_id %in% qres$northstar_id) %>% 
+  count(lengthBuckets) %>% 
+  mutate(pct=n/sum(n))
