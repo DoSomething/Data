@@ -425,12 +425,13 @@ addCampaignActivity <- function(data, northstars) {
   q <-
     glue_sql(
       "SELECT
-      c.northstar_id as \"External_Reference\",
-      count(DISTINCT c.signup_id) AS signups,
-      sum(c.reportback_volume) AS reportbacks
-      FROM campaign_activity c
-      WHERE c.northstar_id IN ({nsids*})
-      GROUP BY c.northstar_id",
+      s.northstar_id as \"External_Reference\",
+      count(DISTINCT s.id) AS signups,
+      sum(r.reportback_volume) AS reportbacks
+      FROM signups s
+      LEFT JOIN reportbacks r ON s.id = r.signup_id
+      WHERE s.northstar_id IN ({nsids*})
+      GROUP BY s.northstar_id",
       .con = pg,
       nsids = northstars
     )
@@ -533,8 +534,8 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
 }
 
 set <- createAnalyticalSet(
-  'Data/spis_members_raw_values.csv',
-  'Data/spis_genpop_raw_values.csv'
+  'Data/2018/spis_members_raw_values.csv',
+  'Data/2018/spis_genpop_raw_values.csv'
   )
 
 # forChar <- set %>% filter(Group=='Gen Pop') %>% select(Response_ID, weight)
