@@ -1,6 +1,5 @@
 source('config/init.R')
 library(glue)
-library(eeptools)
 
 age <- function(dob, age.day = today(), units = "years", floor = TRUE) {
   calc.age = interval(dob, age.day) / duration(num = 1, units = units)
@@ -90,3 +89,29 @@ dat %>%
   filter(northstar_id %in% qres$northstar_id) %>% 
   count(lengthBuckets) %>% 
   mutate(pct=n/sum(n))
+
+q <- 
+  "SELECT 
+    u.northstar_id,
+    u.source,
+    u.source_detail,
+    u.created_at,
+    u.sms_status,
+    count(*) AS n_lifetime_actions
+  FROM users u
+  INNER JOIN member_event_log mel ON mel.northstar_id = u.northstar_id
+  WHERE sms_status IN ('active','less','pending','stop')
+  GROUP BY u.northstar_id, u.source, u.source_detail, u.created_at, u.sms_status"
+
+qres <- runQuery(q)
+
+qres %>% 
+  mutate(
+    gamer = case_when(source_detail=='tell_a_friend' ~ 'sms_gamer',
+                      TRUE ~ 'non-sms_gamer')
+  ) %>% 
+  group_by(gamer) %>% 
+  summarise(
+    n = n(),
+    avgActions = mean(n_lifetime_actions)
+  )
