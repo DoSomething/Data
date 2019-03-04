@@ -306,8 +306,8 @@ addSurveyWeights <- function(dat) {
       mutate(
         gender_cat =
           case_when(
-            sex == 'Male' ~ 'male',
-            sex == 'Female' ~ 'female',
+            sex == 'Man' ~ 'male',
+            sex == 'Woman' ~ 'female',
             TRUE ~ 'other'
           )
       ) %>%
@@ -494,7 +494,7 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
     memberSet %>%
     bind_rows(genpopSet) %>%
     mutate(
-      dob = as.Date(dob, format='%m/%d/%y'),
+      dob = as.Date(dob, format='%m/%d/%Y'),
       age = age(dob)
     ) %>%
     filter(
@@ -534,8 +534,8 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
 }
 
 set <- createAnalyticalSet(
-  'Data/2018/spis_members_raw_values.csv',
-  'Data/2018/spis_genpop_raw_values.csv'
+  'Data/2019 Q1/spis_members_raw_values.csv',
+  'Data/2019 Q1/spis_genpop_raw_values.csv'
   )
 
 # forChar <- set %>% filter(Group=='Gen Pop') %>% select(Response_ID, weight)
