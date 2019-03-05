@@ -188,7 +188,7 @@ print(pie)
 
 #Upload Typeform Brake It Down responses 
 bid_typeform <- read.csv('~/Documents/Brake it Down/Brake It Down Oct 9.csv', na.strings=c("", "NA"))
-bid_typeform$group = "experiment"
+bid_typeform$group = "Experiment "
 
 #Rename columns
 desiredColnames <- c('X.', 
@@ -246,7 +246,7 @@ bid_typeform_nodup <-bid_typeform%>%
 ############### CONTROL SURVEY ######################
 #Upload Control survey data
 bid_control <-read.csv('~/Documents/Brake it Down/Brake it Down Control Oct 9.csv', na.strings=c("", "NA"))
-bid_control$group = "control"
+bid_control$group = "Control "
 
 #Rename columns
 desiredColnames_control <- c('X.', 
@@ -884,5 +884,6 @@ methods_chart <- ggplot(interventions_pct, aes(x=intervention, y=pct)) +
 ```{r}
 methods_chart
 ```
+
 
 
