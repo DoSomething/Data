@@ -74,15 +74,9 @@ untangle_quiz <- untangle_quiz%>%
 
 
 #Only look at those who completed entire survey, select the lastest entry for each northstar, remove duplicate northstar ids
-untangle_quiz_lastentry <- untangle_quiz%>%
+untangle_quiz_completed <- untangle_quiz%>%
   group_by(northstar_id)%>%
-  filter(completed ==1 & ending_ts==max(ending_ts) & !duplicated(northstar_id))%>%
-  select(northstar_id,ending_ts)%>%
-  ungroup(northstar_id)
-
-#Join latest northstar with quiz data responses
-untangle_quiz_merged <- inner_join(untangle_quiz_lastentry,untangle_quiz, by = "northstar_id", "ending_ts")
-
+  filter(completed ==1 & ending_ts==max(ending_ts) & !duplicated(northstar_id))
 
 #Question 1 - 
 count(untangle_completed,q1_distract_hw,sort=TRUE)%>%
