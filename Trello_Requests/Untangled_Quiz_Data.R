@@ -1,6 +1,28 @@
 library(gmodels)
 library(dplyr)
 library(scales)
+library(glue)
+
+
+#Pull nsids for those who signed up for Untangle the Web
+untangle_signups <- ("SELECT signups.northstar_id
+                      FROM public.signups signups
+                      WHERE signups.campaign_id='9003'")
+
+untangle_signups <- runQuery(untangle_signups)
+
+# Pull PN for Untangle Signups
+untangle_signups_pn <- glue_sql("SELECT phoenix.northstar_id,
+                      phoenix.event_name,
+                      CASE WHEN phoenix.event_name = 'converted on quiz' THEN 1 ELSE 0 END as completed
+                      FROM public.phoenix_events phoenix
+                      WHERE phoenix.campaign_id='9003'
+                      AND phoenix.northstar_id in ({nsids*})
+                      GROUP BY 1,2",
+                       .con=pg,
+                       nsids=untangle_signups$northstar_id)
+
+untangle_signups_pn <- runQuery(untangle_signups_pn)
 
 #Pull Quiz data
 untangle_quiz <- ("SELECT 
@@ -22,7 +44,6 @@ untangle_quiz <- ("SELECT
                   WHERE e.records #>> '{data,responses}' IS NOT NULL 
                         AND e.records #>> '{page,path}' ILIKE '%untangle-the-web-quiz%'
                         AND e.records #>> '{page,path}' NOT ILIKE'%mock%'
-                        AND phoenix.event_name IN ('converted on quiz')
                   GROUP BY 1,2,3,4,5,6,7,8,9,10,11")
 
 untangle_quiz<- runQuery(untangle_quiz)
@@ -50,7 +71,7 @@ untangle_quiz <- untangle_quiz%>%
                 response_q3==1 ~ 'When people spread BS info',
                 response_q3==2 ~ 'Injustice towards marginalized groups',
                 response_q3==3 ~ 'Trolls and negativity',
-                response_q3==4 ~ 'When brnads ite each others styles'),
+                response_q3==4 ~ 'When brands bite each others styles'),
     q4_youtube_bff = 
       case_when(response_q4==0~'Emma Chamberlain',
                 response_q4==1~'Superwoman',
@@ -74,9 +95,10 @@ untangle_quiz <- untangle_quiz%>%
 
 
 #Only look at those who completed entire survey, select the lastest entry for each northstar, remove duplicate northstar ids
-untangle_quiz_completed <- untangle_quiz%>%
+untangle_completed <- untangle_quiz%>%
   group_by(northstar_id)%>%
-  filter(completed ==1 & ending_ts==max(ending_ts) & !duplicated(northstar_id))
+  filter(ending_ts==max(ending_ts))%>%
+  ungroup(norhtstar_id)
 
 #Question 1 - 
 count(untangle_completed,q1_distract_hw,sort=TRUE)%>%
