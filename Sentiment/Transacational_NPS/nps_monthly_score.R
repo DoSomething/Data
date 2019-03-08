@@ -65,40 +65,16 @@ nps_month <- nps_trans%>%
       year(submit_date)==year(Sys.Date())
     )
 
-#Calculate NPS scores for current month
+#Calculate NPS scores for current month (filter out any month that has less than 25 responses
 nps_month <- nps_trans%>%
   mutate(date = format(as.Date(submit_date), "%Y-%m"))%>%
   group_by(channel,date)%>%
-  summarise(count=n(),nps=getNPS(nps,10))
+  summarise(count=n(),nps=getNPS(nps,10))%>%
+  filter(!date=='2019-02')
 
 #Add these month's scores to Postgres NPS table
 dbWriteTable(channel, c("survey", "nps_transactional"), nps_month, row.names=F, overwrite=T)
 
-
-
-#Upload Typeform csvs to PostGres
-#
-# forms <- c('SMS','Email','Web')
-#
-# nps <-
-#   read_csv(paste0('~/Downloads/DoSomething ', forms[1],'.csv')) %>%
-#   select(
-#     nps=starts_with('Considering'),
-#     submit_date=starts_with("Submit"),
-#     nsid=user_id
-#   ) %>%
-#   bind_rows(
-#     read_csv(paste0('~/Downloads/DoSomething ', forms[2],'.csv') %>%
-#                select(
-#                  nps=starts_with('Considering'),
-#                  submit_date=starts_with("Submit"),
-#                  nsid=user_id
-#                )
-#              ),
-#     read_csv(paste0('~/Downloads/DoSomething ', forms[3],'.csv')) %>%
-#       select(
-#         user_id = northstar_id,
-#         nps=starts_with('Considering'),
-#         submit_date=starts_with("Submit")
-#       )
-#   )
+#Grant permission
+channel <- pgConnect()
+grant <- "grant select on survey.nps_transactional to jli,shasan, mjain, quasar_prod_admin"
