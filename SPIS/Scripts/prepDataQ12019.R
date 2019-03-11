@@ -527,7 +527,13 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
     combine %>%
     mutate_if(
      is.character, removeSpecialCharacters
-    )
+    ) %>%
+    mutate(
+      which_issues_taken_action_12mo.Sexual_harassment_assault =
+        pmax(which_issues_taken_action_12mo.Sexual_harassment_assault,
+             which_issues_taken_action_12mo.Sexual_harassment_and_assault)
+    ) %>%
+    select(-which_issues_taken_action_12mo.Sexual_harassment_and_assault)
 
   return(combine)
 
