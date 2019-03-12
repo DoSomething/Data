@@ -425,13 +425,17 @@ addCampaignActivity <- function(data, northstars) {
   q <-
     glue_sql(
       "SELECT
-      s.northstar_id as \"External_Reference\",
-      count(DISTINCT s.id) AS signups,
-      sum(r.reportback_volume) AS reportbacks
+        s.northstar_id as \"External_Reference\",
+        CASE
+          WHEN u.source = 'sms' THEN 'sms'
+          ELSE 'web' END AS user_channel,
+        count(DISTINCT s.id) AS signups,
+        sum(r.reportback_volume) AS reportbacks
       FROM signups s
+      LEFT JOIN users u ON s.northstar_id = u.northstar_id
       LEFT JOIN reportbacks r ON s.id = r.signup_id
       WHERE s.northstar_id IN ({nsids*})
-      GROUP BY s.northstar_id",
+      GROUP BY s.northstar_id, u.source",
       .con = pg,
       nsids = northstars
     )
