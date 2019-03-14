@@ -88,7 +88,7 @@ liftColFromRow1 <- function(dat) {
 processSet <- function(path) {
 
   d <-
-    suppressMessages(suppressWarnings(read_csv(path))) %>%
+    suppressMessages(suppressWarnings(read_csv(path, guess_max=3000))) %>%
     select(-starts_with('Custom'))
 
   t <- liftColFromRow1(d)
@@ -493,20 +493,20 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
       Time_Taken_to_Complete_Seconds >=
         quantile(Time_Taken_to_Complete_Seconds, .5) / 3
     )
-
   combine <-
     memberSet %>%
     bind_rows(genpopSet) %>%
     mutate(
       dob = as.Date(dob, format='%m/%d/%Y'),
-      age = age(dob)
+      age = ifelse(is.na(dob), Age, age(dob))
     ) %>%
     filter(
       Duplicate==F &
         (External_Reference!='test_response' | is.na(External_Reference)) &
         age(dob) >= 13 & age(dob) <= 25 &
         Country_Code == 'US'
-    )
+    ) %>%
+    select(-Age)
 
   raceMunge <- collapseRace(combine)
 
@@ -519,7 +519,7 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
       state = Region
     )
 
-  combine <-  refactorPivots(combine)
+  combine <- refactorPivots(combine)
   combine <- recodeCheckAllApply(combine)
   combine <- recodeBinaryToCharacter(combine)
   combine <- addSurveyWeights(combine)
@@ -547,6 +547,3 @@ set <- createAnalyticalSet(
   'Data/2019 Q1/spis_members_raw_values.csv',
   'Data/2019 Q1/spis_genpop_raw_values.csv'
   )
-
-# forChar <- set %>% filter(Group=='Gen Pop') %>% select(Response_ID, weight)
-# saveCSV(forChar, desktop=T)
