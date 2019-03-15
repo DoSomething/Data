@@ -1,5 +1,4 @@
 source('config/init.R')
-source('config/mySQLConfig.R')
 library(broom)
 
 q <- sprintf("
@@ -9,24 +8,24 @@ SELECT
   mel.timestamp,
   mel.northstar_id,
   mel.action_type
-FROM quasar.users u
-INNER JOIN quasar.member_event_log mel ON mel.northstar_id = u.northstar_id
+FROM users u
+INNER JOIN member_event_log mel ON mel.northstar_id = u.northstar_id
 WHERE mel.timestamp >= '2014-01-01'
 AND mel.timestamp <= %s", sQuote(Sys.Date()))
 
-read <- runQuery(q, 'mysql')
-read <-
-  read_csv('Data/mel_2017-10-02_2016-10-01.csv') %>%
-  setNames(c('email','northstar_id','action_type','event_id','ts','northstar_created')) %>%
-  mutate(event_id = seq(1,nrow(.), 1))
+read <- runQuery(q)
+# read <-
+#   read_csv('Data/mel_2017-10-02_2016-10-01.csv') %>%
+#   setNames(c('email','northstar_id','action_type','event_id','ts','northstar_created')) %>%
+#   mutate(event_id = seq(1,nrow(.), 1))
 
 mel <-
   read %>%
   mutate(
-    daysSinceCreated = ts - northstar_created
+    daysSinceCreated = timestamp - created_at
   ) %>%
   filter(
-    ts > '1970-01-01'
+    timestamp > '1970-01-01'
   )
 
 ggplot(filter(mel, daysSinceCreated>=0), aes(x=daysSinceCreated)) + geom_density()
