@@ -88,13 +88,13 @@ getData <- function() {
             tv.post_id,
             tv.referral_code,
             NULL as email
-          FROM rogue.turbovote tv
+          FROM ft_dosomething_rogue.turbovote tv
           UNION
           SELECT DISTINCT
             rtv.post_id,
             rtv.tracking_source AS referral_code,
             rtv.email
-          FROM rogue.rock_the_vote rtv) det
+          FROM ft_dosomething_rogue.rock_the_vote rtv) det
         ) ref
       ON p.id::bigint = ref.post_id::bigint
       LEFT JOIN public.users u ON s.northstar_id = u.northstar_id
