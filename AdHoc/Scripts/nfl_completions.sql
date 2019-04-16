@@ -29,7 +29,7 @@ LEFT JOIN campaign_info i ON
 	s.campaign_id::BIGINT = i.campaign_id
 WHERE
 	s.campaign_id = '9011'
-	AND u.email NOT ILIKE '%dosomething.org%' 
+	--AND u.email NOT ILIKE '%dosomething.org%' 
 	AND p.created_at >= p.created_at - INTERVAL '1 WEEK'
 ;
 
