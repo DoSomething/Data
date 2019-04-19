@@ -33,7 +33,7 @@ FROM
 	WHERE
 		(s.campaign_id = '9011' OR 
 		u.source_detail ILIKE '%utm_medium:nfl_%')
-		--AND u.email NOT ILIKE '%dosomething.org%' 
+		AND u.email NOT ILIKE '%dosomething.org%' 
 		AND s.created_at >= s.created_at - INTERVAL '1 WEEK'
 	) nfl 
 ;
