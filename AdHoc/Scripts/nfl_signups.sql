@@ -2,16 +2,19 @@ SELECT
 	DISTINCT *
 FROM
 	(
-		SELECT s.created_at AS "timestamp",
+	SELECT s.created_at AS "timestamp",
 		CASE
+			WHEN s.details ILIKE '%keyword%' THEN NULL
 			WHEN (s.details::JSONB) ->> 'affiliateOptIn' IS NULL THEN NULL
 			ELSE u.first_name
 		END AS first_name,
 		CASE
+			WHEN s.details ILIKE '%keyword%' THEN NULL
 			WHEN (s.details::JSONB) ->> 'affiliateOptIn' IS NULL THEN NULL
 			ELSE u.last_name
 		END AS last_name,
 		CASE
+			WHEN s.details ILIKE '%keyword%' THEN u.northstar_id || '@dosomething.org'
 			WHEN (s.details::JSONB) ->> 'affiliateOptIn' IS NULL THEN u.northstar_id || '@dosomething.org'
 			ELSE u.email
 		END AS email,
@@ -20,7 +23,10 @@ FROM
 			WHEN u.source_detail ILIKE '%utm_medium%' THEN (STRING_TO_ARRAY((STRING_TO_ARRAY(u.source_detail, ','))[1], ':'))[2]
 			ELSE NULL
 		END AS utm_medium,
-		(s.details::JSONB) ->> 'affiliateOptIn' AS comms_opt_in,
+		CASE 
+			WHEN s.details ILIKE '%keyword%'THEN NULL 
+			ELSE (s.details::JSONB) ->> 'affiliateOptIn' 
+		END AS comms_opt_in,
 		i.campaign_name,
 		'' AS team
 	FROM
@@ -33,6 +39,7 @@ FROM
 		(s.campaign_id = '9011' OR 
 		u.source_detail ILIKE '%utm_medium:nfl_%')
 		AND u.email NOT ILIKE '%dosomething.org%' 
-		AND s.created_at >= s.created_at - INTERVAL '1 WEEK'
+		AND s.created_at >= (current_date - cast(abs(extract(dow from current_date) - 7) + 2 as int))
+		AND s.created_at < (current_date - cast(abs(extract(dow from current_date) - 7) - 5 as int))
 	) nfl 
 ;
