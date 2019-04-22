@@ -40,6 +40,7 @@ FROM
 		(s.campaign_id = '9011' OR 
 		u.source_detail ILIKE '%utm_medium:nfl_%')
 		AND u.email NOT ILIKE '%dosomething.org%' 
-		AND s.created_at >= s.created_at - INTERVAL '1 WEEK'
+		AND s.created_at >= (current_date - cast(abs(extract(dow from current_date) - 7) + 2 as int))
+		AND s.created_at < (current_date - cast(abs(extract(dow from current_date) - 7) - 5 as int))
 	) nfl 
 ;
