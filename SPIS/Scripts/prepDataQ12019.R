@@ -167,6 +167,7 @@ collapseRace <- function(dat) {
         get(raceVars[4])==1 & ticks==1 ~ 'Native American',
         get(raceVars[5])==1 & ticks==1 ~ 'Asian',
         get(raceVars[6])==1 & ticks==1 ~ 'Pacific Islander',
+        get(raceVars[7])==1 & ticks==1 ~ 'Arab',
         TRUE ~ 'Uncertain'
       )
 
@@ -239,14 +240,14 @@ refactorPivots <- function(dat) {
         factor(
           political_party,
           levels =
-            c('Republican', 'Independent', 'Unaffiliated', 'Other', 'Democrat')
+            c('Republican', 'Libertarian', 'Independent', 'Unaffiliated', 'Other', 'Democrat')
         ),
 
       fam_finances =
         factor(
           fam_finances,
           levels =
-            c('Below Average','Average',"Don't Know",'Comfortable','Well off')
+            c('Struggling','Below Average','Average',"I Don't Know",'Comfortable','Very Comfortable')
         )
 
     )
@@ -503,8 +504,9 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
     filter(
       Duplicate==F &
         (External_Reference!='test_response' | is.na(External_Reference)) &
-        age(dob) >= 13 & age(dob) <= 25 &
-        Country_Code == 'US'
+        age >= 13 & age <= 25 &
+        Country_Code == 'US' &
+        IP_Address != '104.139.91.20'
     ) %>%
     select(-Age)
 
