@@ -1,7 +1,6 @@
-library(lubridate)
-library(dplyr)
-library(readr)
-library(RPostgreSQL)
+source('config/init.R')
+source('config/pgConnect.R')
+source('config/customFunctions.R')
 
 channel <- pgConnect()
 
@@ -73,8 +72,8 @@ nps_month <- nps_trans%>%
   filter(!date=='2019-02')
 
 #Add these month's scores to Postgres NPS table
-dbWriteTable(channel, c("survey", "nps_transactional"), nps_month, row.names=F, overwrite=T)
+dbWriteTable(channel, c("survey", "nps_transactional"), nps_month, row.names=F, append=T)
 
 #Grant permission
 channel <- pgConnect()
-grant <- "grant select on survey.nps_transactional to jli,shasan, mjain, quasar_prod_admin"
+grant <- "grant select on survey.nps_transactional to dsanalyst, looker, quasar_prod_admin"
