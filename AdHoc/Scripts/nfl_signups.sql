@@ -5,16 +5,19 @@ FROM
 	SELECT s.created_at AS "timestamp",
 		CASE
 			WHEN s.details ILIKE '%keyword%' THEN NULL
+			WHEN s.details ILIKE '%broadcast%' THEN NULL
 			WHEN (s.details::JSONB) ->> 'affiliateOptIn' IS NULL THEN NULL
 			ELSE u.first_name
 		END AS first_name,
 		CASE
 			WHEN s.details ILIKE '%keyword%' THEN NULL
+			WHEN s.details ILIKE '%broadcast%' THEN NULL
 			WHEN (s.details::JSONB) ->> 'affiliateOptIn' IS NULL THEN NULL
 			ELSE u.last_name
 		END AS last_name,
 		CASE
 			WHEN s.details ILIKE '%keyword%' THEN u.northstar_id || '@dosomething.org'
+			WHEN s.details ILIKE '%broadcast%' THEN u.northstar_id || '@dosomething.org'
 			WHEN (s.details::JSONB) ->> 'affiliateOptIn' IS NULL THEN u.northstar_id || '@dosomething.org'
 			ELSE u.email
 		END AS email,
@@ -24,7 +27,8 @@ FROM
 			ELSE NULL
 		END AS utm_medium,
 		CASE 
-			WHEN s.details ILIKE '%keyword%'THEN NULL 
+			WHEN s.details ILIKE '%keyword%'THEN NULL
+			WHEN s.details ILIKE '%broadcast%' THEN NULL
 			ELSE (s.details::JSONB) ->> 'affiliateOptIn' 
 		END AS comms_opt_in,
 		i.campaign_name,
