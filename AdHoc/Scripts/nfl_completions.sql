@@ -28,7 +28,10 @@ FROM
 			ELSE (s.details::JSONB) ->> 'affiliateOptIn' 
 		END AS comms_opt_in,
 		i.campaign_name,
-		'' AS team
+		CASE
+			WHEN p.action_id = 892 THEN p."text"
+			ELSE ''
+		END AS team
 	FROM
 		signups s
 	INNER JOIN posts p ON p.signup_id = s.id
