@@ -32,13 +32,23 @@ FROM
 			ELSE (s.details::JSONB) ->> 'affiliateOptIn' 
 		END AS comms_opt_in,
 		i.campaign_name,
-		CASE
-			WHEN p.action_id = 892 THEN p."text"
-			ELSE NULL
-		END AS team
+		p_with_team.team AS team
 	FROM
 		signups s
-	INNER JOIN posts p ON p.signup_id = s.id
+	INNER JOIN (
+		SELECT p.*, p1.team
+			FROM posts p
+			LEFT JOIN (
+				SELECT northstar_id, "text" AS team
+				FROM posts
+				WHERE campaign_id = '9011'
+				AND "type" = 'text'
+			) p1
+			ON p.northstar_id = p1.northstar_id
+			WHERE campaign_id = '9011'
+			AND "type" = 'photo'
+		) p_with_team ON
+		p_with_team.signup_id = s.id
 	LEFT JOIN users u ON
 		s.northstar_id = u.northstar_id
 	LEFT JOIN campaign_info i ON
