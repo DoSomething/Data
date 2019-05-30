@@ -32,7 +32,10 @@ FROM
 			ELSE (s.details::JSONB) ->> 'affiliateOptIn' 
 		END AS comms_opt_in,
 		i.campaign_name,
-		'' AS team
+		CASE
+			WHEN p.action_id = 892 THEN p."text"
+			ELSE NULL
+		END AS team
 	FROM
 		signups s
 	INNER JOIN posts p ON p.signup_id = s.id
@@ -41,10 +44,10 @@ FROM
 	LEFT JOIN campaign_info i ON
 		s.campaign_id::BIGINT = i.campaign_id
 	WHERE
-		(s.campaign_id = '9011' OR 
-		u.source_detail ILIKE '%utm_medium:nfl_%')
+		s.campaign_id = '9011'
 		AND u.email NOT ILIKE '%dosomething.org%' 
 		AND s.created_at >= (current_date - cast(abs(extract(dow from current_date) - 7) + 2 as int))
 		AND s.created_at < (current_date - cast(abs(extract(dow from current_date) - 7) - 5 as int))
-	) nfl 
+	) nfl
+    WHERE nfl.comms_opt_in = 'true'
 ;
