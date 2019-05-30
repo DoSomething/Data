@@ -1,6 +1,6 @@
 source('config/init.R')
 
-signups <- runQuery('Scripts/nfl_signups.sql')
+# signups <- runQuery('Scripts/nfl_signups.sql')
 completions <- runQuery('Scripts/nfl_completions.sql')
 
 write_csv(
@@ -8,7 +8,7 @@ write_csv(
   paste0('Data/nfl_data/dosomething_completions_sweeps_',gsub('-','',today()),'.csv')
   )
 
-write_csv(
-  signups,
-  paste0('Data/nfl_data/dosomething_signups_minutes_',gsub('-','',today()), '.csv')
-)
+# write_csv(
+#  signups,
+#   paste0('Data/nfl_data/dosomething_signups_minutes_',gsub('-','',today()), '.csv')
+# )
