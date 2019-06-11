@@ -6,7 +6,15 @@ SELECT
 	avg(nsids.reengage_within_30) AS avg_reengage_within_30,
 	avg(nsids.reengage_within_60) AS avg_reengage_within_60,
 	avg(nsids.reengage_within_90) AS avg_reengage_within_90,
-	avg(nsids.reengage_within_120) AS avg_reengage_within_120
+	avg(nsids.reengage_within_120) AS avg_reengage_within_120,
+	count(DISTINCT nsids.northstar_id),
+	sum(nsids.reengage_within_7) AS sum_reengage_within_7,
+	sum(nsids.reengage_within_14) AS sum_reengage_within_14,
+	sum(nsids.reengage_within_21) AS sum_reengage_within_21,
+	sum(nsids.reengage_within_30) AS sum_reengage_within_30,
+	sum(nsids.reengage_within_60) AS sum_reengage_within_60,
+	sum(nsids.reengage_within_90) AS sum_reengage_within_90,
+	sum(nsids.reengage_within_120) AS sum_reengage_within_120
 FROM 
 	(SELECT
 		m.northstar_id,
@@ -32,10 +40,9 @@ FROM
 			u.created_at >= '2014-01-01') cu ON cu.northstar_id = m.northstar_id
 	WHERE
 		m."timestamp" >= '2014-01-01'
-		AND m.action_type <> 'account_creation'
 	GROUP BY
 		m.northstar_id,
 		cu.created_at,
 		cu.cohort) nsids
 GROUP BY 
-	nsids.cohort
+	nsids.cohort;
