@@ -273,8 +273,9 @@ addSurveyWeights <- function(dat) {
       race = tibble(white = .6, non_white = .4),
       sex = tibble(other = .01, male = .505, female = .485),
       age = tibble(all = 1/13),
-      education = tibble(some_highschool = .11, high_school = .19,
-                         some_college = .11, associate = .11, degree = .36)
+      education = tibble(some_highschool = .116, high_school = .295,
+                         some_college = .166, associate = .098,
+                         bach_degree = .205, grad_degree=.12)
     )
 
   calcWeights <- function(subDat, popEst) {
@@ -342,7 +343,8 @@ addSurveyWeights <- function(dat) {
             parental_education == 'High School Diploma' ~ 'high_school',
             parental_education == 'Some College' ~ 'some_college',
             parental_education == 'Associate Degree' ~ 'associate',
-            parental_education %in% c('Bachelors Degree','Graduate Degree') ~ 'degree',
+            parental_education == 'Bachelors Degree' ~ 'bach_degree',
+            parental_education == 'Graduate Degree' ~ 'grad_degree',
             TRUE ~ 'other'
           )
       ) %>%
@@ -356,7 +358,8 @@ addSurveyWeights <- function(dat) {
             edu_cat == 'high_school' ~ popEst$education$high_school / pct,
             edu_cat == 'some_college' ~ popEst$education$some_college / pct,
             edu_cat == 'associate' ~ popEst$education$associate / pct,
-            edu_cat == 'degree' ~ popEst$education$degree / pct,
+            edu_cat == 'bach_degree' ~ popEst$education$bach_degree / pct,
+            edu_cat == 'grad_degree' ~ popEst$education$grad_degree / pct,
             TRUE ~ 1
           )
       )
@@ -375,9 +378,9 @@ addSurveyWeights <- function(dat) {
 
         genderWeight =
           case_when(
-            sex == 'Male' ~ filter(genderWeights, gender_cat=='male') %$% genderWeight,
-            sex == 'Female' ~ filter(genderWeights, gender_cat=='female') %$% genderWeight,
-            !sex %in% c('Male','Female') ~ filter(genderWeights, gender_cat=='other') %$% genderWeight
+            sex == 'Man' ~ filter(genderWeights, gender_cat=='male') %$% genderWeight,
+            sex == 'Woman' ~ filter(genderWeights, gender_cat=='female') %$% genderWeight,
+            !sex %in% c('Man','Woman') ~ filter(genderWeights, gender_cat=='other') %$% genderWeight
           ),
 
         eduWeight =
@@ -390,13 +393,15 @@ addSurveyWeights <- function(dat) {
               filter(eduWeights, edu_cat=='some_college') %$% eduWeight,
             parental_education == 'Associate Degree' ~
               filter(eduWeights, edu_cat=='associate') %$% eduWeight,
-            parental_education %in% c('Bachelors Degree','Graduate Degree') ~
-              filter(eduWeights, edu_cat=='degree') %$% eduWeight,
+            parental_education == 'Bachelors Degree' ~
+              filter(eduWeights, edu_cat=='bach_degree') %$% eduWeight,
+            parental_education == 'Graduate Degree' ~
+              filter(eduWeights, edu_cat=='grad_degree') %$% eduWeight,
             TRUE ~ 1
           )
       ) %>%
       mutate(
-        weight =  ageWeight * genderWeight  * raceWeight * eduWeight
+        weight =  ageWeight * genderWeight  * raceWeight
       ) %>%
       select(Response_ID, eduWeight, ageWeight, genderWeight, raceWeight, weight)
 
@@ -545,7 +550,11 @@ createAnalyticalSet <- function(memberPath, genpopPath) {
 
 }
 
-set <- createAnalyticalSet(
-  'Data/2019 Q1/spis_members_raw_values.csv',
-  'Data/2019 Q1/spis_genpop_raw_values.csv'
+set <-
+  createAnalyticalSet(
+    'Data/2019 Q1/spis_members_raw_values.csv',
+    'Data/2019 Q1/spis_genpop_raw_values.csv'
   )
+
+dbWriteTable(pg, c("survey","\"2019_spis\""), set, row.names=F)
+runQuery("GRANT SELECT ON survey.\"2019_spis\" TO dsanalyst,looker")
