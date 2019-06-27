@@ -375,9 +375,9 @@ addSurveyWeights <- function(dat) {
 
         genderWeight =
           case_when(
-            sex == 'Male' ~ filter(genderWeights, gender_cat=='male') %$% genderWeight,
-            sex == 'Female' ~ filter(genderWeights, gender_cat=='female') %$% genderWeight,
-            !sex %in% c('Male','Female') ~ filter(genderWeights, gender_cat=='other') %$% genderWeight
+            sex == 'Man' ~ filter(genderWeights, gender_cat=='male') %$% genderWeight,
+            sex == 'Woman' ~ filter(genderWeights, gender_cat=='female') %$% genderWeight,
+            !sex %in% c('Man','Woman') ~ filter(genderWeights, gender_cat=='other') %$% genderWeight
           ),
 
         eduWeight =
