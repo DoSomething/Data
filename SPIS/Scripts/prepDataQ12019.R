@@ -267,7 +267,7 @@ recodeBinaryToCharacter <- function(dat) {
 }
 
 addSurveyWeights <- function(dat) {
-
+  browser()
   popEst <-
     list(
       race = tibble(white = .6, non_white = .4),
