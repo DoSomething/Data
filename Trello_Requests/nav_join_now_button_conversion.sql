@@ -1,3 +1,4 @@
+-- https://www.pivotaltracker.com/story/show/168529643
 -- This version of the query is missing 2 paths to registration:
 -- 1) When a members uses facebook
 -- 2) When the phoenix_clicked_nav_link_join_now event is reported out of order by Snowplow
