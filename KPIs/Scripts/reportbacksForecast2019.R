@@ -1,7 +1,7 @@
 source('config/init.R')
 library(glue)
 library(scales)
-first=F
+first=T
 
 q <-
   "SELECT
@@ -20,14 +20,14 @@ q <-
   FROM
     (SELECT DISTINCT
         c.northstar_id,
-        COALESCE(c.campaign_run_id::VARCHAR, c.campaign_id) as campaign_id,
+        COALESCE(c.campaign_id) as campaign_id,
         c.signup_id,
         c.post_class,
         c.reportback_volume AS rbs,
-        c.post_attribution_date::date AS date
-    FROM public.campaign_activity c
-    WHERE c.post_attribution_date IS NOT NULL
-    AND c.post_attribution_date >= '2014-01-01'
+        c.post_created_at::date AS date
+    FROM public.reportbacks c
+    WHERE c.post_created_at IS NOT NULL
+    AND c.post_created_at >= '2014-01-01'
     AND c.post_status IN
       ('accepted','pending','register-OVR','register-form','confirmed')) dist
   GROUP BY dist.date"

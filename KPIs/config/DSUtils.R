@@ -75,7 +75,7 @@ runQuery <- function(query, ...) {
   }
 
   connection <- pgConnect(...)
-  out <- tbl_df(dbGetQuery(connection, q))
+  out <- as_tibble(dbGetQuery(connection, q))
   dbDisconnect(connection)
 
   return(out)
