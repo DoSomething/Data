@@ -13,11 +13,10 @@ FROM (
 	COALESCE(weights.weight, 1)::float AS weight
     FROM signups s
     LEFT JOIN users u ON s.northstar_id = u.northstar_id
-    LEFT JOIN (
+    JOIN (
 	SELECT
 	    school_id,
 	    CASE
-		WHEN school_id = 'school-not-available' THEN 1
 		WHEN count(*) > 99 THEN 3
 		WHEN count(*) > 50 THEN 2
 		WHEN count(*) > 10 THEN 1.5
@@ -27,10 +26,12 @@ FROM (
 	    FROM signups s
 	    LEFT JOIN users u ON u.northstar_id = s.northstar_id
 	    WHERE campaign_id = '9037'
+	    AND u.school_id IS NOT NULL
 	) f
 	GROUP BY school_id
     ) weights ON u.school_id = weights.school_id
     WHERE campaign_id = '9037'
+    AND s.created_at >= '2019-12-01' and s.created_at < '2019-12-21'
 ) f2
 ORDER BY -log(random())/weight ASC
 LIMIT 30;
