@@ -2,7 +2,7 @@ appnope==0.1.0
 arrow==0.12.1
 backcall==0.1.0
 binaryornot==0.4.4
-bleach==3.0.2
+bleach==3.1.4
 certifi==2018.11.29
 chardet==3.0.4
 Click==7.0
