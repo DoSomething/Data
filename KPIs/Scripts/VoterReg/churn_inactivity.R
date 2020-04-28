@@ -3,6 +3,7 @@ source('config/pgConnect.R')
 library(glue)
 library(janitor)
 library(lubridate)
+library(viridis)
 pg <- pgConnect()
 
 processReferralColumn <- function(dat) {
@@ -84,8 +85,8 @@ q <- "
     rtv.finish_with_state,
     COALESCE(rtv.email, u.email) as email,
     rtv.zip,
-    case when p.status ilike '%register%' then 'Complete' else rtv.status end,
-    rtv.status
+    rtv.started_registration,
+    case when p.status ilike '%register%' then 'Complete' else rtv.status end as status
   FROM public.rock_the_vote rtv
   LEFT JOIN public.posts p ON rtv.post_id=p.id
   LEFT JOIN public.users u ON p.northstar_id=u.northstar_id
@@ -124,10 +125,73 @@ tj <-
         registered==T & created_via_vr==F & unsubscribed==F ~ 'old-registered-subscribed',
         registered==F ~ 'unregistered'
       ),
+    age_bucks =
+      case_when(
+        age < 30 ~ '18-30',
+        age < 45 ~ '31-45',
+        age < 65 ~ '45-65',
+        age >=65 ~ '65+'
+      ),
     relationship_length = if_else(unsubscribed==T, time_to_unsub, days_since_created)
   ) %>%
   left_join(rfparsed) %>%
   # some people unsubbed emails but still registered on site via ads/sms; toss for now
-  filter(relationship_length>0)
+  filter(relationship_length>0 & (age>=17 | is.na(age)))
 
-pivs <- c('age','race','home_state','source','source_details', 'started_registration','created_via_vr')
+pivs <- c('age','race','home_state','source','source_details', 'started_registration','created_via_vr', 'monthyear')
+
+# How many people that DoSomething registered did not opt-in to messaging through the Rock The Vote flow?
+
+# Pivoted out by month/year
+# Pivoted out by source/source_details
+# Pivoted out by age
+
+optin.ova <-
+  tj %>%
+  filter(registered==T & started_registration>'2019-04-10') %>%
+  group_by(registered_my) %>%
+  summarise(
+    registrations = n(),
+    pct_opt_in = sum(opt_in_to_partner_email=='Yes') / n()
+  )
+
+ggplot(optin.ova, aes(x=as.Date(registered_my), y=pct_opt_in)) +
+  geom_line(aes(size=n)) + geom_point(size=.5) + labs(x='Time', y='% Opt In') +
+  ylim(0,1) + scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
+  theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
+
+optin.age <-
+  tj %>%
+  filter(registered==T & started_registration>'2019-04-10') %>%
+  group_by(registered_my, age_bucks) %>%
+  summarise(
+    registrations = n(),
+    pct_opt_in = sum(opt_in_to_partner_email=='Yes') / n()
+  )
+
+ggplot(optin.age, aes(x=as.Date(registered_my), y=pct_opt_in, color=age_bucks)) +
+  geom_line(aes(size=n)) + geom_point(size=.66, alpha=.5) +
+  labs(x='', y='% Opt In', color='Age Groups') + ylim(0,1) +
+  scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
+  theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
+
+optin.source <-
+  tj %>%
+  filter(registered==T & started_registration>'2019-04-10' &
+         source %in% c('ads','web','sms','email','no_attribution','partner','influencer')) %>%
+  group_by(registered_my, source) %>%
+  summarise(
+    registrations=n(),
+    pct_opt_in = sum(opt_in_to_partner_email=='Yes') / n()
+  ) %>%
+  filter(n>20)
+
+ggplot(optin.source, aes(x=as.Date(registered_my), y=pct_opt_in, color=source)) +
+  geom_line(aes(size=n)) +
+  labs(x='', y='% Opt In', color='Age Groups') + ylim(0,1) +
+  scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
+  theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
+
+# TODO: Source Detail
+
+# How many people that DoSomething registered have actively unsubscribed from our messaging?
