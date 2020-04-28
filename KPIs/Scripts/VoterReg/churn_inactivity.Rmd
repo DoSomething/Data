@@ -6,9 +6,6 @@ output: html_notebook
 
 ## How many people that DoSomething registered did not opt-in to messaging through the Rock The Vote flow? {.tabset .tabset-pills}
 ### Overall
-* Comment
-  - comment 1 
-  - comment 2
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 optin.ova <-
   tj %>%
@@ -26,9 +23,6 @@ ggplot(optin.ova, aes(x=as.Date(registered_my), y=pct_opt_in)) +
   theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
 ```
 ### Age Breakdown
-* Comment
-  - Comment 1
-  - comment 2
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 optin.age <-
   tj %>%
@@ -125,7 +119,7 @@ ggplot(unsub.source, aes(x=as.Date(registered_my), y=pct_unsub, color=source)) +
 ## {-}
 
 ## Existing members time to unsubscribe {.tabset .tabset-pills}
-### Table
+### Subscription Type Table
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 ttu <-
   tj %>%
@@ -152,17 +146,59 @@ ttunsub <-
   )
 ttunsub
 ```
-### Plot
+
+### Subscription Type Plot
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 maxUnsub <- max(ttu$time_to_unsub)
 ttu %>%
   ggplot(., aes(x=time_to_unsub)) +
   geom_density(aes(fill=subscribe_type, color=subscribe_type), alpha=.4) +
-  labs(x='Days to Unsubscribe', y='', color='Subscription Type') +
+  labs(x='Days to Unsubscribe', y='', fill='Subscription Type', color='Subscription Type') +
   geom_density(data=ttu, aes(x=time_to_unsub)) +
   scale_x_continuous(breaks=seq(0,maxUnsub, 30)) +
   theme_linedraw()
 ```
+
+### User Source Table
+```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
+ttu <-
+  tj %>%
+  filter(population=='old-registered-unsubscribed')
+
+ttunsub <-
+  ttu %>%
+  group_by(user_source) %>%
+  summarise(
+    registrations=n(),
+    quartile.1 = quantile(time_to_unsub, probs = .25),
+    med_days_to_unsub = median(time_to_unsub),
+    quartile.3 = quantile(time_to_unsub, probs = .75)
+  ) %>%
+  bind_rows(
+    ttu %>%
+      summarise(
+        subscribe_type = 'overall',
+        registrations = n(),
+        quartile.1 = quantile(time_to_unsub, probs = .25),
+        med_days_to_unsub = median(time_to_unsub),
+        quartile.3 = quantile(time_to_unsub, probs = .75)
+      )
+  )
+ttunsub
+```
+
+### User Source Type Plot
+```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
+maxUnsub <- max(ttu$time_to_unsub)
+ttu %>%
+  ggplot(., aes(x=time_to_unsub, y=user_source)) +
+  geom_violin(aes(fill=user_source, color=user_source), alpha=.4) +
+  labs(x='Days to Unsubscribe', y='', fill='User Source', color='User Source') +
+  geom_density(data=ttu, aes(x=time_to_unsub)) +
+  scale_x_continuous(breaks=seq(0,maxUnsub, 30)) +
+  theme_linedraw()
+```
+
 ## {-}
 
 ## New member time to unsubscribe {.tabset .tabset-pills}
@@ -194,16 +230,16 @@ nunsub.o <-
 nunsub.o
 ```
 
-### Plot
+### Registration Source Plot
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 maxNunsub <- max(nunsub$time_to_unsub)
 nunsub %>%
   filter(source %in% c('ads','email','influencer','sms','partner','web')) %>%
   ggplot(., aes(x=time_to_unsub)) +
-  geom_density(aes(fill=source, color=source), alpha=.4, show.legend = F) +
-  labs(x='Days to Unsubscribe', y='', color='Subscription Type') +
+  geom_violin(aes(fill=source, color=source, y=source), alpha=.4, show.legend = F) +
+  labs(x='Days to Unsubscribe', y='') +
   scale_x_continuous(breaks=seq(0,maxUnsub, 60)) +
-  theme_linedraw() + facet_wrap(~source)
+  theme_linedraw() 
 ```
 
 ## {-}

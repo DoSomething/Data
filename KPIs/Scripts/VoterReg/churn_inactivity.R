@@ -84,7 +84,10 @@ q <- "
     u.cio_status_timestamp,
     u.sms_status,
     u.created_at,
-    u.source AS user_source,
+    CASE
+      WHEN u.source='sms' THEN 'sms'
+      WHEN u.source='importer-client' THEN 'chompy'
+      ELSE 'web' END AS user_source,
     CASE
       WHEN u.sms_status IN ('active', 'less', 'pending')
          AND (u.cio_status IS DISTINCT FROM 'customer_subscribed')
@@ -191,34 +194,4 @@ tj <-
 #   - What was the average length of time between their account created and unsubscribing?
 #   - Any sources that had higher unsubscribe rates than other sources?
 
-nunsub <-
-  tj %>%
-  filter(population=='new-registered-unsubscribed')
 
-nunsub.o <-
-  nunsub %>%
-  group_by(source) %>%
-  summarise(
-    registrations=n(),
-    quartile.1 = quantile(time_to_unsub, probs = .25),
-    med_days_to_unsub = median(time_to_unsub),
-    quartile.3 = quantile(time_to_unsub, probs = .75)
-  ) %>%
-  bind_rows(
-    nunsub %>%
-      summarise(
-        source = 'overall',
-        registrations = n(),
-        quartile.1 = quantile(time_to_unsub, probs = .25),
-        med_days_to_unsub = median(time_to_unsub),
-        quartile.3 = quantile(time_to_unsub, probs = .75)
-      )
-  )
-
-maxNunsub <- max(nunsub$time_to_unsub)
-nunsub %>%
-  filter(source %in% c('ads','email','influencer','sms','partner','web')) %>%
-  ggplot(., aes(x=time_to_unsub)) +
-  geom_density(aes(fill=source, color=source), alpha=.4, show.legend = F) +
-  scale_x_continuous(breaks=seq(0,maxUnsub, 60)) +
-  theme_linedraw() + facet_wrap(~source)
