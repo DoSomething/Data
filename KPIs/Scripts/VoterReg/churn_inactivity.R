@@ -1,3 +1,5 @@
+# Init --------------------------------------------------------------------
+
 source('config/init.R')
 source('config/pgConnect.R')
 library(glue)
@@ -5,6 +7,8 @@ library(janitor)
 library(lubridate)
 library(viridis)
 pg <- pgConnect()
+
+# Helpers -----------------------------------------------------------------
 
 processReferralColumn <- function(dat) {
 
@@ -63,6 +67,8 @@ age <- function(dob, age.day = today(), units = "years", floor = TRUE) {
   return(calc.age)
 }
 
+# Data pull ---------------------------------------------------------------
+
 raw <-
   read_csv('registrants-report_through_20200420.csv') %>%
   clean_names() %>%
@@ -100,6 +106,8 @@ q <- "
   LEFT JOIN public.users u ON p.northstar_id=u.northstar_id
 "
 rtv <- runQuery(q)
+
+# Data transforms ---------------------------------------------------------
 
 rfparsed <- processReferralColumn(rtv)
 
@@ -154,6 +162,10 @@ tj <-
   # some people unsubbed emails but still registered on site via ads/sms; toss for now
   filter(relationship_length>0 & (age>=17 | is.na(age)))
 
+# Analysis ----------------------------------------------------------------
+
+# Q1 ----------------------------------------------------------------------
+
 # How many people that DoSomething registered did not opt-in to messaging through the Rock The Vote flow?
 
 optin.ova <-
@@ -206,6 +218,8 @@ ggplot(optin.source, aes(x=as.Date(registered_my), y=pct_opt_in, color=source)) 
 # TODO: Source Detail
 # TODO: .csv dumps
 
+# Q2 ----------------------------------------------------------------------
+
 # How many people that DoSomething registered have actively unsubscribed from our messaging?
 
 unsub.ova <-
@@ -257,3 +271,43 @@ ggplot(unsub.source, aes(x=as.Date(registered_my), y=pct_unsub, color=source)) +
 
 # TODO: Source Detail
 # TODO: .csv dumps
+
+# Q3 ----------------------------------------------------------------------
+
+# For existing members/self-reported…
+# - What was the average length of their membership before unsubscribing?
+# - Were there trends on email only v. sms only v. both?
+ttu <-
+  tj %>%
+  filter(population=='old-registered-unsubscribed')
+
+ttunsub <-
+  ttu%>%
+  group_by(subscribe_type) %>%
+  summarise(
+    registrations=n(),
+    quartile.1 = quantile(time_to_unsub, probs = .25),
+    avg_days_to_unsub = mean(time_to_unsub),
+    quartile.3 = quantile(time_to_unsub, probs = .75),
+    most_common_unsub = mode(time_to_unsub)
+  ) %>%
+  bind_rows(
+    ttu %>%
+      summarise(
+        subscribe_type = 'overall',
+        registrations = n(),
+        quartile.1 = quantile(time_to_unsub, probs = .25),
+        avg_days_to_unsub = mean(time_to_unsub),
+        quartile.3 = quantile(time_to_unsub, probs = .75),
+        most_common_unsub = mode(time_to_unsub)
+      )
+  )
+
+maxUnsub <- max(ttu$time_to_unsub)
+ttu.s <-
+  ttu %>%
+  ggplot(., aes(x=time_to_unsub)) +
+  geom_density(aes(fill=subscribe_type, color=subscribe_type), alpha=.4) +
+  geom_density(data=ttu, aes(x=time_to_unsub)) +
+  scale_x_continuous(breaks=seq(0,maxUnsub, 30)) +
+  theme_linedraw()
