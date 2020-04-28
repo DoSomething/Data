@@ -282,14 +282,13 @@ ttu <-
   filter(population=='old-registered-unsubscribed')
 
 ttunsub <-
-  ttu%>%
+  ttu %>%
   group_by(subscribe_type) %>%
   summarise(
     registrations=n(),
     quartile.1 = quantile(time_to_unsub, probs = .25),
-    avg_days_to_unsub = mean(time_to_unsub),
-    quartile.3 = quantile(time_to_unsub, probs = .75),
-    most_common_unsub = mode(time_to_unsub)
+    med_days_to_unsub = median(time_to_unsub),
+    quartile.3 = quantile(time_to_unsub, probs = .75)
   ) %>%
   bind_rows(
     ttu %>%
@@ -297,17 +296,54 @@ ttunsub <-
         subscribe_type = 'overall',
         registrations = n(),
         quartile.1 = quantile(time_to_unsub, probs = .25),
-        avg_days_to_unsub = mean(time_to_unsub),
-        quartile.3 = quantile(time_to_unsub, probs = .75),
-        most_common_unsub = mode(time_to_unsub)
+        med_days_to_unsub = median(time_to_unsub),
+        quartile.3 = quantile(time_to_unsub, probs = .75)
       )
   )
 
 maxUnsub <- max(ttu$time_to_unsub)
-ttu.s <-
-  ttu %>%
+ttu %>%
   ggplot(., aes(x=time_to_unsub)) +
   geom_density(aes(fill=subscribe_type, color=subscribe_type), alpha=.4) +
   geom_density(data=ttu, aes(x=time_to_unsub)) +
   scale_x_continuous(breaks=seq(0,maxUnsub, 30)) +
   theme_linedraw()
+
+# Q4 ----------------------------------------------------------------------
+
+# For new members…
+# - Did they unsubscribe on the same day that they started receiving DoSomething messaging?
+#   - What was the average length of time between their account created and unsubscribing?
+#   - Any sources that had higher unsubscribe rates than other sources?
+
+nunsub <-
+  tj %>%
+  filter(population=='new-registered-unsubscribed')
+
+nunsub.o <-
+  nunsub %>%
+  group_by(source) %>%
+  summarise(
+    registrations=n(),
+    quartile.1 = quantile(time_to_unsub, probs = .25),
+    med_days_to_unsub = median(time_to_unsub),
+    quartile.3 = quantile(time_to_unsub, probs = .75)
+  ) %>%
+  bind_rows(
+    nunsub %>%
+      summarise(
+        source = 'overall',
+        registrations = n(),
+        quartile.1 = quantile(time_to_unsub, probs = .25),
+        med_days_to_unsub = median(time_to_unsub),
+        quartile.3 = quantile(time_to_unsub, probs = .75)
+      )
+  )
+
+maxNunsub <- max(nunsub$time_to_unsub)
+nunsub %>%
+  filter(source %in% c('ads','email','influencer','sms','partner','web')) %>%
+  ggplot(., aes(x=time_to_unsub)) +
+  geom_density(aes(fill=source, color=source), alpha=.4, show.legend = F) +
+  scale_x_continuous(breaks=seq(0,maxUnsub, 60)) +
+  theme_linedraw() + facet_wrap(~source)
