@@ -119,9 +119,10 @@ tj <-
     population =
       case_when(
         registered==T & created_via_vr==T & unsubscribed==T ~ 'new-registered-unsubscribed',
-        registered==T & created_via_vr!=F & unsubscribed==T ~ 'old-registered-unsubscribed',
+        registered==T & created_via_vr==F & unsubscribed==T ~ 'old-registered-unsubscribed',
         registered==T & created_via_vr==T & unsubscribed==F ~ 'new-registered-subscribed',
-        registered==T & created_via_vr!=F & unsubscribed==F ~ 'old-registered-subscribed'
+        registered==T & created_via_vr==F & unsubscribed==F ~ 'old-registered-subscribed',
+        registered==F ~ 'unregistered'
       ),
     relationship_length = if_else(unsubscribed==T, time_to_unsub, days_since_created)
   ) %>%
