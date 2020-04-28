@@ -80,6 +80,14 @@ q <- "
     u.sms_status,
     u.created_at,
     u.source AS user_source,
+    CASE
+      WHEN u.sms_status IN ('active', 'less', 'pending')
+         AND (u.cio_status IS DISTINCT FROM 'customer_subscribed')
+         THEN 'sms_only'
+      WHEN u.cio_status = 'customer_subscribed'
+         AND (u.sms_status NOT IN ('active', 'less', 'pending') OR u.sms_status IS NULL)
+         THEN 'email_only'
+      ELSE 'both' END AS subscribe_type,
     rtv.post_id,
     rtv.tracking_source,
     rtv.finish_with_state,
@@ -106,17 +114,24 @@ tj <-
   distinct() %>%
   filter(!is.na(cio_status)) %>%
   mutate(
-    created_via_vr = if_else(user_source=='importer-client',T,F,missing = F),
+    created_via_vr =
+      if_else(user_source=='importer-client',T,F,missing = F),
     age =
       as.Date(date_of_birth, '%m/%d/%Y') %>%
       age(., as.Date(started_registration), 'years'),
-    registered = if_else(status=='Complete', T, F),
-    receiving_emails = if_else(cio_status=='customer_subscribed',T,F,F),
-    unsubscribed = if_else(opt_in_to_partner_email=='Yes' & receiving_emails==F |
-                             started_registration<='2019-04-10' & receiving_emails==F, T, F),
-    registered_my = round_date(started_registration, unit='month'),
-    time_to_unsub = as.numeric(difftime(cio_status_timestamp, started_registration, units = 'days')),
-    days_since_created = as.numeric(difftime(max(started_registration), created_at, units='days')),
+    registered =
+      if_else(status=='Complete', T, F),
+    receiving_emails =
+      if_else(cio_status=='customer_subscribed',T,F,F),
+    unsubscribed =
+      if_else((opt_in_to_partner_email=='Yes' & receiving_emails==F) |
+                (started_registration<='2019-04-10' & receiving_emails==F), T, F),
+    registered_my =
+      round_date(started_registration, unit='month'),
+    time_to_unsub =
+      as.numeric(difftime(cio_status_timestamp, started_registration, units = 'days')),
+    days_since_created =
+      as.numeric(difftime(max(started_registration), created_at, units='days')),
     population =
       case_when(
         registered==T & created_via_vr==T & unsubscribed==T ~ 'new-registered-unsubscribed',
@@ -132,19 +147,14 @@ tj <-
         age < 65 ~ '45-65',
         age >=65 ~ '65+'
       ),
-    relationship_length = if_else(unsubscribed==T, time_to_unsub, days_since_created)
+    relationship_length =
+      if_else(unsubscribed==T, time_to_unsub, days_since_created)
   ) %>%
   left_join(rfparsed) %>%
   # some people unsubbed emails but still registered on site via ads/sms; toss for now
   filter(relationship_length>0 & (age>=17 | is.na(age)))
 
-pivs <- c('age','race','home_state','source','source_details', 'started_registration','created_via_vr', 'monthyear')
-
 # How many people that DoSomething registered did not opt-in to messaging through the Rock The Vote flow?
-
-# Pivoted out by month/year
-# Pivoted out by source/source_details
-# Pivoted out by age
 
 optin.ova <-
   tj %>%
@@ -156,7 +166,8 @@ optin.ova <-
   )
 
 ggplot(optin.ova, aes(x=as.Date(registered_my), y=pct_opt_in)) +
-  geom_line(aes(size=n)) + geom_point(size=.5) + labs(x='Time', y='% Opt In') +
+  geom_line() + geom_point(aes(size=registrations), show.legend=F) +
+  labs(x='Time', y='% Opt In') +
   ylim(0,1) + scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
   theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
 
@@ -170,7 +181,7 @@ optin.age <-
   )
 
 ggplot(optin.age, aes(x=as.Date(registered_my), y=pct_opt_in, color=age_bucks)) +
-  geom_line(aes(size=n)) + geom_point(size=.66, alpha=.5) +
+  geom_line() + geom_point(aes(size=registrations), alpha=.8, show.legend=F) +
   labs(x='', y='% Opt In', color='Age Groups') + ylim(0,1) +
   scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
   theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
@@ -184,14 +195,65 @@ optin.source <-
     registrations=n(),
     pct_opt_in = sum(opt_in_to_partner_email=='Yes') / n()
   ) %>%
-  filter(n>20)
+  filter(registrations>20)
 
 ggplot(optin.source, aes(x=as.Date(registered_my), y=pct_opt_in, color=source)) +
-  geom_line(aes(size=n)) +
+  geom_line() + geom_point(aes(size=registrations), alpha=.8, show.legend=F) +
   labs(x='', y='% Opt In', color='Age Groups') + ylim(0,1) +
   scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
   theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
 
 # TODO: Source Detail
+# TODO: .csv dumps
 
 # How many people that DoSomething registered have actively unsubscribed from our messaging?
+
+unsub.ova <-
+  tj %>%
+  filter(registered==T) %>%
+  group_by(registered_my) %>%
+  summarise(
+    registrations = n(),
+    pct_unsub = sum(unsubscribed==T) / n()
+  )
+
+ggplot(unsub.ova, aes(x=as.Date(registered_my), y=pct_unsub)) +
+  geom_line() + geom_point(aes(size=registrations), show.legend=F) +
+  labs(x='Time', y='% Unsubscribed') +
+  ylim(0,1) + scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
+  theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
+
+unsub.age <-
+  tj %>%
+  filter(registered==T & !is.na(date_of_birth)) %>%
+  group_by(registered_my, age_bucks) %>%
+  summarise(
+    registrations = n(),
+    pct_unsub = sum(unsubscribed==T) / n()
+  )
+
+ggplot(unsub.age, aes(x=as.Date(registered_my), y=pct_unsub, color=age_bucks)) +
+  geom_line() + geom_point(aes(size=registrations), alpha=.8, show.legend=F) +
+  labs(x='', y='% Unsubscribe', color='Age Groups') + ylim(0,1) +
+  scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
+  theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
+
+unsub.source <-
+  tj %>%
+  filter(registered==T & source %in%
+           c('ads','web','sms','email','no_attribution','partner','influencer')) %>%
+  group_by(registered_my, source) %>%
+  summarise(
+    registrations=n(),
+    pct_unsub = sum(unsubscribed==T) / n()
+  ) %>%
+  filter(registrations>20)
+
+ggplot(unsub.source, aes(x=as.Date(registered_my), y=pct_unsub, color=source)) +
+  geom_line() + geom_point(aes(size=registrations), alpha=.8, show.legend=F) +
+  labs(x='', y='% Unsubscribe', color='Age Groups') + ylim(0,1) +
+  scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
+  theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
+
+# TODO: Source Detail
+# TODO: .csv dumps
