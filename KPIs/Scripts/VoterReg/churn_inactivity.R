@@ -5,7 +5,6 @@ source('config/pgConnect.R')
 library(glue)
 library(janitor)
 library(lubridate)
-library(viridis)
 pg <- pgConnect()
 
 # Helpers -----------------------------------------------------------------
@@ -168,106 +167,12 @@ tj <-
 
 # How many people that DoSomething registered did not opt-in to messaging through the Rock The Vote flow?
 
-optin.ova <-
-  tj %>%
-  filter(registered==T & started_registration>'2019-04-10') %>%
-  group_by(registered_my) %>%
-  summarise(
-    registrations = n(),
-    pct_opt_in = sum(opt_in_to_partner_email=='Yes') / n()
-  )
-
-ggplot(optin.ova, aes(x=as.Date(registered_my), y=pct_opt_in)) +
-  geom_line() + geom_point(aes(size=registrations), show.legend=F) +
-  labs(x='Time', y='% Opt In') +
-  ylim(0,1) + scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
-  theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
-
-optin.age <-
-  tj %>%
-  filter(registered==T & started_registration>'2019-04-10') %>%
-  group_by(registered_my, age_bucks) %>%
-  summarise(
-    registrations = n(),
-    pct_opt_in = sum(opt_in_to_partner_email=='Yes') / n()
-  )
-
-ggplot(optin.age, aes(x=as.Date(registered_my), y=pct_opt_in, color=age_bucks)) +
-  geom_line() + geom_point(aes(size=registrations), alpha=.8, show.legend=F) +
-  labs(x='', y='% Opt In', color='Age Groups') + ylim(0,1) +
-  scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
-  theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
-
-optin.source <-
-  tj %>%
-  filter(registered==T & started_registration>'2019-04-10' &
-         source %in% c('ads','web','sms','email','no_attribution','partner','influencer')) %>%
-  group_by(registered_my, source) %>%
-  summarise(
-    registrations=n(),
-    pct_opt_in = sum(opt_in_to_partner_email=='Yes') / n()
-  ) %>%
-  filter(registrations>20)
-
-ggplot(optin.source, aes(x=as.Date(registered_my), y=pct_opt_in, color=source)) +
-  geom_line() + geom_point(aes(size=registrations), alpha=.8, show.legend=F) +
-  labs(x='', y='% Opt In', color='Age Groups') + ylim(0,1) +
-  scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
-  theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
-
 # TODO: Source Detail
 # TODO: .csv dumps
 
 # Q2 ----------------------------------------------------------------------
 
 # How many people that DoSomething registered have actively unsubscribed from our messaging?
-
-unsub.ova <-
-  tj %>%
-  filter(registered==T) %>%
-  group_by(registered_my) %>%
-  summarise(
-    registrations = n(),
-    pct_unsub = sum(unsubscribed==T) / n()
-  )
-
-ggplot(unsub.ova, aes(x=as.Date(registered_my), y=pct_unsub)) +
-  geom_line() + geom_point(aes(size=registrations), show.legend=F) +
-  labs(x='Time', y='% Unsubscribed') +
-  ylim(0,1) + scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
-  theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
-
-unsub.age <-
-  tj %>%
-  filter(registered==T & !is.na(date_of_birth)) %>%
-  group_by(registered_my, age_bucks) %>%
-  summarise(
-    registrations = n(),
-    pct_unsub = sum(unsubscribed==T) / n()
-  )
-
-ggplot(unsub.age, aes(x=as.Date(registered_my), y=pct_unsub, color=age_bucks)) +
-  geom_line() + geom_point(aes(size=registrations), alpha=.8, show.legend=F) +
-  labs(x='', y='% Unsubscribe', color='Age Groups') + ylim(0,1) +
-  scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
-  theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
-
-unsub.source <-
-  tj %>%
-  filter(registered==T & source %in%
-           c('ads','web','sms','email','no_attribution','partner','influencer')) %>%
-  group_by(registered_my, source) %>%
-  summarise(
-    registrations=n(),
-    pct_unsub = sum(unsubscribed==T) / n()
-  ) %>%
-  filter(registrations>20)
-
-ggplot(unsub.source, aes(x=as.Date(registered_my), y=pct_unsub, color=source)) +
-  geom_line() + geom_point(aes(size=registrations), alpha=.8, show.legend=F) +
-  labs(x='', y='% Unsubscribe', color='Age Groups') + ylim(0,1) +
-  scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
-  theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
 
 # TODO: Source Detail
 # TODO: .csv dumps
@@ -277,37 +182,7 @@ ggplot(unsub.source, aes(x=as.Date(registered_my), y=pct_unsub, color=source)) +
 # For existing members/self-reported…
 # - What was the average length of their membership before unsubscribing?
 # - Were there trends on email only v. sms only v. both?
-ttu <-
-  tj %>%
-  filter(population=='old-registered-unsubscribed')
 
-ttunsub <-
-  ttu %>%
-  group_by(subscribe_type) %>%
-  summarise(
-    registrations=n(),
-    quartile.1 = quantile(time_to_unsub, probs = .25),
-    med_days_to_unsub = median(time_to_unsub),
-    quartile.3 = quantile(time_to_unsub, probs = .75)
-  ) %>%
-  bind_rows(
-    ttu %>%
-      summarise(
-        subscribe_type = 'overall',
-        registrations = n(),
-        quartile.1 = quantile(time_to_unsub, probs = .25),
-        med_days_to_unsub = median(time_to_unsub),
-        quartile.3 = quantile(time_to_unsub, probs = .75)
-      )
-  )
-
-maxUnsub <- max(ttu$time_to_unsub)
-ttu %>%
-  ggplot(., aes(x=time_to_unsub)) +
-  geom_density(aes(fill=subscribe_type, color=subscribe_type), alpha=.4) +
-  geom_density(data=ttu, aes(x=time_to_unsub)) +
-  scale_x_continuous(breaks=seq(0,maxUnsub, 30)) +
-  theme_linedraw()
 
 # Q4 ----------------------------------------------------------------------
 
