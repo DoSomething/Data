@@ -115,7 +115,7 @@ tj <-
                              started_registration<='2019-04-10' & receiving_emails==F, T, F),
     registered_my = round_date(started_registration, unit='month'),
     time_to_unsub = as.numeric(difftime(cio_status_timestamp, started_registration, units = 'days')),
-    days_since_created = as.numeric(difftime(Sys.Date(), created_at, units='days')),
+    days_since_created = as.numeric(difftime(max(started_registration), created_at, units='days')),
     population =
       case_when(
         registered==T & created_via_vr==T & unsubscribed==T ~ 'new-registered-unsubscribed',
@@ -128,6 +128,6 @@ tj <-
   ) %>%
   left_join(rfparsed) %>%
   # some people unsubbed emails but still registered on site via ads/sms; toss for now
-  filter(relationship_length>=-1)
+  filter(relationship_length>0)
 
 pivs <- c('age','race','home_state','source','source_details', 'started_registration','created_via_vr')
