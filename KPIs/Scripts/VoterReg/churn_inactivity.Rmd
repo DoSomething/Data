@@ -4,8 +4,11 @@ output: html_notebook
 ---
 
 
-## How many people that DoSomething registered did not opt-in to messaging through the Rock The Vote flow? {.tabset .tabset-pills}
+## Opt-in to messaging rates {.tabset .tabset-pills}
 ### Overall
+* Not much of a trend over time
+* Generally hovers around 50% opt-in
+* Note there is no data available prior 04/2019, prior to this date all responses are marked "No"
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 optin.ova <-
   tj %>%
@@ -23,6 +26,8 @@ ggplot(optin.ova, aes(x=as.Date(registered_my), y=pct_opt_in)) +
   theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
 ```
 ### Age Breakdown
+* Not a lot of difference by age, though the youngest age group is more likely to opt-in
+* Volume of registrations is also highest for this group
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 optin.age <-
   tj %>%
@@ -40,6 +45,8 @@ ggplot(optin.age, aes(x=as.Date(registered_my), y=pct_opt_in, color=age_bucks)) 
   theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
 ```
 ### Source Breakdown
+* People coming from ads appear to be more transactional
+* Web and email sources are most likely to opt-in, though this seems pointless as they likely already are
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 optin.source <-
   tj %>%
@@ -60,8 +67,10 @@ ggplot(optin.source, aes(x=as.Date(registered_my), y=pct_opt_in, color=source)) 
 ```
 ## {-}
 
-## How many people that DoSomething registered have actively unsubscribed from our messaging? {.tabset .tabset-pills}
+## Unsubscribe rates {.tabset .tabset-pills}
 ### Overall
+* Unsubscribe rates seem to be trending down
+* What on earth happened March and April 2019? Is this a result of bulk unsubscribes?
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 unsub.ova <-
   tj %>%
@@ -80,6 +89,8 @@ ggplot(unsub.ova, aes(x=as.Date(registered_my), y=pct_unsub)) +
 ```
 
 ### Age Breakdown
+* Older populations are more likely to unsubscribe and younger populations are less likely
+* All populations seems to be trending down over time
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 unsub.age <-
   tj %>%
@@ -98,6 +109,8 @@ ggplot(unsub.age, aes(x=as.Date(registered_my), y=pct_unsub, color=age_bucks)) +
 ```
 
 ### Source Breakdown
+* Only SMS jumps out as being a little different from the others
+* Are most of these folks recieving SMS messaging from us or are they being referred over SMS? If the former, is it at opportunity to offer the opportunity to sign up to our emails to our SMS subscribers?
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 unsub.source <-
   tj %>%
@@ -112,7 +125,7 @@ unsub.source <-
 
 ggplot(unsub.source, aes(x=as.Date(registered_my), y=pct_unsub, color=source)) +
   geom_line() + geom_point(aes(size=registrations), alpha=.8, show.legend=F) +
-  labs(x='', y='% Unsubscribe', color='Age Groups') + ylim(0,1) +
+  labs(x='', y='% Unsubscribe', color='Registration Source') + ylim(0,1) +
   scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
   theme_linedraw() + theme(axis.text.x = element_text(angle=35, hjust=1))
 ```
@@ -120,6 +133,7 @@ ggplot(unsub.source, aes(x=as.Date(registered_my), y=pct_unsub, color=source)) +
 
 ## Existing members time to unsubscribe {.tabset .tabset-pills}
 ### Subscription Type Table
+* SMS unsubscribers tend to take longer to unsubscribe, is this more evidence that SMS can be converted to web/email users?
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 ttu <-
   tj %>%
@@ -160,6 +174,7 @@ ttu %>%
 ```
 
 ### User Source Table
+* Breaking down by user account creation source also seems to suggest SMS users tend to take a little longer to unsubscribe
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 ttu <-
   tj %>%
@@ -231,6 +246,9 @@ nunsub.o
 ```
 
 ### Registration Source Plot
+* Among new acquisitions, ads again seems to be more transactional as they not only unsubscribe more often, they do it sooner
+* People who arrive via influencers and partners seems to take more time before they decide to unsubscribe even though they unsubscribe at similar rates as other source - does this suggest being sent to us by a partner buys us more time to make an impression?
+* Very few of the above unsubscribe on the same day as their registration, compared to other sources where a good proportion are lost on day 0
 ```{r cache=T, warning=F, message=F, echo=FALSE, fig.height=2.5, fig.width=5}
 maxNunsub <- max(nunsub$time_to_unsub)
 nunsub %>%
