@@ -125,7 +125,7 @@ tj <-
   filter(!is.na(cio_status)) %>%
   mutate(
     created_via_vr =
-      if_else(user_source=='importer-client',T,F,missing = F),
+      if_else(user_source=='chompy',T,F,missing = F),
     age =
       as.Date(date_of_birth, '%m/%d/%Y') %>%
       age(., as.Date(started_registration), 'years'),
