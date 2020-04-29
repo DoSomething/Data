@@ -1,5 +1,4 @@
 # Init --------------------------------------------------------------------
-
 source('config/init.R')
 source('config/pgConnect.R')
 library(glue)
@@ -163,35 +162,4 @@ tj <-
   left_join(rfparsed) %>%
   # some people unsubbed emails but still registered on site via ads/sms; toss for now
   filter(relationship_length>0 & (age>=17 | is.na(age)))
-
-# Analysis ----------------------------------------------------------------
-
-# Q1 ----------------------------------------------------------------------
-
-# How many people that DoSomething registered did not opt-in to messaging through the Rock The Vote flow?
-
-# TODO: Source Detail
-# TODO: .csv dumps
-
-# Q2 ----------------------------------------------------------------------
-
-# How many people that DoSomething registered have actively unsubscribed from our messaging?
-
-# TODO: Source Detail
-# TODO: .csv dumps
-
-# Q3 ----------------------------------------------------------------------
-
-# For existing members/self-reported…
-# - What was the average length of their membership before unsubscribing?
-# - Were there trends on email only v. sms only v. both?
-
-
-# Q4 ----------------------------------------------------------------------
-
-# For new members…
-# - Did they unsubscribe on the same day that they started receiving DoSomething messaging?
-#   - What was the average length of time between their account created and unsubscribing?
-#   - Any sources that had higher unsubscribe rates than other sources?
-
 
