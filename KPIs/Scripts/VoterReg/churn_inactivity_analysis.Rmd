@@ -2,7 +2,23 @@
 title: "Voter Reg Churn & Inactivity"
 output: html_notebook
 ---
+### Key findings
+* About **54.4%** of users going throughthe RTV flow are opting into messaging
+* **8.5%** of users who opted in (or were opted in by default) unsubscribe from DS messaging 
+* Unsubscribe rates are trending down over time going from around **12.5%** in early 2018 to **3-4%** in more recent months
+* Among those who unsubscribe, we most typically see them unsubscribing after **2 months**
+* Users acquired via voter registration who unsubscribe typically do so about **1 week** sooner than existing members
+* Younger users unsubscribe at **lower** rates than older users
+* Users acquired via ads unsubscribe at **higher** rates and sooner than other users
+* Users acquired from influencers and partners unsubscribe at similar rates to other users, but seems to wait longer in doing so
 
+### Methodological notes
+* Analysis was founded on data pulled from Quasar's internal RTV and campaign activity tables and data pulled from the RTV portal
+* Data was pulled from the RTV portal on 4/20/2020, so the analysis is clipped at this date
+* The RTV data has all partner email opt-in flags set to "No" prior to April-2019, so this portion of the analysis is clipped at the date we start seeing "Yes" responses to this question
+* A number of data matching issues were encountered when comparing data from the RTV portal to our internal RTV table. Analysis was limited to data we were able to confidently match, which came out to about 82.5% of all registrations and 70.1% of all records. 
+  - All data issues are logged [here](https://docs.google.com/document/d/1DzHEXyfIm1F66QIcwgtXvQ3ITy4wqf31YdGW9uyut1I/edit#)
+* There were also a few records that were tossed because they did not have a customer.io status, which made assessing subscribe/unsubsubcribe activity difficult
 
 ## Opt-in to messaging rates {.tabset .tabset-pills}
 ### Overall
