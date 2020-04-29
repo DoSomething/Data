@@ -4,6 +4,7 @@ source('config/pgConnect.R')
 library(glue)
 library(janitor)
 library(lubridate)
+library(openxlsx)
 pg <- pgConnect()
 
 # Helpers -----------------------------------------------------------------
