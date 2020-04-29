@@ -221,7 +221,7 @@ ttunsub.usertype <-
   bind_rows(
     ttu %>%
       summarise(
-        subscribe_type = 'overall',
+        user_source = 'overall',
         registrations = n(),
         quartile.1 = quantile(time_to_unsub, probs = .25),
         med_days_to_unsub = median(time_to_unsub),
