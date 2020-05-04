@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-library(openxlsx)
-=======
->>>>>>> c828bc45ad609a0cdb893789de67c50742c30b23
+source('Scripts/VoterReg/churn_inactivity_dataprep.R')
 
 # Q1 ----------------------------------------------------------------------
 
