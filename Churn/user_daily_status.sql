@@ -2,6 +2,7 @@
 --Drop table if exists
 --DROP TABLE IF EXISTS analyst_sandbox.pkg_user_daily_status
 
+
 -- Create table
 CREATE TABLE analyst_sandbox.pkg_user_daily_status AS
 

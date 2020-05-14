@@ -178,7 +178,14 @@ SELECT usl.*
 
 
 FROM
-	(SELECT d.cal_date, u.northstar_id, u.created_at, u.external_medium, u.external_source, u.external_campaign, u.dosomething_campaign
+	(SELECT d.cal_date, u.northstar_id, u.created_at,
+ , ((date(d.cal_date) - date(u.created_at))/7)+1 as window_7day
+, ((date(d.cal_date) - date(u.created_at))/30)+1 as window_30day
+, ((date(d.cal_date) - date(u.created_at))/30)+1 as window_90day
+, u.external_medium
+, u.external_source
+, u.external_campaign
+, u.dosomething_campaign
 	FROM d CROSS JOIN u
 	WHERE date(d.cal_date) >= date(u.created_at)) as usl
 
@@ -202,5 +209,5 @@ FROM
 		ON usl.cal_date = date(mst_unsub_log.newsletter_unsub_date)
 		AND usl.northstar_id = mst_unsub_log.northstar_id
 
-WHERE usl.created_at >= '2019-06-01'
+WHERE usl.created_at >= '2018-01-01'
 )
