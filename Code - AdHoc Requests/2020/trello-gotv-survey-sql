@@ -1,0 +1,44 @@
+# Trello request https://trello.com/c/92a9bU5j/1676-gotv-survey-match-northstars-to-campaigns
+
+
+### SQL 1
+with
+signups as
+(select distinct northstar_id from public.signups s2 where campaign_id in ('9054', '9068', '9063', '9043', '9046', '9053'))
+
+, posts as
+(select distinct northstar_id from public.posts where campaign_id in ('9054', '9068', '9063', '9043', '9046', '9053'))
+
+, pledgeposts as
+(select distinct northstar_id from public.posts where vr_source_details ilike '%Pledge%')
+
+
+select gsr.*
+, (case when s.northstar_id is not null then 1 else 0 end) as signup_flag
+, (case when p.northstar_id is not null then 1 else 0 end) as posts_flag
+, (case when pp.northstar_id is not null then 1 else 0 end) as pledge_post_flag
+from survey.gotv_survey_resp gsr
+left join signups s on gsr.id = s.northstar_id
+left join posts p on gsr.id = p.northstar_id
+left join pledgeposts pp on gsr.id = pp.northstar_id
+
+### SQL 2
+with
+signups as
+(select distinct northstar_id, campaign_id from public.signups s2 where campaign_id in ('9054', '9068', '9063', '9043', '9046', '9053'))
+
+, posts as
+(select distinct northstar_id, campaign_id from public.posts where campaign_id in ('9054', '9068', '9063', '9043', '9046', '9053'))
+
+, pledgeposts as
+(select distinct northstar_id from public.posts where vr_source_details ilike '%Pledge%')
+
+
+select gsr.*
+, s.campaign_id as campaign_signup
+, p.campaign_id as campaign__post
+, (case when pp.northstar_id is not null then 1 else 0 end) as pledge_post_flag
+from survey.gotv_survey_resp gsr
+left join signups s on gsr.id = s.northstar_id
+left join posts p on gsr.id = p.northstar_id
+left join pledgeposts pp on gsr.id = pp.northstar_id

@@ -1,0 +1,103 @@
+----------------------------------------------------------------------------------------------------------------------------------------
+-- FOR ANTHONY																														----
+-- GOAL: Provide a more efficient method for Anthony to pull lists of users out of Looker 											----
+-- SOLUTION: A set of queries aligned to Anthony's use cases that can be used to run in SQL Runner									----
+-- We can easily adapt these over time as needed; at the outset we account for 4 common use cases :									----
+-- Scenario 1: Last Activity Targeting -- Pull the list of SMS users whose last MEL action was over 1 year ago						----
+-- Scenario 2: Broadcast Engagement Targeting -- Pull the list of SMS users who responded to a specific broadcast)id				----
+-- Scenario 3: Feedback/ Interest Area Targeting -- Pull the list of SMS users who had a specific keyword in their inbound message	----
+-- Scenario 4: Location Based targeting; Pull the list of users who are in a particular set of Zip Codes							----
+----------------------------------------------------------------------------------------------------------------------------------------
+
+
+----------------------------------------------------------------------------------------------------------------------------------------
+-- Scenario 1
+-- Pull SMS list members whose last MEL (member event log) action was over 1 year ago
+-- please note that MEL actions include the following:
+-- account_creation, bertly_link_click, clicked_link (email), messaged_gambit (sms), post, signup, site_access (web), site_login (web)
+
+		with
+			members_last_mel_action as
+				(select northstar_id, max(timestamp) as last_mel_action_date from public.member_event_log group by 1)
+
+			, members_sms as
+				(select northstar_id, email from users u where sms_status in ('active', 'less', 'pending'))
+
+			, list_pull as
+				(select ms.northstar_id
+					, date_part('day', now() - mel.last_mel_action_date) as num_days_since_last_action
+					from members_sms ms
+						left join members_last_mel_action mel using (northstar_id)
+					where date_part('day', now() - mel.last_mel_action_date) > 365)
+
+			select * from list_pull
+
+----------------------------------------------------------------------------------------------------------------------------------------
+-- Scenario 2
+-- Pull the list of SMS users who responded to a specific broadcast)id
+-- note that we also add a filter to responses to exclude subscriptionStatusStop
+-- and we ensure that folks are also still subscribed to SMS
+----------------------------------------------------------------------------------------------------------------------------------------
+
+		with
+			distinct_members_responded as
+				(select user_id as northstar_id
+					from gambit_messages_inbound gmi
+					where broadcast_id = '3QylEtCgNwErQORTUQWAcI'     -- REPLACE WITH BROADCAST ID
+					and macro <> 'subscriptionStatusStop'
+          and created_at between '2017-01-01' and now()     -- REPLACE WITH DATES OR COMMENT OUT LINE W --
+					group by 1)
+
+			, members_sms as
+				(select northstar_id, email from users u where sms_status in ('active', 'less', 'pending'))
+
+			, list_pull as
+				(select ms.northstar_id
+					from members_sms ms
+						inner join distinct_members_responded mrep using (northstar_id))
+
+		select * from list_pull
+
+----------------------------------------------------------------------------------------------------------------------------------------
+-- Scenario 3
+-- Pull the list of SMS users who have a specific term in their inbound message (scanning text input for terms)
+-- note that we also add a filter to responses to exclude subscriptionStatusStop
+-- and we ensure that folks are also still subscribed to SMS
+----------------------------------------------------------------------------------------------------------------------------------------
+
+		with
+			distinct_members_responded as
+				(select user_id as northstar_id
+					from gambit_messages_inbound gmi
+					where text ilike '%Tej%'     --- REPLACE WITH TEXT YOU WANT TO SEARCH; Keep the %'s
+					and macro <> 'subscriptionStatusStop'
+					and created_at between '2017-01-01' and now()    -- REPLACE WITH DATES OR COMMENT OUT LINE W --
+					group by 1)
+
+			, members_sms as
+				(select northstar_id, email from users u where sms_status in ('active', 'less', 'pending'))
+
+			, list_pull as
+				(select ms.northstar_id
+					from members_sms ms
+						inner join distinct_members_responded mrep using (northstar_id))
+
+		select * from list_pull
+
+----------------------------------------------------------------------------------------------------------------------------------------
+-- Scenario 4
+-- Pull the list of SMS users by zip;
+-- this one is more straightforward as the data all lives in the same table
+----------------------------------------------------------------------------------------------------------------------------------------
+
+		with
+			 list_pull as
+				(select northstar_id, email from users u
+				where sms_status in ('active', 'less', 'pending')
+					and zipcode in ('11208', '90210')  				-- REPLACE WITH CONCATENATED LIST OF ZIPS
+					)
+
+
+		select northstar_id from list_pull
+
+----------------------------------------------------------------------------------------------------------------------------------------

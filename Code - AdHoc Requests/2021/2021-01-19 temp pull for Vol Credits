@@ -1,0 +1,22 @@
+with campaigns as
+(select campaign_id::varchar, campaign_name
+from public.campaign_info where campaign_id::varchar in ('9097', '9113', '9088', '9085', '9081'))
+
+, posts as
+(select *,
+case WHEN pd.details <> ''
+THEN (pd.details::json ->> 'hours')::FLOAT
+ELSE NULL
+END AS volunteer_hours
+from ft_dosomething_rogue.posts pd
+where status in ('pending', 'accepted'))
+select
+--date_trunc('day', p.created_at)
+c.campaign_name
+, c.campaign_id
+, sum(p.volunteer_hours)
+from posts p
+inner join campaigns c on p.campaign_id = c.campaign_id
+where created_at between '2021-01-08' and '2021-01-15'
+group by 1,2
+order by 1 asc
