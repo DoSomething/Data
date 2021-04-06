@@ -15,6 +15,7 @@ unsub_members as
 
 
 , trans_emails as
+-- identified transactional messages
 	(select customer_id as northstar_id
 		, cio_campaign_type
 		, cio_message_name
@@ -26,12 +27,14 @@ unsub_members as
 			and (date_part('day', now() - timestamp)) <= 182)
 
 , trans_emails_ext as
+-- extends what was created in above CTE with unsub date
 	(select t.*
 		, u.email_unsub_date
 		from trans_emails t
 			left join unsub_members u using (northstar_id))
 
 , unsub_trans_summary as
+-- summary table
 	(select
 	northstar_id
 	, count(event_id)

@@ -1,10 +1,14 @@
 #Trello Request https://trello.com/c/BlWpOccA/1656-quick-raf-assessment
 
+-- This was just exploratory to get a sense of the data.
 select action_type, channel, type from public.member_event_log mel where timestamp >= '2019-09-01'
 group by 1,2,3 limit 100
 
 
 _________________
+
+-- The request was to look at retention outcomes. It didn't make sense to tell the story of varios outcomes
+--without comparing against other groups so that is why I added on classification of other members
 
 
 select case when (users.source like '%phoenix%' and users.source_detail LIKE '%referrer^_user^_id%' ESCAPE '^') then 'friend-referral'
@@ -47,10 +51,9 @@ group by 1
 order by 2 desc
 
 
-select * from user_activity where created_at > '2019-09-24' and created_at <= '2019-10-24'
+----------- just figuring out the various campaigns people come in on for grouping.
+-----------  This was just exploratory before setting group segments.
 
-
------------ figuring out the various campaigns people come in on
 select
 utm_campaign, utm_medium, utm_source, count(*)
 from users where created_at >= '2019-09-24'  and created_at >= '2019-10-24'
@@ -61,5 +64,3 @@ from users where created_at >= '2019-09-24'  and created_at >= '2019-10-24'
 and utm_campaign is null
 group by 1,2
 order by 3 desc
-
-select distinct

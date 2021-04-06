@@ -1,4 +1,6 @@
 # Trello request https://trello.com/c/r9f7FK3E/1650-proportion-of-nmas-from-signups-for-new-state-of-mind-are-not-as-high-as-we-expected-why
+-- The set of queries here were to investigate the questions in the linked trello
+
 
 ----FASTWEB -------
 

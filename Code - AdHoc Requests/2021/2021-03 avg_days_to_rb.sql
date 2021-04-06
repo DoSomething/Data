@@ -1,8 +1,10 @@
 -- We will get this in the data model but here is the context on why pulling this ad hoc
 -- https://dosomething.slack.com/archives/C03T8SDJG/p1615834053002900
+-- mask is just a particular campaign that this is for but this query can be used to derive
+-- average data to rb for any campaign by swapping out the campaign id
+
 
 with mask_signups as
-
 	(select northstar_id, id as signup_id, created_at as signup_date
 	from public.signups where campaign_id = '9097')
 

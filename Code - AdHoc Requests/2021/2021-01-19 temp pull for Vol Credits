@@ -1,5 +1,5 @@
-# temporary pull for volunteer credits before we moved this into data model
-
+-- temporary pull for volunteer credits before we moved this into data model
+-- This was run before we had this in data model and just shows how this data comes in via raw ingest
 
 with campaigns as
 (select campaign_id::varchar, campaign_name

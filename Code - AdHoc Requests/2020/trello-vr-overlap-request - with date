@@ -1,4 +1,6 @@
 ## Trello https://trello.com/c/MSH8Tudn/1685-overlap-between-voter-registration-campaign
+-- These are saved queries specific to Voter Registration to look at the overlap between state specific and national campaigns
+-- Pledge and Quiz were 2 different attribution parameters that were being used based on the entry point for VR
 
 
 ## Run this in SQL Runner for Pledge
