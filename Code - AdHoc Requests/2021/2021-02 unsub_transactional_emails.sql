@@ -1,6 +1,6 @@
 -- Ad Hoc Request from Diego
 -- How many users have received transactional emails after unsubscribing in the last 6 months
-
+-- https://trello.com/c/uVXqTguF/1740-ad-hoc-data-support-unsub-members-receiving-transactional-emails-after-unsub
 
 with
 unsub_members as

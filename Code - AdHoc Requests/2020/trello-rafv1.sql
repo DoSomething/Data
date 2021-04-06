@@ -1,3 +1,5 @@
+#Trello Request https://trello.com/c/BlWpOccA/1656-quick-raf-assessment
+
 select action_type, channel, type from public.member_event_log mel where timestamp >= '2019-09-01'
 group by 1,2,3 limit 100
 

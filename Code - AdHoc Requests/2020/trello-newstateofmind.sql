@@ -1,14 +1,16 @@
+# Trello request https://trello.com/c/r9f7FK3E/1650-proportion-of-nmas-from-signups-for-new-state-of-mind-are-not-as-high-as-we-expected-why
+
 ----FASTWEB -------
 
 --> # of distinct visits from fastweb
 
-select TO_CHAR(DATE_TRUNC('month', landing_datetime), 'YYYY-MM') as account_month, count(distinct device_id) from phoenix_sessions_combined  
+select TO_CHAR(DATE_TRUNC('month', landing_datetime), 'YYYY-MM') as account_month, count(distinct device_id) from phoenix_sessions_combined
 where session_utm_campaign like '%fastweb%'
 and landing_datetime >= '2019-06-01'
 group by 1
 
 --> # of total sessions fastweb
-select TO_CHAR(DATE_TRUNC('month', landing_datetime), 'YYYY-MM') as account_month, count(*) from phoenix_sessions_combined  
+select TO_CHAR(DATE_TRUNC('month', landing_datetime), 'YYYY-MM') as account_month, count(*) from phoenix_sessions_combined
 where session_utm_campaign like '%fastweb%'
 group by 1
 
@@ -54,8 +56,8 @@ ORDER BY 1
 SELECT
 	TO_CHAR(DATE_TRUNC('month', users.created_at ), 'YYYY-MM') AS "users.created_at_month",
 	COUNT(DISTINCT users.northstar_id ) AS "users.count_distinct_northstar_id"
-FROM public.users 
-WHERE (users.utm_campaign LIKE '%fastweb%') 
+FROM public.users
+WHERE (users.utm_campaign LIKE '%fastweb%')
 GROUP BY 1
 ORDER BY 1 asc
 
@@ -63,14 +65,14 @@ ORDER BY 1 asc
 
 --> # of distinct visits from fastweb new state of mind
 
-select TO_CHAR(DATE_TRUNC('month', landing_datetime), 'YYYY-MM') as account_month, count(distinct device_id) from phoenix_sessions_combined  
+select TO_CHAR(DATE_TRUNC('month', landing_datetime), 'YYYY-MM') as account_month, count(distinct device_id) from phoenix_sessions_combined
 where session_utm_campaign like '%fastweb%'
 and landing_datetime >= '2019-06-01'
 and landing_page like '%new-state-of-mind'
 group by 1
 
 --> # of total sessions fastweb new state of mind
-select TO_CHAR(DATE_TRUNC('month', landing_datetime), 'YYYY-MM') as account_month, count(*) from phoenix_sessions_combined  
+select TO_CHAR(DATE_TRUNC('month', landing_datetime), 'YYYY-MM') as account_month, count(*) from phoenix_sessions_combined
 where session_utm_campaign like '%fastweb%'
 and landing_page like '%new-state-of-mind'
 group by 1
@@ -127,7 +129,7 @@ from
 		,signups.northstar_id as users
 		,COUNT(DISTINCT (CASE WHEN signups.source_bucket = 'web' AND signups.ignore is null THEN signups.id ELSE NULL END)) AS "count_web_signups"
 	FROM signups
-	WHERE (signups.utm_campaign LIKE '%fastweb%') AND ((((signups.created_at ) >= (TIMESTAMP '2019-06-01') 
+	WHERE (signups.utm_campaign LIKE '%fastweb%') AND ((((signups.created_at ) >= (TIMESTAMP '2019-06-01')
 	AND (signups.created_at ) < (TIMESTAMP '2020-04-21'))))
 	GROUP BY 1,2
 	ORDER BY 1) as daily_user_signups
@@ -144,16 +146,9 @@ TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') as account_month
 ,COUNT(DISTINCT northstar_id) as new_members_acquired
 FROM public.users
 WHERE created_at >= '2020-01-01'
-and (users.utm_campaign LIKE '%fastweb%') 
+and (users.utm_campaign LIKE '%fastweb%')
 GROUP BY 1,2) nma
-left join 
+left join
 (select * from public.contentful_metadata where internal_title like 'New State of Mind%')cd on
 nma.contentful_id = cd.contentful_id
 where cd.internal_title is not null
-
-
-
-
-
-
-

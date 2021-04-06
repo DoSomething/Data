@@ -2,12 +2,12 @@ SELECT
 	count(distinct a.northstar_id),
 	a.total_signups
 FROM
-	(SELECT 
+	(SELECT
 		ca.northstar_id,
 		count(distinct ca.signup_id) AS 'total_signups'
-	FROM 
+	FROM
 		campaign_activity ca
-	GROUP BY ca.northstar_id) 
+	GROUP BY ca.northstar_id)
 	AS a
 GROUP BY a.total_signups
 ;
@@ -20,11 +20,11 @@ SELECT
 	u.source
 FROM
   	quasar.users u
-LEFT JOIN 
+LEFT JOIN
 	quasar.campaign_activity ca
-ON 
+ON
 	u.northstar_id = ca.northstar_id
-WHERE 
+WHERE
 	(u.customer_io_subscription_status = 'subscribed' OR u.sms_status = 'active')
-GROUP BY 
+GROUP BY
 	u.northstar_id

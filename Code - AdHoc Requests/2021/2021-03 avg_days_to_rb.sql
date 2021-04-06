@@ -1,4 +1,4 @@
-
+-- We will get this in the data model but here is the context on why pulling this ad hoc
 -- https://dosomething.slack.com/archives/C03T8SDJG/p1615834053002900
 
 with mask_signups as

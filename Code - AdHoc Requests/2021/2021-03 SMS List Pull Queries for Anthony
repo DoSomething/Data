@@ -1,4 +1,5 @@
 ----------------------------------------------------------------------------------------------------------------------------------------
+-- Trello : https://trello.com/c/A6bQIn0r/1723-data-support-solve-for-use-cases-for-building-cio-segments
 -- FOR ANTHONY																														----
 -- GOAL: Provide a more efficient method for Anthony to pull lists of users out of Looker 											----
 -- SOLUTION: A set of queries aligned to Anthony's use cases that can be used to run in SQL Runner									----

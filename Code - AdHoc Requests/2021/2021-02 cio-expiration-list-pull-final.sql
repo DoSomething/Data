@@ -1,3 +1,5 @@
+--- Trello Request https://trello.com/c/8P4yy1Ys/1734-csvs-w-profiles-to-remove-from-customerio
+
 -- CIO List Pull
 ---- CTE steps for Full List
 -- 		Pull all members w northstar_id, account creation date, email address(DONE)

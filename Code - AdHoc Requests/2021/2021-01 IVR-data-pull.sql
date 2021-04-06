@@ -2,6 +2,7 @@
 -- This was the SQL used for data that we sent to the Independent Voter Research project for our 2020 VR Efforts
 -- Participation in the study will mean we get market information back and see how we stacked up
 -- and have an understanding of other successful tactics from other organizations
+-- Note that there is no trello for this but context can be found in All Staff > Voter Registration > 2020 Voter Registration > End of Year Learnings > IVR Report
 
 -------------
 -- Done: Ingest up to date file (2018-11-07- 2020-11-03) https://register.rockthevote.com/partner/reports

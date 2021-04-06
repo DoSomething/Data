@@ -1,3 +1,6 @@
+# temporary pull for volunteer credits before we moved this into data model
+
+
 with campaigns as
 (select campaign_id::varchar, campaign_name
 from public.campaign_info where campaign_id::varchar in ('9097', '9113', '9088', '9085', '9081'))
