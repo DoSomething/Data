@@ -1,0 +1,35 @@
+## Trello https://trello.com/c/MSH8Tudn/1685-overlap-between-voter-registration-campaign
+-- These are saved queries specific to Voter Registration to look at the overlap between state specific and national campaigns
+-- Pledge and Quiz were 2 different attribution parameters that were being used based on the entry point for VR
+
+## Run this in SQL Runner for Pledge
+
+with nat_pledge as
+(select northstar_id, vr_source_details from posts where vr_source_details ilike '%PledgetoVote' group by 1,2)
+
+, state_pledge as
+(select northstar_id, vr_source_details from posts where vr_source_details ilike '%PledgetoVote_%' group by 1,2)
+
+select n.northstar_id
+,(case when n.vr_source_details is not null then 1 else 0 end) as nat_flag
+,s.northstar_id
+,(case when s.vr_source_details is not null then 1 else 0 end) as state_flag
+,(case when s.vr_source_details is not null and n.vr_source_details is not null then 1 else 0 end) as overlap
+from nat_pledge n full outer join state_pledge s on n.northstar_id = s.northstar_id
+
+
+
+## Run this in SQL Runner for Quiz
+
+with nat_quiz as(select northstar_id from signups s2 where campaign_id = '9068')
+
+, state_quiz as (select northstar_id from signups s2 where (campaign_id = '9095' or campaign_id = '9096') group by 1)
+
+select n.northstar_id
+,(case when n.northstar_id is not null then 1 else 0 end) as nat_flag
+,s.northstar_id
+,(case when s.northstar_id is not null then 1 else 0 end) as state_flag
+,(case when s.northstar_id is not null and n.northstar_id is not null then 1 else 0 end) as overlap
+
+from nat_quiz n
+full outer join state_quiz s on n.northstar_id = s.northstar_id
