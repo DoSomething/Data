@@ -67,14 +67,26 @@ broadcast_users as
 		using (broadcast_id)
 	)
 	
+-- remove broadcast_id, find most recent drip message per user per campaign
+, last_drip as 
+	(select 
+		campaign_id
+	,	northstar_id
+	,	max(drip_created_at) as last_drip_created_at
+	from 
+		broadcast_users 
+	group by 
+		1, 2
+	)
+	
 -- find users first post per campaign
 , first_post as 
 	(select 
-		bu.campaign_id,
-		bu.northstar_id,
+		ld.campaign_id,
+		ld.northstar_id,
 		min(date(p.created_at)) as post_created_at
 	from 
-		broadcast_users bu
+		last_drip ld
 		left join posts p
 		using (campaign_id, northstar_id)
 	group by 
@@ -84,10 +96,10 @@ broadcast_users as
 -- join all users who received drip and also submitted a post
 , user_posts as 
 	(select 
-		bu.*,
+		ld.*,
 		fp.post_created_at
 	from 
-		broadcast_users bu
+		last_drip ld
 		left join first_post fp
 		using (campaign_id, northstar_id)
 	)
@@ -108,19 +120,19 @@ broadcast_users as
 	(select
 		cd.*,
 		case 
-			when post_created_at-drip_created_at = 0 
+			when post_created_at-last_drip_created_at = 0 
 			then 1 else 0
 		end as same_day,
 		case 
-			when post_created_at-drip_created_at = 1 
+			when post_created_at-last_drip_created_at = 1 
 			then 1 else 0
 		end as second_day,
 		case 
-			when post_created_at-drip_created_at = 2 
+			when post_created_at-last_drip_created_at = 2 
 			then 1 else 0
 		end as third_day,
 		case 
-			when post_created_at-drip_created_at > 2 
+			when post_created_at-last_drip_created_at > 2 
 			then 1 else 0
 		end as after_third_day
 	from 
@@ -148,66 +160,67 @@ broadcast_users as
 		campaign_run_start_date
 	)
 	
--- 	find total signups and unique post users per campaign
-, find_total_users as 
-	(select 
-		tdp.campaign_id
-	,	count(distinct s.northstar_id)::float as total_signups
-	,	count(distinct p.northstar_id)::float as total_post_users
-	from 
-		total_drip_users tdp
-		left join signups s 
-		using (campaign_id)
-		left join posts p
-		using (campaign_id)
-	group by 
-		1
-	)
+-- --	find total signups and unique post users per campaign
+--, find_total_users as 
+--	(select 
+--		tdp.campaign_id
+--	,	count(distinct s.northstar_id)::float as total_signups
+--	,	count(distinct p.northstar_id)::float as total_post_users
+--	from 
+--		total_drip_users tdp
+--		left join signups s 
+--		using (campaign_id)
+--		left join posts p
+--		using (campaign_id)
+--	group by 
+--		1
+--	)
 	
--- add total signups and unique post users per campaign
-, total_users as 
-	(select 
-		tdp.*
-	,	ftu.total_signups
-	,	ftu.total_post_users
-	from 
-		total_drip_users tdp
-		left join find_total_users ftu
-		using (campaign_id)
-	)
+-- -- add total signups and unique post users per campaign
+--, total_users as 
+--	(select 
+--		tdp.*
+--	,	ftu.total_signups
+--	,	ftu.total_post_users
+--	from 
+--		total_drip_users tdp
+--		left join find_total_users ftu
+--		using (campaign_id)
+--	)
 
 
 -- calculate percentage of drip users who complete a post
 select 
 	campaign_id
 ,	campaign_run_start_date
-,	total_signups
-,	total_post_users
+--,	total_signups
+--,	total_post_users
 ,	drip_users
 ,	drip_post_users
-,	round((total_post_users/total_signups)*100, 2) as total_post_percent
-,	round((drip_post_users/drip_users)*100, 2) as drip_post_percent
+--,	(total_post_users/total_signups)*100 as total_post_percent
+,	(drip_post_users/drip_users)*100 as drip_post_percent
 ,	case
 		when drip_post_users > 0 
-		then round((total_same_day/drip_post_users)*100, 2)
+		then (total_same_day/drip_post_users)*100
 		else 0 
 	end as same_day_percent
 ,	case 
 		when drip_post_users > 0 
-		then round((total_second_day/drip_post_users)*100, 2)
+		then (total_second_day/drip_post_users)*100
 		else 0 
 	end as second_day_percent
 ,	case 
 		when drip_post_users > 0 
-		then round((total_third_day/drip_post_users)*100, 2)
+		then (total_third_day/drip_post_users)*100
 		else 0 
 	end as third_day_percent
 ,	case 
 		when drip_post_users > 0 
-		then round((total_after_third_day/drip_post_users)*100, 2)
+		then (total_after_third_day/drip_post_users)*100
 		else 0 
 	end as after_third_day_percent
 from 
-	total_users tu
+	total_drip_users
+--	total_users tu
 	
 
